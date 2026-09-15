@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="editar-telefone.css">
+    <title>Verificação de telefone | TrocaTicket</title>
+</head>
+<body class="phone-page">
+    <header class="site-header">
+        <a class="brand" href="index.html">
+            <img class="brand-logo" src="imagens/logo troca ticket.png" alt="TrocaTicket">
+            <span>Troca<span class="brand-accent">Ticket</span></span>
+        </a>
+
+        <a href="perfil.html" class="button button-outline" style="padding: 8px 18px; font-size: 13px; text-decoration: none;">
+            Voltar
+        </a>
+    </header>
+
+    <main class="phone-shell">
+        <div class="phone-content-card">
+            <h1>Verificação de telefone</h1>
+            <div class="phone-divider"></div>
+            <p class="phone-lead">Digite o número do seu celular</p>
+            
+            <form id="phone-form" class="phone-form">
+                <div class="phone-number-row">
+                    <label class="country-selector" aria-label="País do telefone">
+                        <button id="country-display" class="country-display" type="button" aria-expanded="false">+55</button>
+                        <div id="country-options" class="country-options" role="listbox" hidden>
+                            <button type="button" data-code="+55" data-label="BR +55">BR +55</button>
+                            <button type="button" data-code="+1" data-label="US +1">US +1</button>
+                            <button type="button" data-code="+351" data-label="PT +351">PT +351</button>
+                            <button type="button" data-code="+34" data-label="ES +34">ES +34</button>
+                            <button type="button" data-code="+44" data-label="GB +44">GB +44</button>
+                            <button type="button" data-code="+49" data-label="DE +49">DE +49</button>
+                            <button type="button" data-code="+33" data-label="FR +33">FR +33</button>
+                            <button type="button" data-code="+39" data-label="IT +39">IT +39</button>
+                            <button type="button" data-code="+81" data-label="JP +81">JP +81</button>
+                        </div>
+                        <input id="country-code" type="hidden" value="+55">
+                    </label>
+                    <input id="phone-number" name="telefone" type="tel" inputmode="tel" required placeholder="(99) 91111-1111">
+                </div>
+
+                <p class="phone-description">
+                    Enviaremos uma mensagem com o código de verificação para o número indicado. Selecione abaixo a forma que deseja recebê-la.
+                </p>
+
+                <div class="channel-actions">
+                    <button class="channel-button whatsapp" type="button" data-channel="whatsapp">WhatsApp</button>
+                    <button class="channel-button sms" type="button" data-channel="sms">SMS</button>
+                </div>
+
+                <p id="phone-message" class="phone-message" role="status"></p>
+            </form>
+
+            <section id="code-step" class="code-step" hidden>
+                <label for="verification-code">Código de verificação</label>
+                <input id="verification-code" inputmode="numeric" maxlength="6" pattern="\d{6}" placeholder="Digite os 6 dígitos">
+                <button id="confirm-phone" class="confirm-button" type="button">Confirmar telefone</button>
+            </section>
+
+            <a class="cancel-link" href="perfil.html">Cancelar</a>
+        </div>
+    </main>
+
+    <script src="editar-telefone.js" defer></script>
+</body>
+</html>

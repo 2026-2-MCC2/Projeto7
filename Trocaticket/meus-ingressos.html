@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="meus-ingressos.css">
+    <title>Meus pedidos | TrocaTicket</title>
+</head>
+<body class="page-body">
+    <header class="site-header">
+        <a class="brand" href="index.html">
+            <img class="brand-logo" src="imagens/logo troca ticket.png" alt="TrocaTicket">
+            <span>Troca<span class="brand-accent">Ticket</span></span>
+        </a>
+        <a href="index.html" class="btn-return-menu">Voltar</a>
+    </header>
+
+    <main class="orders-container">
+        <div class="page-intro">
+            <h1 class="orders-main-title">Meus pedidos</h1>
+            <p id="ticket-message"></p>
+        </div>
+
+        <section id="tickets" class="tickets-list">
+            <p style="color: var(--muted, #8c93a8);">Carregando pedidos...</p>
+        </section>
+    </main>
+
+    <script src="meus-ingressos.js"></script>
+</body>
+</html>
