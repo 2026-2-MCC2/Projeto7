@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="editar-perfil.css">
+    <title>Editar dados | TrocaTicket</title>
+</head>
+<body class="edit-profile-page">
+    <header class="site-header">
+        <a class="brand" href="index.html">
+            <img class="brand-logo" src="imagens/logo troca ticket.png" alt="TrocaTicket">
+            <span>Troca<span class="brand-accent">Ticket</span></span>
+        </a>
+
+        <a href="perfil.html" class="button button-outline" style="padding: 8px 18px; font-size: 13px; text-decoration: none;">
+            Voltar
+        </a>
+    </header>
+
+    <main class="edit-profile-shell">
+        <h1>Editar dados</h1>
+        
+        <div class="edit-avatar">
+            <label for="avatar-input" title="Clique para alterar a foto">
+                <img id="edit-profile-avatar" src="imagens/logo troca ticket.png" alt="Foto do perfil">
+                <div class="avatar-badge">📷</div>
+            </label>
+            <input type="file" id="avatar-input" accept="image/png, image/jpeg, image/webp" style="display: none;">
+        </div>
+
+        <form id="edit-profile-form">
+            <div class="readonly-grid">
+                <label>Nome<input id="nome" readonly></label>
+                <label>Sobrenome<input id="sobrenome" readonly></label>
+            </div>
+            
+            <label>E-mail<input id="email" type="email" readonly></label>
+            
+            <div class="readonly-grid">
+                <label>CPF<input id="cpf" readonly></label>
+                <label>Telefone<input id="telefone" readonly></label>
+            </div>
+            
+            <div class="editable-grid">
+                <label>Data de nascimento<input id="data_nascimento" type="date" required></label>
+                <label>Gênero
+                    <select id="genero" required>
+                        <option value="">Selecione</option>
+                        <option value="Masculino">Masculino</option>
+                        <option value="Feminino">Feminino</option>
+                        <option value="Outro">Outro</option>
+                        <option value="Prefiro não informar">Prefiro não informar</option>
+                    </select>
+                </label>
+            </div>
+            
+            <p id="edit-profile-message" role="status"></p>
+            <button class="edit-profile-save" type="submit">Salvar alterações</button>
+        </form>
+    </main>
+
+    <script src="editar-perfil.js" defer></script>
+</body>
+</html>

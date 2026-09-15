@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
+    <title>TrocaTicket | Ingressos sem complicação</title>
+</head>
+<body>
+    <header class="site-header">
+        <a class="brand" href="#inicio">
+            <img class="brand-logo" src="imagens/logo troca ticket.png" alt="TrocaTicket">
+            <span>Troca<span class="brand-accent">Ticket</span></span>
+        </a>
+        <button class="menu-toggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="main-menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <nav class="main-nav" id="main-menu" aria-label="Navegação principal">
+            <a href="#eventos">
+                <svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="4" y="5.5" width="16" height="15" rx="1.5"></rect>
+                    <path d="M8 3.5v4M16 3.5v4M4 10h16M8 14h.01M12 14h.01M16 14h.01M8 17.5h.01M12 17.5h.01"></path>
+                </svg>
+                <span>Eventos</span>
+            </a>
+            <a id="account-link" href="login.html">
+                <svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="8" r="3.5"></circle>
+                    <path d="M5 20c.8-3.2 3.2-5 7-5s6.2 1.8 7 5"></path>
+                </svg>
+                <span>Minha Conta</span>
+            </a>
+            <a href="meus-ingressos.html">
+                <svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M5 7.5h14v9H5z"></path>
+                    <path d="M8 7.5v9M11 10h5M11 13h3"></path>
+                </svg>
+                <span>Meus ingressos</span>
+            </a>
+            <a href="#anunciar">
+                <svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 8h13l-3-3M20 16H7l3 3"></path>
+                </svg>
+                <span>Revenda</span>
+            </a>
+            <a href="ajuda.html">
+                <svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="12" r="8.5"></circle>
+                    <path d="M9.8 9.5a2.4 2.4 0 1 1 3.8 1.9c-1 .7-1.6 1.1-1.6 2.4M12 16.8h.01"></path>
+                </svg>
+                <span>Central de ajuda</span>
+            </a>
+            <a href="javascript:void(0);" id="logout-link">
+                <svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                <span>Sair</span>
+            </a>
+        </nav>
+    </header>
+
+    <main id="inicio">
+        <section class="event-carousel-section" aria-label="Eventos disponíveis">
+            <div class="carousel-heading">
+                <div>
+                    <p class="eyebrow">Acontece por aqui</p>
+                    <h2>Encontre seu próximo evento</h2>
+                </div>
+                <div class="carousel-controls">
+                    <button class="carousel-button" id="carousel-prev" type="button" aria-label="Evento anterior">←</button>
+                    <button class="carousel-button" id="carousel-next" type="button" aria-label="Próximo evento">→</button>
+                </div>
+            </div>
+            <div class="event-carousel" id="event-carousel"></div>
+            <div class="carousel-dots" id="carousel-dots" aria-label="Selecionar evento"></div>
+        </section>
+
+        <section class="event-section section-wrap" id="eventos">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">Escolha seu próximo rolê</p>
+                    <h2>Eventos em destaque</h2>
+                </div>
+                <label class="select-wrap">Região 
+                    <select id="region-filter">
+                        <option value="Todos">Todos os locais</option>
+                        <option value="São Paulo">São Paulo</option>
+                        <option value="Campinas">Campinas</option>
+                    </select>
+                </label>
+            </div>
+            <div class="event-grid" id="event-grid"></div>
+        </section>
+
+        <section class="hero section-wrap">
+            <div class="hero-copy">
+                <p class="eyebrow"><span class="live-dot"></span> A troca segura começa aqui</p>
+                <h1>Seu ingresso ainda tem <em>história</em> para contar.</h1>
+                <p class="hero-text">Uma plataforma oficial para comprar e repassar ingressos de bilheterias parceiras, pelo preço real do lote e sem cambismo.</p>
+                <div class="hero-actions">
+                    <button class="button button-primary button-large" data-scroll="#anunciar">Anunciar ingresso <span>↗</span></button>
+                    <button class="button button-outline button-large" data-scroll="#eventos">Explorar eventos <span>↓</span></button>
+                </div>
+                <div class="trust-row">
+                    <span>✓ Preço oficial do lote</span>
+                    <span>✓ Re-emissão nominal</span>
+                    <span>✓ Intermediação segura</span>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="ticket-visual">
+                    <div class="ticket-top">
+                        <span>ACCESS / 2026</span>
+                        <span class="ticket-status">VERIFICADO</span>
+                    </div>
+                    <div class="ticket-event">SUA PRÓXIMA<br><strong>EXPERIÊNCIA</strong></div>
+                    <div class="ticket-meta">
+                        <span>QR DINÂMICO<br><b>● ● ●</b></span>
+                        <span class="ticket-barcode">▮▮ ▮ ▮▮ ▮▮ ▮</span>
+                    </div>
+                </div>
+                <div class="orbit orbit-one"></div>
+                <div class="orbit orbit-two"></div>
+                <span class="visual-note note-one">fila única<br><b>justa</b></span>
+                <span class="visual-note note-two">100%<br><b>digital</b></span>
+            </div>
+        </section>
+
+        <section class="modules-section section-wrap" id="recursos">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">Tudo conectado</p>
+                    <h2>Uma plataforma.<br>Mais possibilidades.</h2>
+                </div>
+                <p class="section-intro">Da descoberta ao acesso, cada etapa da sua experiência vive no mesmo lugar.</p>
+            </div>
+            <div class="modules-grid">
+                <article>
+                    <span>01 / 04</span>
+                    <strong>Ingressos</strong>
+                    <small>COMPRA</small>
+                    <p>Encontre eventos e compre sem complicação.</p>
+                    <b>↗</b>
+                </article>
+                <article>
+                    <span>02 / 04</span>
+                    <strong>Revenda</strong>
+                    <small>MARKETPLACE</small>
+                    <p>Quando os planos mudarem, repasse com segurança.</p>
+                    <b>↗</b>
+                </article>
+                <article>
+                    <span>03 / 04</span>
+                    <strong>Gestão</strong>
+                    <small>ORGANIZADORES</small>
+                    <p>Publique, acompanhe lotes e cuide do seu evento.</p>
+                    <b>↗</b>
+                </article>
+                <article>
+                    <span>04 / 04</span>
+                    <strong>Ticket digital</strong>
+                    <small>ACESSO</small>
+                    <p>Seu ingresso sempre à mão, com QR Code dinâmico.</p>
+                    <b>↗</b>
+                </article>
+            </div>
+        </section>
+
+        <section class="about-section section-wrap" id="sobre">
+            <p class="eyebrow">Sobre o produto</p>
+            <div class="about-layout">
+                <h2>Descubra.<br><em>Compre.</em><br>Viva.</h2>
+                <div>
+                    <p>O TrocaTicket conecta público, eventos e organizadores em uma jornada clara, rápida e segura.</p>
+                    <p>Uma experiência pensada para reduzir o atrito, proteger a titularidade e deixar cada ingresso pronto para o momento certo.</p>
+                    <button class="button button-outline" data-scroll="#como-funciona">Conhecer a plataforma <span>↗</span></button>
+                </div>
+            </div>
+        </section>
+
+        <section class="how-section" id="como-funciona">
+            <div class="section-wrap">
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Transparência em cada etapa</p>
+                        <h2>Uma fila. Um preço justo.</h2>
+                    </div>
+                    <p class="section-intro">Você sabe exatamente como seu ingresso chega até a próxima pessoa.</p>
+                </div>
+                <div class="steps">
+                    <article class="step">
+                        <span>01</span>
+                        <div class="step-icon">↗</div>
+                        <h3>Você anuncia</h3>
+                        <p>Repasse pelo valor exato do lote que comprou, sem especulação.</p>
+                    </article>
+                    <article class="step">
+                        <span>02</span>
+                        <div class="step-icon">≡</div>
+                        <h3>A fila organiza</h3>
+                        <p>Menor preço e nível de prioridade definem a ordem de venda.</p>
+                    </article>
+                    <article class="step">
+                        <span>03</span>
+                        <div class="step-icon">⌁</div>
+                        <h3>O ingresso renasce</h3>
+                        <p>O QR Code antigo é cancelado e um novo titular é emitido.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="seller-section section-wrap" id="anunciar">
+            <div class="seller-copy">
+                <p class="eyebrow">Tem ingresso parado?</p>
+                <h2>Devolva a energia<br>para a pista.</h2>
+                <p>Uma forma simples e responsável de repassar seu ingresso para quem realmente quer viver o evento.</p>
+                <a class="button button-primary" href="login.html">Começar anúncio <span>↗</span></a>
+            </div>
+            <div class="seller-panel">
+                <p class="eyebrow">Simulador de anúncio</p>
+                <form id="seller-form">
+                    <label>Evento
+                        <select>
+                            <option>Trap in Sanca · 18 ABR</option>
+                            <option>Terra SP · 02 MAI</option>
+                            <option>Festa do Chefe · 16 MAI</option>
+                        </select>
+                    </label>
+                    <label>Lote original
+                        <select id="seller-lot">
+                            <option value="180">Lote 1 · R$ 180,00</option>
+                            <option value="220">Lote 2 · R$ 220,00</option>
+                        </select>
+                    </label>
+                    <label>Prioridade na fila
+                        <select id="priority">
+                            <option value="2">Comum · taxa de 2%</option>
+                            <option value="5">Básica · taxa de 5%</option>
+                            <option value="8">Premium · taxa de 8%</option>
+                        </select>
+                    </label>
+                    <div class="panel-line">
+                        <span>Você recebe líquido</span>
+                        <strong id="net-value">R$ 176,40</strong>
+                    </div>
+                    <div class="progress"><i></i></div>
+                    <div class="panel-footer">
+                        <span id="priority-label">Prioridade comum</span>
+                        <span class="green">fila ativa</span>
+                    </div>
+                    <button class="button button-primary button-full" type="submit">Publicar anúncio <span>↗</span></button>
+                </form>
+            </div>
+        </section>
+
+        <section class="section-wrap" id="ingressos">
+            <div class="seller-panel">
+                <p class="eyebrow">Área do comprador</p>
+                <h2>Meus ingressos</h2>
+                <p class="event-meta">Entre na sua conta para consultar ingressos, códigos dinâmicos e histórico de compras.</p>
+                <a class="button button-outline" href="meus-ingressos.html">Acessar meus ingressos <span>↗</span></a>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer section-wrap">
+        <a class="brand" href="#inicio">
+            <img class="brand-logo" src="imagens/logo troca ticket.png" alt="TrocaTicket">
+            <span>Troca<span class="brand-accent">Ticket</span></span>
+        </a>
+        <span>Seu fluxo de ingressos começa aqui.</span>
+        <span>© 2026 TrocaTicket</span>
+    </footer>
+
+    <!-- Modais -->
+    <div class="modal-backdrop" id="auth-modal" aria-hidden="true">
+        <div class="modal auth-modal login-modal">
+            <button class="modal-close" data-close aria-label="Fechar login">×</button>
+            <img class="login-logo" src="imagens/logo branca troca ticket.png" alt="TrocaTicket">
+            <h2>Login</h2>
+            <p class="login-subtitle">Informe seus dados de acesso</p>
+            <form id="auth-form">
+                <input required type="email" placeholder="E-mail" aria-label="E-mail">
+                <div class="password-field">
+                    <input id="login-password" required type="password" minlength="6" placeholder="Senha" aria-label="Senha">
+                    <button class="password-toggle" type="button" aria-label="Mostrar senha" aria-pressed="false">
+                        <svg class="eye-icon" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M2.5 12s3.4-5 9.5-5 9.5 5 9.5 5-3.4 5-9.5 5-9.5-5-9.5-5Z"></path>
+                            <circle cx="12" cy="12" r="2.5"></circle>
+                            <path class="eye-slash" d="m4 4 16 16"></path>
+                        </svg>
+                    </button>
+                </div>
+                <a class="forgot-password" href="#">Esqueci minha senha</a>
+                <button class="button button-primary button-full login-submit" type="submit">Entrar</button>
+            </form>
+            <p class="form-foot login-register">Não possui cadastro? <a href="#" data-register>Cadastre-se</a></p>
+        </div>
+    </div>
+
+    <div class="modal-backdrop" id="register-modal" aria-hidden="true">
+        <div class="modal register-modal">
+            <button class="modal-close" data-close aria-label="Fechar cadastro">×</button>
+            <img class="register-logo" src="imagens/logo branca troca ticket.png" alt="TrocaTicket">
+            <h2>Crie sua conta</h2>
+            <p class="login-subtitle">Entre para comprar e revender ingressos com segurança</p>
+            <form id="register-form">
+                <div class="form-row">
+                    <input required name="nome" placeholder="Nome" aria-label="Nome">
+                    <input required name="sobrenome" placeholder="Sobrenome" aria-label="Sobrenome">
+                </div>
+                <input required name="cpf" pattern="\d{3}\.\d{3}\.\d{3}-\d{2}" placeholder="CPF" aria-label="CPF">
+                <input required name="nascimento" type="date" aria-label="Data de nascimento">
+                <select required name="sexo" aria-label="Sexo">
+                    <option value="">Sexo</option>
+                    <option>Masculino</option>
+                    <option>Feminino</option>
+                </select>
+                <input required name="celular" type="tel" placeholder="Celular" aria-label="Celular">
+                <input required name="email" type="email" placeholder="E-mail" aria-label="E-mail">
+                <div class="password-field">
+                    <input required id="register-password" name="senha" type="password" minlength="6" placeholder="Senha" aria-label="Senha">
+                    <button class="password-toggle register-password-toggle" type="button" aria-label="Mostrar senha" aria-pressed="false">
+                        <svg class="eye-icon" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M2.5 12s3.4-5 9.5-5 9.5 5 9.5 5-3.4 5-9.5 5-9.5-5-9.5-5Z"></path>
+                            <circle cx="12" cy="12" r="2.5"></circle>
+                            <path class="eye-slash" d="m4 4 16 16"></path>
+                        </svg>
+                    </button>
+                </div>
+                <input required id="register-confirm-password" name="confirmarSenha" type="password" minlength="6" placeholder="Confirme a senha" aria-label="Confirme a senha">
+                <p class="form-error" id="register-error" role="alert"></p>
+                <button class="button button-primary button-full login-submit" type="submit">Cadastrar</button>
+            </form>
+            <div class="register-success" id="register-success" aria-live="polite">
+                <div class="success-icon">✓</div>
+                <h2>Cadastro concluído</h2>
+                <p>Seus dados foram salvos com segurança.</p>
+            </div>
+            <p class="form-foot login-register">Já possui cadastro? <a href="#" data-back-login>Login</a></p>
+        </div>
+    </div>
+
+    <div class="modal-backdrop" id="event-modal" aria-hidden="true">
+        <div class="modal event-modal">
+            <button class="modal-close" data-close>×</button>
+            <div id="event-detail"></div>
+        </div>
+    </div>
+
+    <div class="modal-backdrop" id="checkout-modal" aria-hidden="true">
+        <div class="modal checkout-modal">
+            <button class="modal-close" data-close>×</button>
+            <div id="checkout-content"></div>
+        </div>
+    </div>
+
+    <div class="modal-backdrop" id="account-modal" aria-hidden="true">
+        <div class="modal account-modal">
+            <button class="modal-close" data-close aria-label="Fechar minha conta">×</button>
+            <img class="account-logo" src="imagens/logo branca troca ticket.png" alt="TrocaTicket">
+            <p class="eyebrow">Área pessoal</p>
+            <h2>Minha conta</h2>
+            <p class="login-subtitle" id="account-welcome">Seus dados e ingressos em um só lugar.</p>
+            <div class="account-details">
+                <div><small>Nome</small><strong id="account-name">Usuário TrocaTicket</strong></div>
+                <div><small>E-mail</small><strong id="account-email">-</strong></div>
+                <div><small>Status</small><strong class="account-status">Conta verificada</strong></div>
+            </div>
+            <button class="button button-outline button-full" id="logout-button" type="button">Sair da conta</button>
+        </div>
+    </div>
+</body>
+</html>

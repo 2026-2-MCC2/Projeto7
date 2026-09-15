@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="cartoes.css">
+    <title>Meus Cartões | TrocaTicket</title>
+</head>
+<body class="cards-page">
+    <header class="site-header">
+        <a class="brand" href="index.html">
+            <img class="brand-logo" src="imagens/logo troca ticket.png" alt="TrocaTicket">
+            <span>Troca<span class="brand-accent">Ticket</span></span>
+        </a>
+
+        <a href="perfil.html" class="button button-outline" style="padding: 8px 18px; font-size: 13px; text-decoration: none;">
+            Voltar
+        </a>
+    </header>
+
+    <main class="cards-shell">
+        <header class="cards-header">
+            <h1>Meus Cartões</h1>
+            <p>Gerencie seus cartões com segurança.</p>
+        </header>
+
+        <nav class="cards-tabs" role="tablist">
+            <button class="cards-tab active" type="button" role="tab" aria-selected="true" data-tab="saved">Cartões Salvos</button>
+            <button class="cards-tab" type="button" role="tab" aria-selected="false" data-tab="new">Cadastrar Novo Cartão</button>
+        </nav>
+
+        <section id="saved-tab" class="cards-tab-panel" role="tabpanel">
+            <div id="cards-list" class="cards-list">
+                <p class="cards-status">Carregando cartões...</p>
+            </div>
+        </section>
+
+        <section id="new-tab" class="cards-tab-panel" role="tabpanel" hidden>
+            <form id="card-form" class="card-form">
+                <label>Nome impresso no cartão
+                    <input name="nome_titular" required autocomplete="cc-name" placeholder="NOME COMPLETO">
+                </label>
+                
+                <label>Número do cartão
+                    <input name="numero_cartao" required inputmode="numeric" autocomplete="cc-number" maxlength="19" placeholder="0000 0000 0000 0000">
+                </label>
+                
+                <div class="card-form-row">
+                    <label>Validade
+                        <input name="validade" required inputmode="numeric" maxlength="5" autocomplete="cc-exp" placeholder="MM/AA">
+                    </label>
+                    <label>CVV
+                        <input name="cvv" required inputmode="numeric" maxlength="4" autocomplete="cc-csc" type="password" placeholder="•••">
+                    </label>
+                </div>
+
+                <label>CPF do titular
+                    <input name="cpf" required inputmode="numeric" maxlength="14" placeholder="000.000.000-00">
+                </label>
+
+                <p id="card-message" class="cards-status" role="status"></p>
+                <button class="cards-primary" type="submit">Salvar Cartão</button>
+            </form>
+        </section>
+    </main>
+
+    <script src="cartoes.js" defer></script>
+</body>
+</html>
