@@ -48,6 +48,9 @@
             <button class="nav-btn" data-section="bilheteria">
                 <span>Bilheteria</span>
             </button>
+            <button class="nav-btn" data-section="auditoria">
+                <span>Equipe</span>
+            </button>
         </nav>
 
         <main id="admin-content" class="admin-content">
@@ -103,6 +106,19 @@
                         </div>
                     </div>
                 </div>
+                <div class="stats-grid executive-metrics">
+                    <div class="stat-card"><div class="stat-icon">🛡️</div><div class="stat-info"><span class="stat-label">Cancelamentos pendentes</span><span class="stat-value" id="pending-cancellations">0</span></div></div>
+                </div>
+                <div class="dashboard-chart-grid">
+                    <div class="dashboard-card chart-card">
+                        <div class="chart-heading"><div><h3>GMV por evento</h3><p>Vendas agrupadas por período</p></div><div class="chart-filters"><select id="gmv-event" required><option value="">Selecione um evento</option></select><select id="gmv-period"><option value="daily">Diário</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option></select></div></div>
+                        <div id="gmv-chart" class="bar-chart"><span>Selecione um evento para visualizar o GMV.</span></div>
+                    </div>
+                    <div class="dashboard-card chart-card">
+                        <div class="chart-heading"><div><h3>Tendência geral de vendas</h3><p>Todos os eventos do site</p></div><select id="trend-period"><option value="daily">Dia</option><option value="weekly">Semana</option><option value="monthly">Mês</option><option value="yearly">Ano</option></select></div>
+                        <div id="trend-chart" class="line-chart"><span>Sem dados suficientes</span></div>
+                    </div>
+                </div>
             </section>
 
             <!-- Eventos Section -->
@@ -135,12 +151,55 @@
                 </div>
             </section>
 
+            <section id="section-auditoria" class="admin-section">
+                <div class="section-header">
+                    <h2>Atividades Recentes da Equipe</h2>
+                    <div class="audit-filters">
+                        <input type="search" id="audit-actor" placeholder="Nome do responsável">
+                        <select id="audit-type"><option value="">Todos os tipos</option><option value="admin">Admin</option><option value="organizador">Organizador</option><option value="fornecedor">Fornecedor</option><option value="bilheteria">Bilheteria</option><option value="sistema">Sistema</option></select>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="data-table"><thead><tr><th>Responsável</th><th>Tipo</th><th>Ação</th><th>Descrição</th><th>Item afetado</th><th>Data e hora</th></tr></thead><tbody id="audit-table-body"><tr><td colspan="6" class="empty-state">Nenhuma atividade registrada</td></tr></tbody></table>
+                </div>
+            </section>
+
             <!-- Usuários Section -->
             <section id="section-usuarios" class="admin-section">
                 <div class="section-header">
                     <h2>Gerenciamento de Usuários</h2>
-                    <div class="search-filter">
-                        <input type="text" id="user-search" placeholder="Buscar usuário...">
+                    <div class="filter-group user-filter-menu">
+                        <button type="button" class="filter-trigger" id="user-filter-trigger" aria-expanded="false" aria-controls="user-filter-panel" title="Filtrar usuários">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-6.2 7.1v5.4l-3.6 1.8v-7.2L4 5Z"></path></svg>
+                            <span>Filtrar</span>
+                        </button>
+                        <div class="ticket-filter-panel user-filter-panel" id="user-filter-panel" hidden>
+                            <div class="ticket-filter-grid">
+                                <label>Nome<input type="search" id="filter-user-name" placeholder="Nome do usuário"></label>
+                                <label>E-mail<input type="search" id="filter-user-email" placeholder="E-mail"></label>
+                                <label>Telefone<input type="search" id="filter-user-phone" placeholder="Telefone"></label>
+                                <label>Status<select id="filter-user-status">
+                                    <option value="">Todos os status</option>
+                                    <option value="pendente_verificacao">Pendente de verificação</option>
+                                    <option value="ativa">Ativa</option>
+                                    <option value="suspensa">Suspensa</option>
+                                    <option value="excluida">Excluída</option>
+                                </select></label>
+                                <label>Tipo de usuário<select id="filter-user-type">
+                                    <option value="">Todos os tipos</option>
+                                    <option value="admin">Admin</option>
+                                    <option value="comum">Comum</option>
+                                    <option value="organizador">Organizador</option>
+                                    <option value="fornecedor">Fornecedor</option>
+                                    <option value="bilheteria">Bilheteria</option>
+                                </select></label>
+                                <label>Data de cadastro<input type="date" id="filter-user-date"></label>
+                            </div>
+                            <div class="ticket-filter-actions">
+                                <button type="button" class="filter-clear" id="user-filter-clear">Limpar filtros</button>
+                                <button type="button" class="filter-apply" id="user-filter-apply">Aplicar filtros</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -153,15 +212,21 @@
                                 <th>Telefone</th>
                                 <th>Data de Cadastro</th>
                                 <th>Status</th>
+                                <th>Tipo de Usuário</th>
                                 <th>Ações</th>
                             </tr>
                         </thead>
                         <tbody id="usuarios-table-body">
                             <tr class="empty-row">
-                                <td colspan="6" class="empty-state">Nenhum usuário cadastrado</td>
+                                <td colspan="7" class="empty-state">Nenhum usuário cadastrado</td>
                             </tr>
                         </tbody>
                     </table>
+                </div>
+                <div class="dashboard-card user-history-card">
+                    <h3>Histórico vinculado ao perfil</h3>
+                    <div class="user-history-search"><input type="search" id="user-history-query" placeholder="Nome, telefone, e-mail ou CPF"><button type="button" class="filter-apply" id="user-history-search">Pesquisar</button></div>
+                    <div id="user-history-result" class="empty-state">Pesquise um usuário para consultar compras, ingressos e transações.</div>
                 </div>
             </section>
 
@@ -169,13 +234,36 @@
             <section id="section-ingressos" class="admin-section">
                 <div class="section-header">
                     <h2>Gerenciamento de Ingressos</h2>
-                    <div class="filter-group">
-                        <select id="ticket-filter">
-                            <option value="">Todos os status</option>
-                            <option value="active">Ativo</option>
-                            <option value="sold">Vendido</option>
-                            <option value="cancelled">Cancelado</option>
-                        </select>
+                    <div class="filter-group ticket-filter-menu">
+                        <button type="button" class="filter-trigger" id="ticket-filter-trigger" aria-expanded="false" aria-controls="ticket-filter-panel" title="Filtrar ingressos">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-6.2 7.1v5.4l-3.6 1.8v-7.2L4 5Z"></path></svg>
+                            <span>Filtrar</span>
+                        </button>
+                        <div class="ticket-filter-panel" id="ticket-filter-panel" hidden>
+                            <div class="ticket-filter-grid">
+                                <label>Código do ingresso<input type="search" id="filter-ticket-code" placeholder="TKT-..."></label>
+                                <label>Código do pedido<input type="search" id="filter-order-code" placeholder="PED-..."></label>
+                                <label>Evento<select id="filter-event"><option value="">Todos os eventos</option></select></label>
+                                <label>Proprietário<select id="filter-owner"><option value="">Todos os proprietários</option></select></label>
+                                <label>Preço<input type="number" id="filter-price" min="0" step="0.01" placeholder="0,00"></label>
+                                <label>Status<select id="filter-status">
+                                    <option value="">Todos os status</option>
+                                    <option value="ativo">Ativo</option>
+                                    <option value="resgatado">Resgatado</option>
+                                    <option value="expirado">Expirado</option>
+                                    <option value="anunciado">Anunciado</option>
+                                    <option value="reservado">Reservado</option>
+                                    <option value="cancelamento_solicitado">Cancelamento solicitado</option>
+                                    <option value="cancelado">Cancelado</option>
+                                    <option value="bloqueado">Bloqueado</option>
+                                </select></label>
+                                <label>Data de aquisição<input type="date" id="filter-date"></label>
+                            </div>
+                            <div class="ticket-filter-actions">
+                                <button type="button" class="filter-clear" id="filter-clear">Limpar filtros</button>
+                                <button type="button" class="filter-apply" id="filter-apply">Aplicar filtros</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -183,18 +271,19 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>ID do Ingresso</th>
+                                <th>Código do Ingresso</th>
+                                <th>Código do Pedido</th>
                                 <th>Evento</th>
                                 <th>Proprietário</th>
                                 <th>Preço</th>
                                 <th>Status</th>
-                                <th>Data de Anúncio</th>
+                                <th>Data de Aquisição</th>
                                 <th>Ações</th>
                             </tr>
                         </thead>
                         <tbody id="ingressos-table-body">
                             <tr class="empty-row">
-                                <td colspan="7" class="empty-state">Nenhum ingresso registrado</td>
+                                <td colspan="8" class="empty-state">Nenhum ingresso registrado</td>
                             </tr>
                         </tbody>
                     </table>
