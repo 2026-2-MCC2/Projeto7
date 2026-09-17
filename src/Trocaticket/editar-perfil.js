@@ -95,6 +95,10 @@ form.addEventListener('submit', async event => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         email: user.email,
+        nome: document.getElementById('nome').value.trim(),
+        sobrenome: document.getElementById('sobrenome').value.trim(),
+        cpf: document.getElementById('cpf').value,
+        telefone: document.getElementById('telefone').value.trim(),
         genero: document.getElementById('genero').value,
         data_nascimento: document.getElementById('data_nascimento').value
       })
@@ -103,8 +107,7 @@ form.addEventListener('submit', async event => {
     if (!response.ok || !data.ok) throw new Error(data.message || `HTTP ${response.status}`);
     
     // Atualiza cache local
-    user.genero = document.getElementById('genero').value;
-    user.data_nascimento = document.getElementById('data_nascimento').value;
+    Object.assign(user, data.user);
     localStorage.setItem('trocaticket-user', JSON.stringify(user));
 
     message.className = 'success';
