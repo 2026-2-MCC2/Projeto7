@@ -1,0 +1,235 @@
+/* ===== TELA MEUS CARTÕES (ESCALA 80% EM 100% ZOOM NATIVO) ===== */
+.cards-page {
+  min-height: 100vh;
+  margin: 0;
+  background: #1d1e23;
+  color: #f4f4f5;
+  font-family: 'Manrope', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.cards-shell {
+  width: min(540px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 24px 0 44px;
+}
+
+.cards-back {
+  display: inline-block;
+  color: #aeb7df;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 700;
+  transition: color 0.2s ease;
+}
+
+.cards-back:hover {
+  color: #ffffff;
+}
+
+.cards-header {
+  margin: 20px 0 20px;
+}
+
+.cards-header h1 {
+  margin: 0 0 6px;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+}
+
+.cards-header p:last-child {
+  margin: 0;
+  color: #a4a6b0;
+  font-size: 13px;
+}
+
+.cards-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 10px;
+  background: #2b2c34;
+}
+
+.cards-tab {
+  min-height: 40px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #bfc0c6;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.cards-tab.active {
+  background: #7186d0;
+  color: #ffffff;
+}
+
+.cards-tab-panel {
+  margin-top: 18px;
+}
+
+.cards-tab-panel[hidden] {
+  display: none;
+}
+
+.cards-list {
+  display: grid;
+  gap: 12px;
+}
+
+.saved-card {
+  padding: 16px;
+  border: 1px solid #3c3e47;
+  border-radius: 12px;
+  background: #25262c;
+}
+
+.saved-card-top,
+.saved-card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.card-brand {
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.card-digits {
+  margin: 14px 0;
+  color: #ffffff;
+  font-size: 16px;
+  letter-spacing: 2px;
+  font-family: 'DM Mono', monospace;
+}
+
+.card-holder {
+  color: #c5c6cb;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.card-expiry {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.card-delete {
+  border: 0;
+  background: transparent;
+  color: #f87171;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.card-delete:hover {
+  color: #ef4444;
+}
+
+.card-form {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border-radius: 12px;
+  background: #25262c;
+}
+
+.card-form label {
+  display: grid;
+  gap: 5px;
+  color: #c9cbd2;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.card-form input {
+  min-height: 42px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border: 1px solid #3c3e47;
+  border-radius: 8px;
+  background: #1d1e23;
+  color: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  outline: 0;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-form input:focus {
+  border-color: #7186d0;
+  box-shadow: 0 0 0 2px rgba(113, 134, 208, 0.2);
+}
+
+.card-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.cards-primary {
+  min-height: 44px;
+  margin-top: 4px;
+  border: 0;
+  border-radius: 8px;
+  background: #7186d0;
+  color: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.cards-primary:hover {
+  background: #5d74c4;
+}
+
+.cards-status {
+  min-height: 16px;
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #d8a0a0;
+  text-align: center;
+}
+
+.card-form input:-webkit-autofill,
+.card-form input:-webkit-autofill:hover,
+.card-form input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #ffffff;
+  -webkit-box-shadow: 0 0 0 1000px #1d1e23 inset;
+  box-shadow: 0 0 0 1000px #1d1e23 inset;
+  transition: background-color 9999s ease-out 0s;
+}
+
+@media (max-width: 520px) {
+  .cards-shell {
+    width: min(100% - 24px, 540px);
+    padding-top: 18px;
+  }
+  .cards-header h1 {
+    font-size: 22px;
+  }
+  .cards-tab {
+    font-size: 11px;
+  }
+  .card-form-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}

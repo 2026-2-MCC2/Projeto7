@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="perfil.css">
+    <title>Minha Conta | TrocaTicket</title>
+</head>
+<body class="profile-page">
+    <header class="site-header">
+        <a class="brand" href="index.html">
+            <img class="brand-logo" src="imagens/logo troca ticket.png" alt="TrocaTicket">
+            <span>Troca<span class="brand-accent">Ticket</span></span>
+        </a>
+
+        <a href="index.html" class="button button-outline" style="padding: 8px 18px; font-size: 13px; text-decoration: none;">
+            Voltar
+        </a>
+    </header>
+
+    <main class="profile-shell">
+        <section class="profile-hero" aria-label="Dados da conta">
+            <label class="avatar-upload" for="avatar-input" title="Clique para alterar a foto de perfil">
+                <img id="profile-avatar" src="imagens/logo troca ticket.png" alt="Foto do perfil">
+                <span class="avatar-camera" aria-hidden="true">+</span>
+            </label>
+            <input id="avatar-input" type="file" accept="image/png, image/jpeg, image/webp" hidden>
+            <h1 id="profile-name">Carregando...</h1>
+            <p id="profile-email">-</p>
+        </section>
+
+        <section class="profile-section">
+            <h2><span class="section-symbol">⚙</span> Configurações</h2>
+            <div class="profile-actions">
+                <a class="profile-action" href="editar-perfil.html"><span class="action-icon">♙</span>Editar perfil</a>
+                <a class="profile-action" href="editar-telefone.html"><span class="action-icon">⌕</span>Editar telefone</a>
+                <a class="profile-action" href="cartoes.html"><span class="action-icon">▣</span>Meus cartões</a>
+                <button class="profile-action danger" type="button" id="delete-account"><span class="action-icon">♜</span>Excluir conta</button>
+                <button class="profile-action danger" type="button" id="profile-logout"><span class="action-icon">⏻</span>Sair</button>
+            </div>
+        </section>
+
+        <section class="profile-section profile-info">
+            <h2><span class="section-symbol">ⓘ</span> Informações</h2>
+            <a class="profile-action" href="ajuda.html"><span class="action-icon">?</span>Central de ajuda</a>
+        </section>
+
+        <form id="profile-form" class="profile-edit-form" hidden>
+            <label>Nome<input id="nome" name="nome" readonly></label>
+            <label>CPF<input id="cpf" name="cpf" readonly></label>
+            <label>E-mail<input id="email" name="email" type="email" required></label>
+            <label>Telefone<input id="telefone" name="telefone"></label>
+            <label>Nova senha<input id="senha" name="senha" type="password" minlength="6"></label>
+            <p id="profile-message" role="status"></p>
+            <button class="profile-save" type="submit">Salvar alterações</button>
+        </form>
+    </main>
+
+    <script src="perfil.js" defer></script>
+</body>
+</html>

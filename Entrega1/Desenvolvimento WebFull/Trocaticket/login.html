@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | TrocaTicket</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            background-color: #0c0e14;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            margin: 0;
+            font-family: 'Manrope', sans-serif;
+            color: #fff;
+        }
+        .login-page-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+        .login-card {
+            background: transparent;
+            width: 100%;
+            max-width: 460px;
+            text-align: center;
+        }
+        .divider-container {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 26px;
+        }
+        .divider-line {
+            flex: 1;
+            height: 1px;
+            background: #272c40;
+        }
+        .divider-text {
+            color: #8c92a0;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+        }
+        .input-group {
+            position: relative;
+            margin-bottom: 14px;
+        }
+        .input-control {
+            width: 100%;
+            height: 54px;
+            background: #eef2fa;
+            border: 1.5px solid transparent;
+            border-radius: 8px;
+            padding: 0 16px;
+            font-size: 15px;
+            color: #182035;
+            outline: none;
+            box-sizing: border-box;
+            transition: all 0.2s ease;
+        }
+        .input-control:focus {
+            background: #fff;
+            border-color: #27b7ff;
+            box-shadow: 0 0 0 3px rgba(39, 183, 255, 0.15);
+        }
+        .btn-toggle-eye {
+            position: absolute;
+            top: 50%;
+            right: 14px;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            color: #798196;
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-toggle-eye:hover {
+            color: #27b7ff;
+        }
+        .forgot-row {
+            text-align: right;
+            margin: 4px 0 20px 0;
+        }
+        .forgot-link {
+            color: #e08b16;
+            font-size: 13px;
+            font-weight: 700;
+            text-decoration: none;
+        }
+        .forgot-link:hover {
+            text-decoration: underline;
+        }
+        .login-error-msg {
+            color: #ff4757;
+            font-size: 13px;
+            margin-bottom: 16px;
+            min-height: 18px;
+            display: none;
+        }
+        .btn-login-submit {
+            width: 100%;
+            height: 52px;
+            background: linear-gradient(95deg, #1890ff, #5956e9);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            transition: opacity 0.2s ease;
+        }
+        .btn-login-submit:hover {
+            opacity: 0.9;
+        }
+        .register-footer {
+            margin-top: 30px;
+            font-size: 13px;
+            color: #8c92a0;
+        }
+        .register-footer a {
+            color: #e08b16;
+            font-weight: 800;
+            text-decoration: none;
+        }
+        .register-footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <header class="site-header">
+        <a class="brand" href="index.html">
+            <img class="brand-logo" src="imagens/logo troca ticket.png" alt="TrocaTicket">
+            <span>Troca<span class="brand-accent">Ticket</span></span>
+        </a>
+    </header>
+
+    <main class="login-page-container">
+        <div class="login-card">
+            <div class="divider-container">
+                <div class="divider-line"></div>
+                <span class="divider-text">OU</span>
+                <div class="divider-line"></div>
+            </div>
+
+            <form id="login-form">
+                <div class="input-group">
+                    <input type="email" id="login-email" class="input-control" placeholder="E-mail" required autocomplete="email">
+                </div>
+
+                <div class="input-group">
+                    <input type="password" id="login-senha" class="input-control" placeholder="Senha" required minlength="6" autocomplete="current-password">
+                    <button type="button" class="btn-toggle-eye" id="toggle-password" aria-label="Alternar exibição da senha">
+                        <svg class="eye-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="forgot-row">
+                    <a href="#" class="forgot-link">Esqueci minha senha</a>
+                </div>
+
+                <div class="login-error-msg" id="login-error-msg"></div>
+
+                <button type="submit" class="btn-login-submit" id="btn-submit">ENTRAR</button>
+            </form>
+
+            <div class="register-footer">
+                Não possui conta? <a href="index.html#cadastro">Cadastre-se</a>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('login-form');
+            const emailInput = document.getElementById('login-email');
+            const senhaInput = document.getElementById('login-senha');
+            const errorMsg = document.getElementById('login-error-msg');
+            const btnSubmit = document.getElementById('btn-submit');
+            const togglePasswordBtn = document.getElementById('toggle-password');
+
+            // Alternar exibição de senha
+            togglePasswordBtn.addEventListener('click', () => {
+                const isPassword = senhaInput.getAttribute('type') === 'password';
+                senhaInput.setAttribute('type', isPassword ? 'text' : 'password');
+            });
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                errorMsg.style.display = 'none';
+                errorMsg.textContent = '';
+
+                const email = emailInput.value.trim();
+                const senha = senhaInput.value;
+
+                if (!email || !senha) {
+                    errorMsg.textContent = 'Preencha o e-mail e a senha.';
+                    errorMsg.style.display = 'block';
+                    return;
+                }
+
+                try {
+                    btnSubmit.disabled = true;
+                    btnSubmit.textContent = 'ENTRANDO...';
+
+                    const response = await fetch('/api/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, senha })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok || !data.ok) {
+                        throw new Error(data.message || 'E-mail ou senha inválidos.');
+                    }
+
+                    // Salva sessão localmente
+                    localStorage.setItem('trocaticket-user', JSON.stringify(data.user));
+                    localStorage.setItem('usuario', JSON.stringify(data.user));
+
+                    // Redireciona sempre para a home
+                    window.location.href = 'index.html';
+                } catch (err) {
+                    console.error('[login] Erro na requisição:', err);
+                    errorMsg.textContent = err.message || 'Erro ao conectar ao servidor.';
+                    errorMsg.style.display = 'block';
+                } finally {
+                    btnSubmit.disabled = false;
+                    btnSubmit.textContent = 'ENTRAR';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

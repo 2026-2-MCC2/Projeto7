@@ -1,0 +1,84 @@
+[
+  {
+    "token": "ef17db09923e8494c48f5ed5d9ed8c14bc66fd8005dab6cc9000043de8ceb76f",
+    "rawToken": "a7f3c2d9e5b1f8a4c6e2d1b9f3a5c7e9d1b3f5a7c9e2d4b6f8a1c3e5d7f9b1",
+    "createdAt": "2026-09-01T10:30:45.123Z",
+    "expiresAt": "2026-09-08T10:30:45.123Z",
+    "email": "admin@empresa.com",
+    "used": true,
+    "usedAt": "2026-09-01T12:39:31.663Z"
+  },
+  {
+    "token": "3e079efc3c6f1f3f88952b2d4527d2b14c6b240bc0cbc2b5acee7ca3d0776330",
+    "rawToken": "1b72e29d478a1b61b88d584b17dfc24bf2f7f6e61289c8f6429f8a21477dd5c1",
+    "createdAt": "2026-09-01T12:32:35.809Z",
+    "expiresAt": "2026-09-08T12:32:35.811Z",
+    "email": "admin",
+    "used": true,
+    "usedAt": "2026-09-01T12:33:29.016Z"
+  },
+  {
+    "token": "1ba55d000b4ff351a90e94bcd9808444e65a7936348d51a534cab8f5e9d51d19",
+    "createdAt": "2026-09-01T12:42:14.506Z",
+    "expiresAt": "2026-09-08T12:42:14.542Z",
+    "email": "admin",
+    "used": true,
+    "usedAt": "2026-09-01T12:42:24.545Z"
+  },
+  {
+    "token": "c839d90890530e9e02a0df0345580c399bb59d4fc3d88a9647c9df88bec76507",
+    "createdAt": "2026-09-01T12:46:49.570Z",
+    "expiresAt": "2026-09-08T12:46:49.605Z",
+    "email": "admin",
+    "used": true,
+    "usedAt": "2026-09-01T12:59:13.979Z"
+  },
+  {
+    "token": "1473b0595bccb29fa423ebf704667b1ac8ef8da22dd5f47b9bebc83ff333ee4a",
+    "createdAt": "2026-09-01T13:00:34.270Z",
+    "expiresAt": "2026-09-08T13:00:34.270Z",
+    "email": "admin",
+    "used": true,
+    "usedAt": "2026-09-01T13:01:13.591Z"
+  },
+  {
+    "token": "d72efb9e19ed9290e04c4bc7c327fab7ed7c68d0911407230a9642da1867a0b3",
+    "createdAt": "2026-09-01T13:08:26.484Z",
+    "expiresAt": "2026-09-08T13:08:26.504Z",
+    "email": "admin",
+    "used": true,
+    "usedAt": "2026-09-01T13:08:49.514Z"
+  },
+  {
+    "token": "c3a8bc343fbf358b0f7a5e3a3869cfd5144188e4b56c7c63466ca48283bfaf1a",
+    "createdAt": "2026-09-01T13:11:29.839Z",
+    "expiresAt": "2026-09-08T13:11:29.844Z",
+    "email": "admin",
+    "used": true,
+    "usedAt": "2026-09-01T13:12:34.216Z"
+  },
+  {
+    "token": "b80e70ff4def150ef41d988cfe9242bf5b10c3dfca43d62d0780bc8b92b77cf3",
+    "createdAt": "2026-09-01T13:17:39.272Z",
+    "expiresAt": "2026-09-08T13:17:39.298Z",
+    "email": "admin",
+    "used": true,
+    "usedAt": "2026-09-01T13:17:59.340Z"
+  },
+  {
+    "token": "40df2750bb6e1324cce5943c1a4d3b1e9efbcd79104eaa076e1b398e24a9fb31",
+    "createdAt": "2026-09-01T15:25:05.614Z",
+    "expiresAt": "2026-09-08T15:25:05.635Z",
+    "email": "admin",
+    "used": true,
+    "usedAt": "2026-09-01T19:09:21.994Z"
+  },
+  {
+    "token": "3f805e80908c7cba259223e7c3e27c48eea79905ff024412001c152fbc5d5da4",
+    "createdAt": "2026-09-01T19:08:45.209Z",
+    "expiresAt": "2026-09-08T19:08:45.210Z",
+    "email": "admin",
+    "used": true,
+    "usedAt": "2026-09-01T21:31:48.842Z"
+  }
+]
