@@ -1,0 +1,286 @@
+/* ===== TELA VERIFICAÇÃO DE TELEFONE (PROPORCIONAL EM 100% ZOOM) ===== */
+.phone-page {
+  min-height: 100vh;
+  margin: 0;
+  background: #1d1e23;
+  color: #f4f4f5;
+  font-family: 'Manrope', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.phone-shell {
+  width: min(500px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 32px 0 48px;
+  display: flex;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.phone-content-card {
+  width: 100%;
+  text-align: center;
+}
+
+.phone-content-card h1 {
+  margin: 0;
+  color: #f59e0b;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-align: left;
+}
+
+.phone-divider {
+  height: 2px;
+  margin-top: 8px;
+  background: #d97706;
+}
+
+.phone-lead {
+  margin: 22px 0 20px;
+  color: #d1d5db;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.phone-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.phone-number-row {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  gap: 12px;
+}
+
+.country-selector {
+  position: relative;
+  display: block;
+}
+
+.country-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 44px;
+  border: 1.5px solid #d97706;
+  border-radius: 8px;
+  background: #25262c;
+  color: #f4f4f5;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.country-display:hover {
+  border-color: #f59e0b;
+}
+
+.country-options {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 130px;
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid #d97706;
+  border-radius: 8px;
+  background: #25262c;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+}
+
+.country-options[hidden] {
+  display: none;
+}
+
+.country-options button {
+  display: block;
+  width: 100%;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-bottom: 1px solid #3c3d43;
+  background: #25262c;
+  color: #e5e7eb;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.country-options button:last-child {
+  border-bottom: 0;
+}
+
+.country-options button:hover,
+.country-options button:focus-visible {
+  background: #3b82f6;
+  color: #fff;
+  outline: 0;
+}
+
+.phone-number-row input {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border: 1.5px solid #3c3d43;
+  border-radius: 8px;
+  background: #2b2c34;
+  color: #f4f4f5;
+  font: inherit;
+  font-size: 14px;
+  outline: 0;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.phone-number-row input:focus {
+  border-color: #7186d0;
+  box-shadow: 0 0 0 2px rgba(113, 134, 208, 0.2);
+}
+
+.phone-number-row input::placeholder {
+  color: #8b8d98;
+}
+
+.phone-description {
+  margin: 0 auto;
+  max-width: 440px;
+  color: #9ca3af;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.channel-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.channel-button,
+.confirm-button {
+  height: 44px;
+  border: 0;
+  border-radius: 8px;
+  color: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.1s ease;
+}
+
+.channel-button:hover,
+.confirm-button:hover {
+  opacity: 0.9;
+}
+
+.channel-button:active,
+.confirm-button:active {
+  transform: scale(0.98);
+}
+
+.channel-button.whatsapp {
+  background: linear-gradient(105deg, #22c55e, #16a34a);
+  box-shadow: 0 4px 14px rgba(34, 197, 94, 0.25);
+}
+
+.channel-button.sms {
+  background: linear-gradient(105deg, #3b82f6, #6366f1);
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.25);
+}
+
+.phone-message {
+  min-height: 16px;
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #f87171;
+}
+
+.code-step {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+  text-align: left;
+}
+
+.code-step[hidden] {
+  display: none;
+}
+
+.code-step label {
+  color: #d1d5db;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.code-step input {
+  height: 44px;
+  box-sizing: border-box;
+  padding: 0 14px;
+  border: 1.5px solid #4b4d58;
+  border-radius: 8px;
+  background: #25262c;
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  text-align: center;
+  letter-spacing: 4px;
+  outline: 0;
+}
+
+.code-step input:focus {
+  border-color: #7186d0;
+  box-shadow: 0 0 0 2px rgba(113, 134, 208, 0.2);
+}
+
+.confirm-button {
+  background: linear-gradient(105deg, #3b82f6, #6366f1);
+  margin-top: 4px;
+}
+
+.cancel-link {
+  display: inline-block;
+  margin-top: 24px;
+  color: #9ca3af;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color 0.2s ease;
+}
+
+.cancel-link:hover {
+  color: #f59e0b;
+}
+
+@media (max-width: 520px) {
+  .phone-shell {
+    width: min(100% - 24px, 500px);
+    padding-top: 20px;
+  }
+  .phone-number-row {
+    grid-template-columns: 80px 1fr;
+    gap: 8px;
+  }
+  .channel-actions {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}

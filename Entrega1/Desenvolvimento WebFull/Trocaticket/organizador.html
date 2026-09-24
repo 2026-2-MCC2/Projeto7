@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="organizador.css">
+    <title>Painel do Organizador | TrocaTicket</title>
+</head>
+<body class="admin-body">
+    <header class="admin-header">
+        <div class="admin-header-title">
+            <a class="brand" href="index.html" style="text-decoration: none; color: inherit; display: inline-flex; align-items: center; gap: 8px;">
+                <img class="brand-logo" src="imagens/logo troca ticket.png" alt="TrocaTicket" style="height: 32px;">
+                <span>Troca<span class="brand-accent" style="color: var(--accent-cyan, #00d2ff);">Ticket</span></span>
+            </a>
+            <span style="font-size: 0.9rem; opacity: 0.8; margin-left: 12px; border-left: 1px solid rgba(255,255,255,0.3); padding-left: 12px;">Área do Organizador</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <span id="organizer-name" style="font-weight: 600; color: #fff;">Organizador</span>
+            <button type="button" id="btn-organizer-logout" class="btn-logout">Sair</button>
+        </div>
+    </header>
+
+    <nav class="admin-nav">
+        <button type="button" class="nav-btn active" data-section="section-meus-eventos">Meus Eventos</button>
+        <button type="button" class="nav-btn" data-section="section-novo-evento">+ Criar Evento</button>
+        <button type="button" class="nav-btn" data-section="section-precificacao">Simulador de Custos & Preço</button>
+    </nav>
+
+    <main class="admin-layout">
+        
+        <!-- SEÇÃO: MEUS EVENTOS -->
+        <section id="section-meus-eventos" class="admin-section active" style="display: block;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2>Eventos Cadastrados</h2>
+                <button type="button" class="action-btn action-btn-view" id="btn-recarregar-eventos" style="background: var(--primary, #6c5ce7); color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600;">Atualizar Lista</button>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nome do Evento</th>
+                            <th>Data</th>
+                            <th>Local</th>
+                            <th>Preço Sugerido</th>
+                            <th>No Carrossel</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="eventos-org-table-body">
+                        <tr>
+                            <td colspan="6" style="padding: 24px; text-align: center; color: var(--text-muted, #7e859b);">Carregando eventos...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SEÇÃO: NOVO EVENTO -->
+        <section id="section-novo-evento" class="admin-section" style="display: none;">
+            <div style="max-width: 650px;">
+                <h2 style="margin-top: 0; margin-bottom: 16px;">Cadastrar Novo Evento</h2>
+                <form id="form-novo-evento">
+                    <div style="margin-bottom: 16px;">
+                        <label for="ev-nome">Nome do Evento</label>
+                        <input type="text" id="ev-nome" required placeholder="Ex: Festival de Verão 2026">
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                        <div>
+                            <label for="ev-data">Data e Hora</label>
+                            <input type="datetime-local" id="ev-data" required>
+                        </div>
+                        <div>
+                            <label for="ev-preco">Preço do Ingresso (R$)</label>
+                            <input type="number" step="0.01" id="ev-preco" required placeholder="0.00">
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 16px;">
+                        <label for="ev-local">Local do Evento</label>
+                        <input type="text" id="ev-local" required placeholder="Ex: Allianz Parque, São Paulo - SP">
+                    </div>
+
+                    <div style="margin-bottom: 16px;">
+                        <label for="ev-imagem">Imagem do Evento</label>
+                        <input type="file" id="ev-imagem" accept="image/*">
+                        <small style="color: var(--text-muted); display: block; margin-top: 4px;">PNG, JPG ou WEBP (opcional - usa o pôster padrão se vazio)</small>
+                    </div>
+
+                    <!-- TOGGLE SELEÇÃO CARROSSEL -->
+                    <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px; background: var(--bg-main); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <input type="checkbox" id="ev-destaque" style="width: 20px; height: 20px; accent-color: var(--accent-cyan); cursor: pointer;">
+                        <label for="ev-destaque" style="margin: 0; cursor: pointer; color: var(--text-main); text-transform: none; font-size: 0.95rem;">
+                            Exibir este evento no Carrossel Principal da Página Inicial
+                        </label>
+                    </div>
+
+                    <p id="msg-novo-evento" style="margin: 0 0 12px 0; font-size: 0.9rem; font-weight: 600;"></p>
+                    <button type="submit" id="btn-submit-evento">Publicar Evento</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- SEÇÃO: SIMULADOR DE PRECIFICAÇÃO -->
+        <section id="section-precificacao" class="admin-section" style="display: none;">
+            <div class="card-simulador">
+                <h2 style="margin-top: 0; margin-bottom: 8px;">Simulador de Precificação de Ingressos</h2>
+                <p style="color: var(--text-muted, #8c93a8); font-size: 0.9rem; margin-bottom: 20px;">Consulte a margem de lucro e custo total calculados diretamente pelas propostas dos fornecedores e custos fixos.</p>
+                
+                <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+                    <input type="number" id="sim-event-id" placeholder="Informe o ID do Evento" style="flex: 1; padding: 12px 14px; border-radius: 8px; background: var(--bg-main, #0c0e14); border: 1px solid var(--border-color, #272c40); color: var(--text-main, #fff); font-size: 0.95rem; outline: none;">
+                    <button type="button" id="btn-calcular-preco" style="padding: 10px 20px; background: var(--accent-cyan, #00d2ff); color: #000; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; transition: opacity 0.2s;">Simular</button>
+                </div>
+
+                <div id="resultado-precificacao" style="display: none;">
+                    <h3>Resultados Financeiros:</h3>
+                    <p><strong>Custo Total:</strong> <span id="res-custo-total" style="color: var(--accent-green, #2ecc71); font-weight: 600;">R$ 0,00</span></p>
+                    <hr style="border: none; border-top: 1px solid var(--border-color, #272c40); margin: 12px 0;">
+                    <p><strong>Cenário Público Mínimo:</strong> <span id="res-cenario-min">-</span></p>
+                    <p><strong>Cenário Público Máximo:</strong> <span id="res-cenario-max">-</span></p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = JSON.parse(localStorage.getItem('trocaticket-user') || localStorage.getItem('usuario') || 'null');
+            
+            // 1. Verificação de permissão (Organizador ou Admin)
+            if (!user || !user.email) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/usuario/meu-perfil?email=${encodeURIComponent(user.email)}`);
+                const data = await res.json();
+
+                if (!res.ok || !data.ok || !data.user || (data.user.tipo !== 'organizador' && data.user.tipo !== 'admin')) {
+                    alert('Acesso restrito a contas de Organizadores.');
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                document.getElementById('organizer-name').textContent = data.user.nome || user.email;
+            } catch (e) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // 2. Navegação por abas
+            const navButtons = document.querySelectorAll('.nav-btn');
+            const sections = document.querySelectorAll('.admin-section');
+
+            navButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    navButtons.forEach(b => b.classList.remove('active'));
+                    sections.forEach(s => s.style.display = 'none');
+
+                    btn.classList.add('active');
+                    const target = document.getElementById(btn.dataset.section);
+                    if (target) target.style.display = 'block';
+                });
+            });
+
+            // 3. Logout
+            document.getElementById('btn-organizer-logout').addEventListener('click', () => {
+                localStorage.removeItem('trocaticket-user');
+                localStorage.removeItem('usuario');
+                window.location.href = 'index.html';
+            });
+
+            // 4. Carregar Eventos na Tabela
+            async function carregarEventos() {
+                const tbody = document.getElementById('eventos-org-table-body');
+                tbody.innerHTML = '<tr><td colspan="6" style="padding: 24px; text-align: center; color: var(--text-muted, #7e859b);">Carregando eventos...</td></tr>';
+                
+                try {
+                    const res = await fetch('/api/events');
+                    const data = await res.json();
+                    
+                    if (!data.ok || !data.events.length) {
+                        tbody.innerHTML = '<tr><td colspan="6" style="padding: 24px; text-align: center; color: var(--text-muted, #7e859b);">Nenhum evento publicado até o momento.</td></tr>';
+                        return;
+                    }
+
+                    tbody.innerHTML = data.events.map(ev => `
+                        <tr>
+                            <td style="font-weight: 600;">${ev.name || 'Sem nome'}</td>
+                            <td style="color: var(--text-muted, #a0a5ba);">${new Date(ev.date).toLocaleDateString('pt-BR')}</td>
+                            <td style="color: var(--text-muted, #a0a5ba);">${ev.location || '-'}</td>
+                            <td style="color: var(--accent-green, #2ecc71); font-weight: 600;">R$ ${Number(ev.price || 0).toFixed(2)}</td>
+                            <td>
+                                <span style="background: ${ev.destaque ? 'rgba(0, 210, 255, 0.15)' : 'rgba(255, 255, 255, 0.05)'}; color: ${ev.destaque ? 'var(--accent-cyan)' : 'var(--text-muted)'}; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">
+                                    ${ev.destaque ? 'SIM' : 'NÃO'}
+                                </span>
+                            </td>
+                            <td><span style="background: var(--success-bg, rgba(46, 204, 113, 0.15)); color: var(--accent-green, #2ecc71); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">${ev.status || 'Ativo'}</span></td>
+                        </tr>
+                    `).join('');
+                } catch (err) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="padding: 24px; text-align: center; color: var(--danger, #ff4757);">Erro ao buscar eventos.</td></tr>';
+                }
+            }
+
+            document.getElementById('btn-recarregar-eventos').addEventListener('click', carregarEventos);
+            carregarEventos();
+
+            // 5. Cadastrar Novo Evento
+            const formNovoEvento = document.getElementById('form-novo-evento');
+            const msgNovoEvento = document.getElementById('msg-novo-evento');
+            const btnSubmit = document.getElementById('btn-submit-evento');
+
+            formNovoEvento.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                msgNovoEvento.textContent = '';
+                msgNovoEvento.style.color = '#38bdf8';
+                msgNovoEvento.textContent = 'Cadastrando evento...';
+                btnSubmit.disabled = true;
+
+                const imageInput = document.getElementById('ev-imagem');
+                let uploadedImageUrl = '';
+
+                // Faz upload da imagem se o usuário selecionou alguma
+                if (imageInput.files.length > 0) {
+                    const formData = new FormData();
+                    formData.append('imagem', imageInput.files[0]);
+                    try {
+                        const uploadRes = await fetch('/api/eventos/upload-imagem', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const uploadData = await uploadRes.json();
+                        if (uploadRes.ok && uploadData.ok) {
+                            uploadedImageUrl = uploadData.imageUrl;
+                        }
+                    } catch (err) {
+                        console.warn('Falha no upload de imagem, usando padrão:', err);
+                    }
+                }
+
+                const payload = {
+                    email: user.email,
+                    nome: document.getElementById('ev-nome').value.trim(),
+                    data_evento: document.getElementById('ev-data').value,
+                    preco: parseFloat(document.getElementById('ev-preco').value) || 0,
+                    local: document.getElementById('ev-local').value.trim(),
+                    imagem: uploadedImageUrl || null,
+                    destaque: document.getElementById('ev-destaque').checked ? 1 : 0
+                };
+
+                try {
+                    const response = await fetch('/api/events', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const data = await response.json();
+                    if (!response.ok || !data.ok) throw new Error(data.message || 'Erro ao publicar evento.');
+
+                    msgNovoEvento.style.color = '#2ecc71';
+                    msgNovoEvento.textContent = 'Evento publicado com sucesso!';
+                    formNovoEvento.reset();
+                    carregarEventos();
+
+                    // Volta para a aba de eventos após 1 segundo
+                    setTimeout(() => {
+                        document.querySelector('.nav-btn[data-section="section-meus-eventos"]').click();
+                        msgNovoEvento.textContent = '';
+                    }, 1200);
+
+                } catch (error) {
+                    msgNovoEvento.style.color = '#ff4757';
+                    msgNovoEvento.textContent = error.message;
+                } finally {
+                    btnSubmit.disabled = false;
+                }
+            });
+
+            // 6. Simulação de Precificação
+            document.getElementById('btn-calcular-preco').addEventListener('click', async () => {
+                const eventId = document.getElementById('sim-event-id').value;
+                const resultBox = document.getElementById('resultado-precificacao');
+                if (!eventId) return alert('Informe o ID do evento.');
+
+                try {
+                    const res = await fetch(`/api/eventos/${eventId}/precificacao`);
+                    const data = await res.json();
+                    if (!res.ok || !data.ok) throw new Error(data.message || 'Falha ao precificar.');
+
+                    document.getElementById('res-custo-total').textContent = `R$ ${Number(data.custo_total).toFixed(2)}`;
+                    document.getElementById('res-cenario-min').textContent = `${data.cenarios.publico_minimo.publico} pessoas -> Ticket Sugerido: R$ ${Number(data.cenarios.publico_minimo.ticket_estimado).toFixed(2)}`;
+                    document.getElementById('res-cenario-max').textContent = `${data.cenarios.publico_maximo.publico} pessoas -> Ticket Sugerido: R$ ${Number(data.cenarios.publico_maximo.ticket_estimado).toFixed(2)}`;
+                    resultBox.style.display = 'block';
+                } catch (e) {
+                    alert(e.message);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
