@@ -2,12 +2,22 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+require('dotenv').config();
 const bcrypt = require('bcrypt');
+const nodemailer = require('nodemailer');
 const db = require('./db');
 
 const port = process.env.PORT || 3000;
 const root = __dirname;
 const uploadDir = path.join(root, 'public', 'uploads', 'avatars');
+const smtpHost = String(process.env.SMTP_HOST || '').trim();
+const smtpPort = Number(process.env.SMTP_PORT || 587);
+const smtpSecure = String(process.env.SMTP_SECURE || 'false').toLowerCase() === 'true';
+const smtpUser = String(process.env.SMTP_USER || '').trim();
+const smtpPass = String(process.env.SMTP_PASS || '').trim();
+const smtpFrom = String(process.env.SMTP_FROM || smtpUser).trim();
+
+let verificationTransporter = null;
 
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
@@ -25,6 +35,52 @@ const mimeTypes = {
 
 function normalizeEmail(value) { return String(value || '').trim().toLowerCase(); }
 function normalizeCpf(value) { return String(value || '').replace(/\D/g, ''); }
+function getVerificationTransporter() {
+  if (!smtpHost || !smtpUser || !smtpPass || !smtpFrom) {
+    return null;
+  }
+
+  if (!verificationTransporter) {
+    verificationTransporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpSecure,
+      auth: {
+        user: smtpUser,
+        pass: smtpPass
+      }
+    });
+  }
+
+  return verificationTransporter;
+}
+
+async function sendVerificationEmail({ to, name, code }) {
+  const transporter = getVerificationTransporter();
+
+  if (!transporter) {
+    console.warn(`[auth] SMTP não configurado. Código de verificação para ${to}: ${code}`);
+    return { sent: false, fallback: true };
+  }
+
+  await transporter.sendMail({
+    from: smtpFrom,
+    to,
+    subject: 'TrocaTicket - código de verificação',
+    text: `Olá ${name || 'usuário'}, seu código de verificação do TrocaTicket é ${code}.`,
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #1f2937;">
+        <h2 style="margin: 0 0 16px;">TrocaTicket</h2>
+        <p>Olá ${name || 'usuário'},</p>
+        <p>Use o código abaixo para confirmar seu cadastro:</p>
+        <div style="font-size: 28px; font-weight: 700; letter-spacing: 6px; margin: 20px 0;">${code}</div>
+        <p>Se você não solicitou este cadastro, pode ignorar esta mensagem.</p>
+      </div>
+    `
+  });
+
+  return { sent: true };
+}
 function detectCardBrand(cardNumber) {
   const number = String(cardNumber || '').replace(/\D/g, '');
 
@@ -296,6 +352,9 @@ const server = http.createServer(async (request, response) => {
       if (!rows.length || !(await bcrypt.compare(String(body.senha || ''), rows[0].senha_hash))) {
         return send(response, 401, { ok: false, message: 'E-mail ou senha inválidos.' });
       }
+      if (rows[0].email_verificado === false || rows[0].email_verificado === 0 || rows[0].codigo_verificacao) {
+        return send(response, 403, { ok: false, message: 'E-mail ainda não verificado. Confira sua caixa de entrada.' });
+      }
       if (rows[0].status === 'bloqueado') {
         return send(response, 403, { ok: false, message: 'Usuário bloqueado pelo administrador.' });
       }
@@ -321,13 +380,59 @@ const server = http.createServer(async (request, response) => {
       const senhaHash = await bcrypt.hash(body.senha, 10);
       await db.query(
         `INSERT INTO usuarios (nome, email, senha_hash, tipo, cpf, telefone, data_nascimento, genero, status, codigo_verificacao, email_verificado) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'aprovado', ?, TRUE)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pendente_verificacao', ?, FALSE)`,
         [body.nome.trim(), email, senhaHash, 'comprador', cpf, body.telefone || '', body.nascimento || null, body.sexo || null, codigo]
       );
-      return send(response, 201, { ok: true, message: 'Cadastro criado com sucesso!' });
+      await sendVerificationEmail({ to: email, name: body.nome.trim(), code: codigo });
+      return send(response, 201, { ok: true, message: 'Cadastro criado com sucesso! Enviamos um código de verificação para o seu e-mail.' });
     } catch (error) {
       console.error('[auth] Erro no cadastro:', error.message);
       return send(response, 500, { ok: false, message: 'Não foi possível concluir o cadastro.' });
+    }
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/auth/verificar-codigo') {
+    try {
+      const body = await parseBody(request);
+      const email = normalizeEmail(body.email);
+      const codigo = String(body.codigo || '').trim();
+
+      if (!email || !/^\d{6}$/.test(codigo)) {
+        return send(response, 400, { ok: false, message: 'Informe um e-mail válido e um código de 6 dígitos.' });
+      }
+
+      const [rows] = await db.query(
+        'SELECT id, nome, email, cpf, telefone, genero, data_nascimento, tipo, status, foto_perfil, codigo_verificacao, email_verificado FROM usuarios WHERE email = ? LIMIT 1',
+        [email]
+      );
+
+      if (!rows.length) {
+        return send(response, 404, { ok: false, message: 'Usuário não encontrado.' });
+      }
+
+      const user = rows[0];
+      if (String(user.codigo_verificacao || '').trim() !== codigo) {
+        return send(response, 400, { ok: false, message: 'Código inválido ou expirado.' });
+      }
+
+      await db.query(
+        'UPDATE usuarios SET email_verificado = TRUE, codigo_verificacao = NULL, status = CASE WHEN status = ? THEN ? ELSE status END WHERE id = ?',
+        ['pendente_verificacao', 'aprovado', user.id]
+      );
+
+      const [updated] = await db.query(
+        'SELECT id, nome, email, cpf, telefone, genero, data_nascimento, tipo, status, foto_perfil FROM usuarios WHERE id = ? LIMIT 1',
+        [user.id]
+      );
+
+      return send(response, 200, {
+        ok: true,
+        message: 'E-mail verificado com sucesso!',
+        user: formatUser(updated[0])
+      });
+    } catch (error) {
+      console.error('[auth] Erro ao verificar código:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível verificar o código.' });
     }
   }
 

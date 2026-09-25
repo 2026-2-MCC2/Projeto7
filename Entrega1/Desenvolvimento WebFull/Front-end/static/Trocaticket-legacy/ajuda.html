@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="pages.css">
+    <script src="help.js" defer></script>
+    <title>Central de Ajuda e Termos de Uso | TrocaTicket</title>
+</head>
+<body class="page-body help-body">
+    <header class="site-header">
+        <a class="brand" href="index.html">
+            <img class="brand-logo" src="imagens/logo troca ticket.png" alt="TrocaTicket">
+            <span>Troca<span class="brand-accent">Ticket</span></span>
+        </a>
+
+        <button type="button" class="button button-outline" onclick="history.back()" style="padding: 8px 18px; font-size: 13px; text-decoration: none; cursor: pointer;">
+            Voltar
+        </button>
+    </header>
+
+    <main class="help-main">
+        <section class="help-hero">
+            <div class="help-title-row">
+                <h1>Central de Ajuda</h1>
+                <label class="help-search">
+                    <span aria-hidden="true">⌕</span>
+                    <input id="help-search" type="search" placeholder="Pesquisar..." aria-label="Pesquisar na central de ajuda">
+                </label>
+            </div>
+        </section>
+
+        <div class="help-layout">
+            <section class="help-content" id="help-content">
+                <article id="sobre">
+                    <h2>Sobre o TrocaTicket</h2>
+                    <p>O TrocaTicket é uma plataforma tecnológica de intermediação segura desenvolvida especificamente para estruturar e sanear o mercado secundário de ingressos no Brasil. O sistema atua como uma ponte oficial para dois públicos fundamentais: consumidores que adquiriram ingressos em bilheterias matrizes parceiras (tais como Ticketmaster, Blacktag, Bilheteria Digital, Eventim e Sympla), mas que, por motivos de força maior ou imprevistos pessoais, não poderão comparecer ao evento e já ultrapassaram o prazo legal de 7 dias para cancelamento previsto no Artigo 49 do Código de Defesa do Consumidor; e, na outra ponta, compradores que desejam garantir ingressos autênticos para eventos cujos lotes oficiais já se encontram totalmente esgotados (Sold Out). Ao contrário de negociações informais em redes sociais e fóruns da internet, o TrocaTicket opera sob a modalidade de intermediação cega, o que significa que o vendedor e o comprador nunca mantêm contato direto, negociam valores por fora ou trocam dados sensíveis. Todo o processamento de repasse, validação de autenticidade, custódia financeira e re-emissão de titularidade é executado e auditado automaticamente pela infraestrutura do sistema, garantindo previsibilidade, transparência e segurança jurídica para todas as partes envolvidas.</p>
+                </article>
+
+                <article id="cambismo">
+                    <h2>Regras Anti-Cambismo</h2>
+                    <p>Com o objetivo de erradicar permanentemente o cambismo predatório, a especulação financeira e a clonagem de ingressos, o TrocaTicket estabelece diretrizes operacionais de cumprimento obrigatório e inegociável dentro de sua plataforma. O primeiro pilar é o travamento do preço de venda: nenhum usuário possui autonomia para estipular valores arbitrários, sendo compulsório que o ingresso seja anunciado rigorosamente pelo valor nominal de face correspondente ao lote em que foi adquirido originalmente na bilheteria matriz. O segundo pilar é a imposição de um teto quantitativo de anúncios, limitando o cadastro a no máximo 5 ingressos por CPF para o mesmo evento, inviabilizando a atuação de agentes profissionais que compram lotes massivos visando lucro comercial. O terceiro pilar é a proibição expressa de qualquer transação externa ou cobrança de valores adicionais por fora da plataforma. Por fim, o quarto pilar consiste na re-emissão obrigatória de uma nova credencial criptográfica e cancelamento imediato da via anterior. Ingressos identificados como cortesias de patrocinadores, gratuidades institucionais, convites VIP ou qualquer bilhete emitido originalmente com valor de R$ 0,00 são terminantemente proibidos de comercialização, sendo prontamente expurgados pelo sistema de auditoria caso sejam submetidos à plataforma.</p>
+                </article>
+
+                <article id="comprar">
+                    <h2>Como Comprar</h2>
+                    <p>O processo de compra no TrocaTicket foi projetado para ser intuitivo, transparente e à prova de manipulações de preços. Ao navegar pela página inicial ou utilizar os filtros de busca por categoria e região, o comprador seleciona o evento de seu interesse e clica no botão de compra. O sistema não exibe uma lista de vendedores individuais para escolha manual; em vez disso, a plataforma aciona o algoritmo de Fila Única Automatizada, que seleciona de forma instantânea o ingresso disponível que apresente o menor valor de lote cadastrado no momento da solicitação. No checkout, o usuário pode optar pelo pagamento via Pix ou Boleto Bancário, usufruindo da isenção de qualquer taxa de conveniência adicional e pagando exatamente o valor original do lote do ingresso, ou optar por Cartão de Crédito (à vista ou parcelado), modalidade na qual as tarifas operacionais e de adquirente são discriminadas de forma totalmente transparente antes da confirmação da transação. Uma vez compensado e aprovado o pagamento, o sistema gera em tempo real um ingresso 100% digital, dotado de um novo QR Code dinâmico e criptografado que já nasce vinculado de forma indelével ao Nome Completo e ao CPF do comprador, ficando imediatamente disponível para consulta e apresentação na aba Meus Ingressos.</p>
+                </article>
+
+                <article id="anunciar">
+                    <h2>Como Anunciar e Taxas de Prioridade</h2>
+                    <p>Para colocar um ingresso à venda, o usuário titular deve acessar sua conta devidamente autenticada, garantindo que o CPF cadastrado no TrocaTicket seja idêntico ao CPF titular da compra na bilheteria original. Ao clicar em Anunciar Ingresso, o vendedor seleciona o evento correspondente, vincula a hash ou comprovante original e indica o lote exato da compra. Como o preço de venda é travado no valor do lote, o vendedor deve selecionar obrigatoriamente um entre três Níveis de Prioridade na Fila, definindo a velocidade com que seu anúncio será entregue aos compradores do mesmo lote: a Prioridade Comum aplica uma taxa fixa de 2% sobre o valor de face, posicionando o anúncio na fila padrão por estrita ordem de chegada (FIFO) e garantindo um repasse líquido de 98%; a Prioridade Básica aplica uma taxa de 5%, promovendo o anúncio para posições intermediárias e garantindo um repasse líquido de 95%; e a Prioridade Premium aplica uma taxa de 8%, alocando o anúncio no topo absoluto da fila do lote em questão e garantindo um repasse líquido de 92%. Cabe ressaltar que a regra do menor preço é uma diretriz soberana da arquitetura do TrocaTicket: ingressos de lotes mais baratos (por exemplo, 1º Lote a R$ 100,00) sempre terão prioridade de venda irrestrita sobre ingressos de lotes mais caros (como 2º Lote a R$ 120,00), mesmo que o vendedor do lote superior tenha contratado a Prioridade Premium.</p>
+                </article>
+
+                <article id="seguranca">
+                    <h2>Segurança do QR Code e Portaria</h2>
+                    <p>A segurança do acesso e a eliminação de ingressos clonados ou revendidos em duplicidade são asseguradas por um protocolo de invalidação e re-emissão criptográfica em tempo real. No momento exato em que uma compra é confirmada no TrocaTicket, a hash original e o QR Code que estavam na posse do vendedor são sumariamente cancelados, revogados e marcados como inválidos nas bases integradas de controle de acesso da portaria. Qualquer tentativa do antigo titular de utilizar um print de tela, uma via impressa antiga em papel ou de repassar o mesmo arquivo em canais paralelos resultará em bloqueio imediato na catraca por credencial revogada. Paralelamente, o sistema emite uma nova hash SHA-256 dinâmica associada ao Nome Completo e CPF do novo comprador. Na data do evento, o comprador deve apenas abrir a aba Meus Ingressos em seu dispositivo móvel e apresentar o QR Code atualizado para leitura óptica na catraca, acompanhado obrigatoriamente de um documento oficial de identificação original com foto (RG ou CNH). Qualquer tentativa comprovada de fraude, comercialização externa concomitante ou uso indevido por parte do vendedor acarretará a suspensão definitiva da conta, retenção de saldos em custódia e inclusão do CPF em lista de bloqueio permanente da plataforma.</p>
+                </article>
+
+                <article id="acesso">
+                    <h2>Acesso, Documentação Obrigatória e Menores</h2>
+                    <p>O ingresso reemitido pelo TrocaTicket constitui uma credencial nominal, pessoal e intransferível fora dos mecanismos da plataforma. Por essa razão, a apresentação de documento oficial de identidade original com foto — seja em meio físico (como Carteira de Identidade RG, Carteira Nacional de Habilitação CNH, Passaporte ou Carteira de Trabalho) ou através de aplicativos oficiais validados pelo Governo Federal (como CNH Digital e RG Digital) — é obrigatória e condicionante para o ingresso no recinto de qualquer evento. Não são aceitas fotocópias simples ou prints não autenticados de documentos. No que tange à entrada e permanência de menores de idade, a classificação etária indicativa e as regras de acesso são de competência e responsabilidade exclusiva dos organizadores do evento em conformidade com as diretrizes do Juizado da Infância e da Juventude da respectiva comarca. Essas condições específicas constam detalhadas na página de cada evento. Para eventos com classificação indicativa livre ou intermediária, os menores de 18 anos deverão estar munidos de documento de identidade original com foto e, quando exigido pelo alvará judicial da produção, deverão estar rigorosamente acompanhados pelos pais ou responsáveis legais, ou portar termo formal de autorização por escrito com firma devidamente reconhecida em cartório.</p>
+                </article>
+
+                <article id="meia">
+                    <h2>Meia-Entrada e Documentos</h2>
+                    <p>A comercialização e a aquisição de ingressos na categoria Meia-Entrada no TrocaTicket seguem estritamente as diretrizes da Lei Federal nº 12.933/2013, do Decreto Federal nº 8.537/2015 e das respectivas legislações estaduais e municipais vigentes. O usuário que optar por adquirir um ingresso com benefício de meia-entrada assume total e exclusiva responsabilidade cível e administrativa de comprovar seu direito ao benefício no momento do acesso à portaria do evento. São considerados documentos comprobatórios legais: para estudantes, a Carteira de Identificação Estudantil (CIE) emitida por entidades oficiais reconhecidas (UNE, UBES, ANPG ou diretórios acadêmicos credenciados), dentro do prazo de validade do ano letivo corrente, com foto e certificação digital verificável; para idosos com idade igual ou superior a 60 anos, qualquer documento de identificação oficial com foto que ateste a data de nascimento; para pessoas com deficiência (PCD) e acompanhantes quando necessário, o cartão de Benefício de Prestação Continuada (BPC) da Assistência Social ou documento emitido pelo Instituto Nacional do Seguro Social (INSS) que ateste a aposentadoria especial, acompanhado de documento com foto; e para professores da rede pública ou privada, doadores regulares de sangue ou outras categorias específicas, os respectivos holerites, carteiras funcionais ou carteirinhas de doador exigidas pelas normas do estado ou município onde o evento é sediado. A não apresentação de documento comprobatório hábil na catraca sujeitará o comprador à recusa de entrada ou à cobrança da diferença de valor para o ingresso integral na bilheteria local, sem direito a reembolso por parte do TrocaTicket.</p>
+                </article>
+
+                <article id="assentos">
+                    <h2>Assentos Numerados</h2>
+                    <p>Para eventos realizados em teatros, arenas multiuso, estádios, casas de espetáculos ou áreas de camarotes corporativos que operem com setores estruturados em assentos marcados, cadeiras numeradas ou mesas exclusivas, o TrocaTicket assegura a total integridade da reserva do espaço original. No momento em que o vendedor cadastra seu anúncio, o sistema importa e valida a localização física exata estipulada na compra primária (incluindo setor, bloco, fila e número específico da cadeira ou mesa). Ao concluir a compra, o novo titular recebe a garantia contratual de que seu ingresso reemitido confere direito ao mesmo e exato assento numérico contratado originalmente na bilheteria de origem, sendo vedada qualquer reclassificação ou alteração unilateral de lugar. No dia do espetáculo, a ocupação do assento deve respeitar estritamente as marcações informadas no bilhete digital, ficando a fiscalização e a acomodação do público a cargo da equipe de brigada e orientação do próprio estabelecimento.</p>
+                </article>
+
+                <article id="cancelamento">
+                    <h2>Cancelamento e Reembolso</h2>
+                    <p>Por operar estritamente como uma plataforma de infraestrutura tecnológica de intermediação no mercado secundário entre pessoas físicas (C2C intermediado) para eventos que já superaram o prazo legal de desistência da compra primária, a aquisição de um ingresso no TrocaTicket possui caráter definitivo e irrevogável após a confirmação do pagamento e geração da nova credencial nominal. Caso o adquirente enfrente imprevistos supervenientes e não possa comparecer ao espetáculo, ele terá o direito de recolocar o ingresso à venda na Fila Única da plataforma, respeitando o valor do lote original e as regras de prioridade. Em contrapartida, em situações excepcionais em que ocorra o cancelamento oficial do evento por parte da produtora, suspensão definitiva do espetáculo por motivos de força maior ou alteração unilateral e substancial de data ou local sem concordância do público, o mecanismo de custódia financeira (Escrow) do TrocaTicket é acionado de forma automática: os repasses aos vendedores ficam imediatamente bloqueados e a plataforma coordena a devolução integral dos valores despendidos aos compradores, em estrita conformidade com o cronograma e com os termos de ressarcimento pactuados entre a produtora responsável e a bilheteria matriz. Em casos de mero adiamento com manutenção de validade dos ingressos, as credenciais já reemitidas permanecem plenamente ativas para a nova data oficial sem necessidade de reprocessamento.</p>
+                </article>
+
+                <article id="carteira">
+                    <h2>Carteira e Saque</h2>
+                    <p>Para assegurar a blindagem patrimonial dos compradores e a absoluta ausência de contestações ou fraudes de portaria, todos os valores transacionados no TrocaTicket permanecem retidos em uma conta de custódia protegida (sistema de Escrow). O crédito líquido referente à venda do ingresso só é liberado e disponibilizado para saque na Carteira TrocaTicket do vendedor exatamente 24 horas após o encerramento oficial do evento, mediante a constatação de que o comprador acessou o recinto sem quaisquer intercorrências de duplicidade ou recusa de catraca. Uma vez liberado no saldo da conta, o vendedor pode solicitar o saque integral do montante diretamente para sua conta bancária através de transferência Pix. Por motivos de estrita conformidade bancária e combate à lavagem de dinheiro, a chave Pix e a conta bancária de destino devem pertencer obrigatoriamente à mesma titularidade e ao mesmo CPF cadastrado e verificado no perfil do vendedor, sendo rejeitada qualquer tentativa de transferência para contas de terceiros.</p>
+                </article>
+
+                <article id="privacidade">
+                    <h2>Privacidade LGPD</h2>
+                    <p>O TrocaTicket trata a segurança da informação e a privacidade de seus usuários com rigor absoluto, atuando em estrita conformidade com as diretrizes da Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018 - LGPD). Todas as informações fornecidas no cadastro — tais como Nome Completo, Cadastro de Pessoa Física (CPF), e-mail, número de telefone e dados de transação — são armazenadas em servidores seguros com criptografia de ponta a ponta e camadas avançadas de proteção contra acessos não autorizados. Por força da modalidade de intermediação cega, os dados pessoais dos compradores e vendedores nunca são expostos mutuamente, permanecendo sob sigilo comercial e técnico. O usuário tem o direito de solicitar a atualização de seus dados de contato (e-mail e telefone) a qualquer momento através do menu Meu Perfil; contudo, a alteração de dados estruturais de titularidade, como o Nome Completo e o número de CPF, é expressamente bloqueada após a validação inicial da conta, visando resguardar a rastreabilidade e a segurança jurídica de todas as emissões de ingressos.</p>
+                </article>
+
+                <article id="atendimento">
+                    <h2>Atendimento e Suporte</h2>
+                    <p>Nossa equipe de atendimento ao cliente e suporte técnico opera de forma dedicada para solucionar dúvidas, prestar esclarecimentos operacionais e auxiliar em eventuais intercorrências cadastrais ou de repasse financeiro. O canal oficial de atendimento funciona de segunda a sexta-feira, das 09h às 18h (exceto em feriados nacionais). Os usuários podem entrar em contato enviando suas mensagens para o endereço de e-mail institucional suporte@trocaticket.com.br ou através de nossa central de atendimento telefônico e WhatsApp oficial no número +55 11 4002-8922. Todos os chamados e tíquetes abertos recebem um protocolo de atendimento exclusivo, com prazo de análise e resposta de até 24 horas úteis.</p>
+                </article>
+            </section>
+
+            <aside class="help-nav" aria-label="Navegação rápida">
+                <p class="help-nav-title">Navegação rápida</p>
+                <a href="#sobre">Sobre o TrocaTicket</a>
+                <a href="#cambismo">Regras anti-cambismo</a>
+                <a href="#comprar">Como comprar</a>
+                <a href="#anunciar">Como anunciar e taxas</a>
+                <a href="#seguranca">Segurança do QR Code</a>
+                <a href="#acesso">Acesso, Documentos e Menores</a>
+                <a href="#meia">Meia-entrada</a>
+                <a href="#assentos">Assentos numerados</a>
+                <a href="#cancelamento">Cancelamento e reembolso</a>
+                <a href="#carteira">Carteira e saque</a>
+                <a href="#privacidade">Privacidade LGPD</a>
+                <a href="#atendimento">Atendimento e suporte</a>
+
+                <div class="help-extra">
+                    <p class="help-extra-title">Encontre Eventos</p>
+                    <a class="help-extra-heading" href="eventos.html">Explorar Todos os Eventos</a>
+                    <a href="eventos.html?regiao=sao-paulo">Eventos em São Paulo</a>
+                    <a href="eventos.html?regiao=rio-de-janeiro">Eventos no Rio de Janeiro</a>
+                    <a href="eventos.html">Shows e Festivais</a>
+                    <a href="eventos.html">Festas e Baladas</a>
+
+                    <p class="help-extra-title">Meu Acesso</p>
+                    <a href="login.html">Login</a>
+                    <a href="perfil.html">Minha Conta</a>
+                    <a href="meus-ingressos.html">Meus Ingressos</a>
+                    <a href="revenda.html">Revenda</a>
+                    <a href="cadastro.html">Certificação de Cadastro</a>
+
+                    <p class="help-extra-title">Ajuda</p>
+                    <a href="ajuda.html">Central de Ajuda</a>
+                    <span class="help-copy-text">suporte@trocaticket.com.br</span>
+                    <span class="help-copy-text">+55 11 4002-8922</span>
+                </div>
+            </aside>
+        </div>
+    </main>
+</body>
+</html>

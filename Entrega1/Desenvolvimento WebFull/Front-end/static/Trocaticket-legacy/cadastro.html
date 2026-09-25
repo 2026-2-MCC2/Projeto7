@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="pages.css">
+    <script src="cadastro.js" defer></script>
+    <title>Cadastro | TrocaTicket</title>
+</head>
+<body class="page-body" data-page="cadastro">
+    <header class="site-header">
+        <a class="brand" href="index.html">
+            <img class="brand-logo" src="imagens/logo troca ticket.png" alt="TrocaTicket">
+            <span>Troca<span class="brand-accent">Ticket</span></span>
+        </a>
+    </header>
+    <main class="page-main">
+        <section class="page-form registration-page-form">
+            <div class="page-form-content">
+                <h1>Crie sua conta</h1>
+                <p class="login-subtitle">Compre e revenda ingressos com segurança.</p>
+                <form id="register-page-form">
+                    <div class="form-row">
+                        <input required name="nome" placeholder="Nome">
+                        <input required name="sobrenome" placeholder="Sobrenome">
+                    </div>
+                    <input required name="cpf" pattern="\d{3}\.\d{3}\.\d{3}-\d{2}" placeholder="CPF">
+                    <input required name="nascimento" type="date" aria-label="Data de nascimento">
+                    <select required name="sexo" aria-label="Sexo">
+                        <option value="" disabled selected>Sexo</option>
+                        <option value="Masculino">Masculino</option>
+                        <option value="Feminino">Feminino</option>
+                    </select>
+                    <input required name="celular" type="tel" placeholder="Celular">
+                    <input required name="email" type="email" placeholder="E-mail">
+                    <input required name="senha" type="password" minlength="6" placeholder="Senha">
+                    <input required name="confirmarSenha" type="password" minlength="6" placeholder="Confirme a senha">
+                    <p class="page-message" id="page-message"></p>
+                    <button class="button button-primary button-full login-submit" type="submit">Cadastrar</button>
+                </form>
+                <p class="form-foot login-register">Já possui cadastro? <a href="login.html">Login</a></p>
+            </div>
+            <div id="register-success" class="register-success" hidden>
+                <div class="success-icon">✓</div>
+                <h2>Cadastro concluído</h2>
+                <p>Redirecionando para o início...</p>
+            </div>
+            <div id="verification-step" hidden>
+                <h2>Confirme seu e-mail</h2>
+                <p>Digite o código de 6 dígitos exibido no terminal do servidor.</p>
+                <form id="verification-form">
+                    <input id="verification-code" name="codigo" inputmode="numeric" pattern="\d{6}" maxlength="6" required placeholder="Código de verificação">
+                    <p class="page-message" id="verification-message"></p>
+                    <button class="button button-primary button-full" type="submit">Confirmar código</button>
+                </form>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

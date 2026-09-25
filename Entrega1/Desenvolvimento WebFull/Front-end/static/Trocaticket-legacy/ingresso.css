@@ -1,0 +1,426 @@
+:root {
+  --bg-dark: #0c0e14;
+  --surface-dark: #151824;
+  --ticket-dark: #171a24;
+  --border-line: #272c40;
+  --accent-orange: #ff9f43;
+  --accent-blue: #27b7ff;
+  --accent-cyan: #00d2ff;
+  --accent-pink: #d946ef;
+  --accent-purple: #8b7cff;
+  --text-white: #ffffff;
+  --text-muted: #8c93a8;
+}
+
+body.ticket-page-body {
+  background-color: var(--bg-dark);
+  color: var(--text-white);
+  margin: 0;
+  padding: 0;
+  font-family: Manrope, sans-serif;
+  min-height: 100vh;
+}
+
+/* Header Oficial TrocaTicket */
+.site-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  height: 70px !important;
+  padding: 0 32px !important;
+  background: rgba(16, 19, 19, 0.95) !important;
+  border-bottom: 1px solid var(--border-line) !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 50 !important;
+}
+
+.brand {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  white-space: nowrap !important;
+  text-decoration: none !important;
+}
+
+.brand-logo {
+  width: 30px !important;
+  height: 30px !important;
+  display: block !important;
+  object-fit: contain !important;
+  border-radius: 50% !important;
+}
+
+.brand > span {
+  color: #fff !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+.brand-accent {
+  background: linear-gradient(90deg, var(--accent-blue), var(--accent-pink), var(--accent-purple)) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+}
+
+.btn-return-menu {
+  color: var(--text-white);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 16px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-line);
+  transition: all 0.2s ease;
+}
+
+.btn-return-menu:hover {
+  background: rgba(39, 183, 255, 0.12);
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+/* Container ajustado e escalado para 80% */
+.ticket-page-container {
+  max-width: 360px;
+  margin: 18px auto 40px auto;
+  padding: 0 12px;
+  transform: scale(0.9);
+  transform-origin: top center;
+}
+
+.ticket-card-wrapper {
+  position: relative;
+  background: var(--ticket-dark);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7);
+  border: 1px solid var(--border-line);
+}
+
+/* Capa Superior */
+.ticket-header-cover {
+  position: relative;
+  width: 100%;
+  height: 160px;
+  background: #000;
+}
+
+.ticket-header-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cover-gradient-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(12, 14, 20, 0.15) 0%, var(--ticket-dark) 100%);
+}
+
+/* Corpo do Bilhete */
+.ticket-card-content {
+  position: relative;
+  padding: 18px 22px 18px 22px;
+  text-align: center;
+}
+
+/* Recortes Laterais de Ticket */
+.ticket-notch {
+  position: absolute;
+  top: -12px;
+  width: 24px;
+  height: 24px;
+  background: var(--bg-dark);
+  border-radius: 50%;
+}
+.notch-left { left: -12px; }
+.notch-right { right: -12px; }
+
+.ticket-main-header h1 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin: 0 0 2px 0;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+}
+
+/* Nome do Artista */
+.ticket-artist-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  margin: 0 0 6px 0;
+  letter-spacing: -0.01em;
+}
+
+.ticket-date-row {
+  font-size: 0.82rem;
+  color: #ffb86c;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+/* Bloco QR Code */
+.ticket-qr-box {
+  background: #ffffff;
+  border-radius: 10px;
+  width: 175px;
+  height: 175px;
+  margin: 0 auto 16px auto;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.canvas-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+.ticket-info-pills {
+  margin-bottom: 16px;
+}
+
+.ticket-type-label {
+  display: block;
+  color: var(--accent-blue);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.ticket-schedule-pill {
+  display: inline-block;
+  background: #2f54eb;
+  color: #fff;
+  padding: 5px 14px;
+  border-radius: 18px;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+/* Botões de Ação */
+.ticket-actions-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.btn-action {
+  width: 100%;
+  padding: 10px;
+  border-radius: 24px;
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.btn-transfer {
+  background: var(--accent-orange);
+  color: #101114;
+}
+
+.btn-transfer:hover {
+  background: #feca57;
+}
+
+.btn-action.btn-cancel-state {
+  background: #ff4757 !important;
+  color: #ffffff !important;
+  border: none !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+.btn-action.btn-cancel-state:hover {
+  background: #ff6b81 !important;
+}
+
+.btn-resell {
+  background: transparent;
+  color: #fff;
+  border: 1px solid var(--border-line);
+}
+
+.btn-resell:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+.btn-action.btn-disabled-state,
+.btn-action:disabled {
+  background: rgba(255, 255, 255, 0.02) !important;
+  color: #4b5266 !important;
+  border: 1px solid #1f2333 !important;
+  opacity: 0.35 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  box-shadow: none !important;
+}
+
+.transfer-alert {
+  margin: 0 0 12px 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  min-height: 16px;
+}
+
+/* Rodapé Metadados */
+.ticket-metadata-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-family: 'DM Mono', monospace;
+  padding-top: 12px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+}
+
+/* Controles de Carrossel */
+.ticket-carousel-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.carousel-nav-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-line);
+  color: #fff;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.carousel-nav-btn:hover {
+  background: var(--accent-blue);
+  color: #000;
+}
+
+.carousel-counter-info {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  font-family: 'DM Mono', monospace;
+}
+
+/* Diálogo de Transferência */
+.transfer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(6px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.transfer-backdrop.open {
+  display: flex;
+}
+
+.transfer-dialog-box {
+  background: var(--surface-dark);
+  border: 1px solid var(--border-line);
+  border-radius: 14px;
+  padding: 24px;
+  max-width: 340px;
+  width: 100%;
+  position: relative;
+  text-align: left;
+}
+
+.dialog-close-btn {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.transfer-dialog-box h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.05rem;
+  color: #fff;
+}
+
+.transfer-dialog-box p {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0 0 14px 0;
+}
+
+.transfer-dialog-box input {
+  width: 100%;
+  padding: 10px;
+  background: var(--bg-dark);
+  border: 1px solid var(--border-line);
+  border-radius: 7px;
+  color: #fff;
+  font-size: 0.84rem;
+  margin-bottom: 14px;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.transfer-dialog-box input:focus {
+  border-color: var(--accent-blue);
+}
+
+.dialog-actions-row {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.btn-dialog-abort {
+  background: transparent;
+  border: 1px solid var(--border-line);
+  color: #fff;
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.btn-dialog-execute {
+  background: var(--accent-orange);
+  border: none;
+  color: #000;
+  font-weight: 700;
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
