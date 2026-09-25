@@ -90,7 +90,18 @@ class AdminPanel {
     navButtons.forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
-        const section = btn.dataset.section;
+        
+        // Compatibilidade com os links href do HTML (ex: #section-dashboard ou #dashboard)
+        const href = btn.getAttribute('href');
+        let section = btn.dataset.section;
+
+        if (!section && href) {
+          section = href.replace('#', '');
+          if (section.startsWith('section-')) {
+            section = section.replace('section-', '');
+          }
+        }
+
         if (section) this.switchSection(section);
       });
     });
@@ -112,7 +123,9 @@ class AdminPanel {
       sectionElement.style.display = 'block';
     }
 
-    const activeBtn = document.querySelector(`.nav-btn[data-section="${section}"]`);
+    const activeBtn = document.querySelector(`.nav-btn[data-section="${section}"]`) || 
+                      document.querySelector(`.nav-btn[href="#section-${section}"]`) || 
+                      document.querySelector(`.nav-btn[href="#${section}"]`);
     if (activeBtn) {
       activeBtn.classList.add('active');
     }
@@ -528,7 +541,7 @@ class AdminPanel {
       const data = await response.json();
       if (!response.ok || !data.ok) throw new Error(data.message || 'Usuário não encontrado.');
       result.className = 'user-history-result';
-      result.innerHTML = `<strong>${data.user.nome}</strong> · ${data.user.email}<br><small>${this.translateUserType(data.user.tipo)} · ${this.translateUserStatus(data.user.status)}</small><hr><b>Compras:</b> ${data.purchases.length} · <b>Ingressos:</b> ${data.tickets.length}<br>${data.purchases.map(p => `<div>Pedido ${p.codigo_pedido} · ${this.formatCurrency(p.valor_total)} · ${this.formatDate(p.criado_em)}</div>`).join('') || '<div>Nenhuma compra registrada.</div>'}`;
+      result.innerHTML = `<strong>${data.user.nome}</strong> · ${data.user.email}<br><small>${this.translateUserType(data.user.tipo)} · ${this.translateUserStatus(data.user.status)}</small><hr><b>Compras:</b> ${data.purchases.length} · <b>Ingressos:</b> ${data.tickets.length}<br>${data.purchases.map(p => `<div>Pedido ${p.codigo_pedido} · ${this.formatCurrency(p.valor_total)} ·${this.formatDate(p.criado_em)}</div>`).join('') || '<div>Nenhuma compra registrada.</div>'}`;
     } catch (error) { result.className = 'user-history-result error'; result.textContent = error.message; }
   }
 
@@ -620,7 +633,7 @@ class AdminPanel {
 
     if (modal) {
       modal.classList.remove('closing');
-      modal.style.display = 'flex'; // Força o display flex para sobrescrever o style inline do HTML
+      modal.style.display = 'flex';
       modal.classList.add('open');
     }
   }
@@ -632,7 +645,7 @@ class AdminPanel {
     modal.classList.add('closing');
     setTimeout(() => {
       modal.classList.remove('open', 'closing');
-      modal.style.display = 'none'; // Retorna para none
+      modal.style.display = 'none';
       this.editingEventId = null;
       
       const content = modal.querySelector('.modal-content');
@@ -673,7 +686,6 @@ class AdminPanel {
           form.elements['data_evento'].value = ev.data_evento.replace(' ', 'T').slice(0, 16);
         }
 
-        // Preview da foto salva
         if (ev.imagem) {
           const previewBox = document.getElementById('event-img-preview-box');
           const previewImg = document.getElementById('event-img-preview');
