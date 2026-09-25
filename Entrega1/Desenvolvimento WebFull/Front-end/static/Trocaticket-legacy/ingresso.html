@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="ingresso.css">
+    <title>Ingresso Digital | TrocaTicket</title>
+</head>
+<body class="ticket-page-body">
+    <header class="site-header">
+        <a class="brand" href="index.html">
+            <img class="brand-logo" src="imagens/logo troca ticket.png" alt="TrocaTicket">
+            <span>Troca<span class="brand-accent">Ticket</span></span>
+        </a>
+        <a href="meus-ingressos.html" class="btn-return-menu">Voltar</a>
+    </header>
+
+    <main class="ticket-page-container">
+        <div class="ticket-card-wrapper" id="ticket-wrapper">
+            
+            <!-- Capa do Evento no Topo -->
+            <div class="ticket-header-cover">
+                <img id="ticket-cover-img" src="imagens/logo troca ticket.png" alt="Capa do Evento">
+                <div class="cover-gradient-overlay"></div>
+            </div>
+
+            <!-- Bilhete Estilo Ticket -->
+            <div class="ticket-card-content">
+                <div class="ticket-notch notch-left"></div>
+                <div class="ticket-notch notch-right"></div>
+
+                <div class="ticket-main-header">
+                    <h1 id="ticket-event-name">CARREGANDO...</h1>
+                    <p class="ticket-artist-name" id="ticket-artist-name"></p>
+                    <div class="ticket-date-row">
+                        <span class="cal-icon">📅</span>
+                        <span id="ticket-date-text">Data a confirmar</span>
+                    </div>
+                </div>
+
+                <!-- Bloco do QR Code Central -->
+                <div class="ticket-qr-box">
+                    <div class="canvas-container">
+                        <canvas id="qr-code-canvas"></canvas>
+                    </div>
+                </div>
+
+                <div class="ticket-info-pills">
+                    <span class="ticket-type-label" id="ticket-category">INGRESSO DIGITAL</span>
+                    <span class="ticket-schedule-pill" id="ticket-time-text">Data e Horário</span>
+                </div>
+
+                <!-- Botões de Ação -->
+                <div class="ticket-actions-group">
+                    <button type="button" class="btn-action btn-transfer" id="btn-transfer-ticket">
+                        TRANSFERIR
+                    </button>
+                    <button type="button" class="btn-action btn-resell" id="btn-resell-ticket">
+                        🏷️ REVENDER NO MARKETPLACE
+                    </button>
+                </div>
+                <p class="transfer-alert" id="transfer-alert-msg"></p>
+
+                <!-- Rodapé com Código do Ingresso e Pedido nas pontas -->
+                <div class="ticket-metadata-footer">
+                    <span id="ticket-serial-label">INGRESSO: #000000</span>
+                    <span id="ticket-order-label">PEDIDO: #000000</span>
+                </div>
+
+                <!-- Carrossel Manual -->
+                <div class="ticket-carousel-nav" id="carousel-nav-container" style="display: none;">
+                    <button type="button" class="carousel-nav-btn" id="btn-prev-ticket" aria-label="Anterior">‹</button>
+                    <span class="carousel-counter-info" id="carousel-counter-label">INGRESSO(S) 1 / 1</span>
+                    <button type="button" class="carousel-nav-btn" id="btn-next-ticket" aria-label="Próximo">›</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal para Transferência Nominal -->
+    <div class="transfer-backdrop" id="transfer-dialog-backdrop" aria-hidden="true">
+        <div class="transfer-dialog-box">
+            <button class="dialog-close-btn" id="btn-close-transfer-dialog">✕</button>
+            <h3>Transferência Nominal</h3>
+            <p>Atenção: A transferência direta de titularidade só pode ser feita <strong>uma única vez</strong>. O destinatário não poderá repassar para terceiros, apenas revender.</p>
+            <input type="email" id="input-destinatario-email" placeholder="E-mail do novo titular" />
+            <div class="dialog-actions-row">
+                <button type="button" class="btn-dialog-abort" id="btn-abort-transfer">Cancelar</button>
+                <button type="button" class="btn-dialog-execute" id="btn-execute-transfer">Confirmar Envio</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script src="ingresso.js"></script>
+</body>
+</html>

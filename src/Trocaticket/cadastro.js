@@ -27,7 +27,7 @@ form.addEventListener('submit', async event => {
     verificationEmail = data.email;
     document.querySelector('.page-form-content').hidden = true;
     verificationStep.hidden = false;
-    showMessage('Cadastro criado. Informe o código de verificação.');
+    showMessage('Cadastro criado. Verifique sua caixa de entrada e informe o código recebido.');
   } catch (error) {
     console.error('[cadastro] Erro:', error);
     showMessage(error.message);

@@ -406,3 +406,53 @@ document.addEventListener('DOMContentLoaded', () => {
     calculateNetValue();
   }
 });
+/**
+ * Função responsável por controlar a exibição das rotas
+ */
+function navigateRoute() {
+    const hash = window.location.hash || '';
+    const targetSectionId = routes[hash];
+
+    // Seleciona todas as seções diretas dentro do main
+    const sections = document.querySelectorAll('main > section');
+    const notFoundSection = document.getElementById('not-found');
+
+    if (targetSectionId) {
+        // --- ROTA VÁLIDA ---
+        // Se a rota for válida, oculta o 404 e exibe todas as seções da Landing Page
+        // (Permitindo a rolagem suave normal entre as seções)
+        if (notFoundSection) {
+            notFoundSection.style.display = 'none';
+        }
+
+        sections.forEach(section => {
+            if (section.id !== 'not-found') {
+                section.style.display = ''; // Restaura a exibição padrão (CSS)
+            }
+        });
+
+        // Se houver um hash específico (#eventos, #anunciar, etc.), faz o scroll suave até a seção
+        if (hash && hash !== '#inicio') {
+            const targetElement = document.querySelector(hash);
+            if (targetElement) {
+                targetElement.scrollIntoView({ behavior: 'smooth' });
+            }
+        } else {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+    } else {
+        // --- ROTA INEXISTENTE (404) ---
+        // Se a hash não existir no mapeamento de rotas, oculta o conteúdo principal e mostra apenas o 404
+        sections.forEach(section => {
+            if (section.id !== 'not-found') {
+                section.style.display = 'none';
+            }
+        });
+
+        if (notFoundSection) {
+            notFoundSection.style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'instant' });
+        }
+    }
+}

@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "nome": "Arena Sunset",
+    "cidade": "São Paulo",
+    "data": "2026-11-15",
+    "categoria": "Show",
+    "imagem": "/mock/placeholder.svg"
+  },
+  {
+    "id": 2,
+    "nome": "Club Wave",
+    "cidade": "Rio de Janeiro",
+    "data": "2026-12-03",
+    "categoria": "Festival",
+    "imagem": "/mock/placeholder.svg"
+  },
+  {
+    "id": 3,
+    "nome": "Tech Session",
+    "cidade": "Belo Horizonte",
+    "data": "2027-01-20",
+    "categoria": "Conferência",
+    "imagem": "/mock/placeholder.svg"
+  }
+]

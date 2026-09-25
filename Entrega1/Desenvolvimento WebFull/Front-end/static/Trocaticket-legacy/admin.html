@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="admin.css">
+    <script src="admin.js" defer></script>
+    <title>TrocaTicket | Painel Administrativo</title>
+</head>
+<body>
+    <div id="access-check" style="display: none;">
+        <div class="access-denied">
+            <h1>Acesso Negado</h1>
+            <p>Você não possui autorização para acessar esta página.</p>
+        </div>
+    </div>
+
+    <div id="admin-panel">
+        <header class="admin-header">
+            <div class="admin-header-content">
+                <h1 class="admin-title">Painel Administrativo</h1>
+                <button class="logout-btn" id="logout-btn">Sair</button>
+            </div>
+        </header>
+
+        <nav class="admin-nav">
+          <a href="#dashboard" class="nav-btn active">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8"></rect><rect x="13" y="3" width="8" height="8"></rect><rect x="3" y="13" width="8" height="8"></rect><rect x="13" y="13" width="8" height="8"></rect></svg>
+                <span>Dashboard</span>
+            </a>
+            <a href="#eventos" class="nav-btn">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="15" rx="1.5"></rect><path d="M8 3.5v4M16 3.5v4M4 10h16M8 14h.01M12 14h.01M16 14h.01M8 17.5h.01M12 17.5h.01"></path></svg>
+                <span>Eventos</span>
+            </a>
+            <a href="#usuarios" class="nav-btn">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"></circle><path d="M5 20c.8-3.2 3.2-5 7-5s6.2 1.8 7 5"></path></svg>
+                <span>Usuários</span>
+            </a>
+            <a href="#ingressos" class="nav-btn">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7.5h14v9H5z"></path><path d="M8 7.5v9M11 10h5M11 13h3"></path></svg>
+                <span>Ingressos</span>
+            </a>
+            <a href="#relatorios" class="nav-btn">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"></path><path d="M6 14l3-3 3 3 5-7"></path><circle cx="8" cy="10" r="1"></circle></svg>
+                <span>Relatórios</span>
+            </a>
+            <a href="#bilheteria" class="nav-btn">
+                <span>Bilheteria</span>
+            </a>
+            <a href="#auditoria" class="nav-btn">
+                <span>Equipe</span>
+            </a>
+        </nav>
+
+        <main id="admin-content" class="admin-content">
+            <!-- Dashboard Section -->
+             <!--#section-not-found -->
+            <section id="section-dashboard" class="admin-section active">
+                <div class="section-header">
+                    <h2>Dashboard</h2>
+                    <p class="section-subtitle">Visão geral do sistema</p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">👥</div>
+                        <div class="stat-info">
+                            <span class="stat-label">Usuários Cadastrados</span>
+                            <span class="stat-value" id="total-users">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🎫</div>
+                        <div class="stat-info">
+                            <span class="stat-label">Total de Ingressos</span>
+                            <span class="stat-value" id="total-tickets">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📅</div>
+                        <div class="stat-info">
+                            <span class="stat-label">Eventos Ativos</span>
+                            <span class="stat-value" id="total-events">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">💰</div>
+                        <div class="stat-info">
+                            <span class="stat-label">Receita Total</span>
+                            <span class="stat-value" id="total-revenue">R$ 0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="dashboard-card">
+                        <h3>Atividade Recente</h3>
+                        <div class="activity-list" id="activity-list">
+                            <p class="empty-state">Nenhuma atividade registrada</p>
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3>Eventos em Destaque</h3>
+                        <div class="featured-events" id="featured-events">
+                            <p class="empty-state">Nenhum evento cadastrado</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="stats-grid executive-metrics">
+                    <div class="stat-card"><div class="stat-icon">🛡️</div><div class="stat-info"><span class="stat-label">Cancelamentos pendentes</span><span class="stat-value" id="pending-cancellations">0</span></div></div>
+                </div>
+                <div class="dashboard-chart-grid">
+                    <div class="dashboard-card chart-card">
+                        <div class="chart-heading"><div><h3>GMV por evento</h3><p>Vendas agrupadas por período</p></div><div class="chart-filters"><select id="gmv-event" required><option value="">Selecione um evento</option></select><select id="gmv-period"><option value="daily">Diário</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option></select></div></div>
+                        <div id="gmv-chart" class="bar-chart"><span>Selecione um evento para visualizar o GMV.</span></div>
+                    </div>
+                    <div class="dashboard-card chart-card">
+                        <div class="chart-heading"><div><h3>Tendência geral de vendas</h3><p>Todos os eventos do site</p></div><select id="trend-period"><option value="daily">Dia</option><option value="weekly">Semana</option><option value="monthly">Mês</option><option value="yearly">Ano</option></select></div>
+                        <div id="trend-chart" class="line-chart"><span>Sem dados suficientes</span></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Eventos Section -->
+            <section id="section-eventos" class="admin-section">
+                <div class="section-header">
+                    <h2>Gerenciamento de Eventos</h2>
+                    <button class="button button-primary" id="new-event-btn">+ Novo Evento</button>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Evento</th>
+                                <th>Artista</th>
+                                <th>Data</th>
+                                <th>Local</th>
+                                <th>Preço</th>
+                                <th>Carrossel</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="eventos-table-body">
+                            <tr class="empty-row">
+                                <td colspan="8" class="empty-state">Nenhum evento cadastrado</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="section-auditoria" class="admin-section">
+                <div class="section-header">
+                    <h2>Atividades Recentes da Equipe</h2>
+                    <div class="audit-filters">
+                        <input type="search" id="audit-actor" placeholder="Nome do responsável">
+                        <select id="audit-type"><option value="">Todos os tipos</option><option value="admin">Admin</option><option value="organizador">Organizador</option><option value="fornecedor">Fornecedor</option><option value="bilheteria">Bilheteria</option><option value="sistema">Sistema</option></select>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="data-table"><thead><tr><th>Responsável</th><th>Tipo</th><th>Ação</th><th>Descrição</th><th>Item afetado</th><th>Data e hora</th></tr></thead><tbody id="audit-table-body"><tr><td colspan="6" class="empty-state">Nenhuma atividade registrada</td></tr></tbody></table>
+                </div>
+            </section>
+
+            <!-- Usuários Section -->
+            <section id="section-usuarios" class="admin-section">
+                <div class="section-header">
+                    <h2>Gerenciamento de Usuários</h2>
+                    <div class="filter-group user-filter-menu">
+                        <button type="button" class="filter-trigger" id="user-filter-trigger" aria-expanded="false" aria-controls="user-filter-panel" title="Filtrar usuários">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-6.2 7.1v5.4l-3.6 1.8v-7.2L4 5Z"></path></svg>
+                            <span>Filtrar</span>
+                        </button>
+                        <div class="ticket-filter-panel user-filter-panel" id="user-filter-panel" hidden>
+                            <div class="ticket-filter-grid">
+                                <label>Nome<input type="search" id="filter-user-name" placeholder="Nome do usuário"></label>
+                                <label>E-mail<input type="search" id="filter-user-email" placeholder="E-mail"></label>
+                                <label>Telefone<input type="search" id="filter-user-phone" placeholder="Telefone"></label>
+                                <label>Status<select id="filter-user-status">
+                                    <option value="">Todos os status</option>
+                                    <option value="pendente_verificacao">Pendente de verificação</option>
+                                    <option value="ativa">Ativa</option>
+                                    <option value="suspensa">Suspensa</option>
+                                    <option value="excluida">Excluída</option>
+                                </select></label>
+                                <label>Tipo de usuário<select id="filter-user-type">
+                                    <option value="">Todos os tipos</option>
+                                    <option value="admin">Admin</option>
+                                    <option value="comum">Comum</option>
+                                    <option value="organizador">Organizador</option>
+                                    <option value="fornecedor">Fornecedor</option>
+                                    <option value="bilheteria">Bilheteria</option>
+                                </select></label>
+                                <label>Data de cadastro<input type="date" id="filter-user-date"></label>
+                            </div>
+                            <div class="ticket-filter-actions">
+                                <button type="button" class="filter-clear" id="user-filter-clear">Limpar filtros</button>
+                                <button type="button" class="filter-apply" id="user-filter-apply">Aplicar filtros</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Email</th>
+                                <th>Telefone</th>
+                                <th>Data de Cadastro</th>
+                                <th>Status</th>
+                                <th>Tipo de Usuário</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usuarios-table-body">
+                            <tr class="empty-row">
+                                <td colspan="7" class="empty-state">Nenhum usuário cadastrado</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="dashboard-card user-history-card">
+                    <h3>Histórico vinculado ao perfil</h3>
+                    <div class="user-history-search"><input type="search" id="user-history-query" placeholder="Nome, telefone, e-mail ou CPF"><button type="button" class="filter-apply" id="user-history-search">Pesquisar</button></div>
+                    <div id="user-history-result" class="empty-state">Pesquise um usuário para consultar compras, ingressos e transações.</div>
+                </div>
+            </section>
+
+            <!-- Ingressos Section -->
+            <section id="section-ingressos" class="admin-section">
+                <div class="section-header">
+                    <h2>Gerenciamento de Ingressos</h2>
+                    <div class="filter-group ticket-filter-menu">
+                        <button type="button" class="filter-trigger" id="ticket-filter-trigger" aria-expanded="false" aria-controls="ticket-filter-panel" title="Filtrar ingressos">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-6.2 7.1v5.4l-3.6 1.8v-7.2L4 5Z"></path></svg>
+                            <span>Filtrar</span>
+                        </button>
+                        <div class="ticket-filter-panel" id="ticket-filter-panel" hidden>
+                            <div class="ticket-filter-grid">
+                                <label>Código do ingresso<input type="search" id="filter-ticket-code" placeholder="TKT-..."></label>
+                                <label>Código do pedido<input type="search" id="filter-order-code" placeholder="PED-..."></label>
+                                <label>Evento<select id="filter-event"><option value="">Todos os eventos</option></select></label>
+                                <label>Proprietário<select id="filter-owner"><option value="">Todos os proprietários</option></select></label>
+                                <label>Preço<input type="number" id="filter-price" min="0" step="0.01" placeholder="0,00"></label>
+                                <label>Status<select id="filter-status">
+                                    <option value="">Todos os status</option>
+                                    <option value="ativo">Ativo</option>
+                                    <option value="resgatado">Resgatado</option>
+                                    <option value="expirado">Expirado</option>
+                                    <option value="anunciado">Anunciado</option>
+                                    <option value="reservado">Reservado</option>
+                                    <option value="cancelamento_solicitado">Cancelamento solicitado</option>
+                                    <option value="cancelado">Cancelado</option>
+                                    <option value="bloqueado">Bloqueado</option>
+                                </select></label>
+                                <label>Data de aquisição<input type="date" id="filter-date"></label>
+                            </div>
+                            <div class="ticket-filter-actions">
+                                <button type="button" class="filter-clear" id="filter-clear">Limpar filtros</button>
+                                <button type="button" class="filter-apply" id="filter-apply">Aplicar filtros</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Código do Ingresso</th>
+                                <th>Código do Pedido</th>
+                                <th>Evento</th>
+                                <th>Proprietário</th>
+                                <th>Preço</th>
+                                <th>Status</th>
+                                <th>Data de Aquisição</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ingressos-table-body">
+                            <tr class="empty-row">
+                                <td colspan="8" class="empty-state">Nenhum ingresso registrado</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Relatórios Section -->
+            <section id="section-relatorios" class="admin-section">
+                <div class="section-header">
+                    <h2>Relatórios e Análises</h2>
+                </div>
+
+                <div class="reports-grid">
+                    <div class="report-card">
+                        <h3>Relatório de Vendas</h3>
+                        <p>Análise de ingressos vendidos por período</p>
+                        <button class="button button-outline">Gerar Relatório</button>
+                    </div>
+                    <div class="report-card">
+                        <h3>Relatório de Usuários</h3>
+                        <p>Crescimento e engajamento de usuários</p>
+                        <button class="button button-outline">Gerar Relatório</button>
+                    </div>
+                    <div class="report-card">
+                        <h3>Relatório Financeiro</h3>
+                        <p>Fluxo de receita e taxas aplicadas</p>
+                        <button class="button button-outline">Gerar Relatório</button>
+                    </div>
+                    <div class="report-card">
+                        <h3>Relatório de Eventos</h3>
+                        <p>Desempenho e métricas por evento</p>
+                        <button class="button button-outline">Gerar Relatório</button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="section-bilheteria" class="admin-section">
+                <div class="section-header"><h2>Bilheteria Matriz</h2><p class="section-subtitle">Auditoria de vouchers e transferências</p></div>
+                <form id="authorize-pj-form" class="section-header">
+                    <input name="email" type="email" required placeholder="E-mail corporativo">
+                    <select name="tipo" required><option value="organizador">Organizador</option><option value="fornecedor">Fornecedor</option><option value="bilheteria">Bilheteria</option></select>
+                    <button class="button button-primary" type="submit">Pré-autorizar empresa</button>
+                    <span id="authorize-pj-message" class="section-subtitle"></span>
+                </form>
+                <div class="table-container"><table class="data-table"><thead><tr><th>Ingresso</th><th>Evento</th><th>Titular</th><th>Status</th><th>Atualizado</th></tr></thead><tbody id="bilheteria-audit-body"><tr><td colspan="5">Carregando...</td></tr></tbody></table></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal com seletor de arquivo de imagem, toggle do carrossel e campo Artista -->
+    <div id="event-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 520px;">
+            <button class="modal-close" type="button">✕</button>
+            <h2 id="modal-title">Novo Evento</h2>
+            <form id="event-form">
+                <label>
+                    <span>Nome do Evento</span>
+                    <input type="text" name="nome" id="event-nome" required placeholder="Ex: Mirante Esperia">
+                </label>
+                <label style="margin-top: 6px;">
+                    <span>Artista / Atração Principal</span>
+                    <input type="text" name="artista" id="event-artista" placeholder="Ex: WIU, KayBlack, Ryu, The Runner">
+                </label>
+                <label style="margin-top: 6px;">
+                    <span>Data e Horário</span>
+                    <input type="datetime-local" name="data_evento" id="event-data" required>
+                </label>
+                <label style="margin-top: 6px;">
+                    <span>Local</span>
+                    <input type="text" name="local" id="event-local" required placeholder="Ex: Parque Anhembi - SP">
+                </label>
+                <label style="margin-top: 6px;">
+                    <span>Preço Base (R$)</span>
+                    <input type="number" step="0.01" name="preco" id="event-preco" placeholder="0.00" required>
+                </label>
+
+                <!-- SELETOR DE IMAGEM COM PREVIEW -->
+                <label style="margin-top: 6px;">
+                    <span>Imagem / Pôster do Evento</span>
+                    <input type="file" id="event-file-picker" accept="image/*" style="margin-top: 4px; padding: 6px; cursor: pointer; border: 1px dashed var(--primary, #6c5ce7); border-radius: 6px; width: 100%; box-sizing: border-box;">
+                    <input type="hidden" name="imagem" id="event-imagem">
+                </label>
+                <div id="event-img-preview-box" style="display: none; align-items: center; gap: 12px; margin-top: 8px; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 8px;">
+                    <img id="event-img-preview" src="" alt="Prévia" style="width: 54px; height: 54px; object-fit: cover; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2);">
+                    <span id="event-img-status" style="font-size: 0.82rem; color: #a4a6b0; word-break: break-all;">Imagem carregada</span>
+                </div>
+
+                <label style="margin-top: 10px;">
+                    <span>Status</span>
+                    <select name="status" id="event-status">
+                        <option value="publicado">Publicado</option>
+                        <option value="rascunho">Rascunho</option>
+                        <option value="cancelado">Cancelado</option>
+                    </select>
+                </label>
+
+                <label style="display: flex; align-items: center; gap: 10px; margin-top: 12px; cursor: pointer; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px;">
+                    <input type="checkbox" name="destaque" id="event-destaque" style="width: 18px; height: 18px; accent-color: var(--primary, #6c5ce7); cursor: pointer;">
+                    <span style="font-weight: 600; font-size: 0.9rem;">Incluir este evento no Carrossel da Página Inicial</span>
+                </label>
+
+                <div class="modal-actions" style="margin-top: 18px;">
+                    <button type="button" class="button button-outline" id="modal-cancel">Cancelar</button>
+                    <button type="submit" class="button button-primary" id="modal-submit-btn">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
