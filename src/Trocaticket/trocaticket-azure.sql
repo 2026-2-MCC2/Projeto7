@@ -271,8 +271,10 @@ BEGIN
         organizador_id int NULL,
         nome varchar(150) NOT NULL,
         artista varchar(150) NULL,
+        classificacao_etaria varchar(10) NULL,
         [local] varchar(200) NULL,
         data_evento datetime2(0) NOT NULL,
+        data_fim datetime2(0) NULL,
         ticket_calculado decimal(10,2) NOT NULL CONSTRAINT df_eventos_ticket DEFAULT 0,
         publico_minimo int NOT NULL CONSTRAINT df_eventos_publico_minimo DEFAULT 0,
         publico_maximo int NOT NULL CONSTRAINT df_eventos_publico_maximo DEFAULT 0,
@@ -285,6 +287,12 @@ BEGIN
     CREATE INDEX idx_eventos_data ON dbo.eventos(data_evento);
     CREATE INDEX idx_eventos_status ON dbo.eventos(status, destaque);
 END;
+GO
+
+IF OBJECT_ID(N'dbo.eventos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.eventos', N'classificacao_etaria') IS NULL
+    ALTER TABLE dbo.eventos ADD classificacao_etaria varchar(10) NULL;
+IF OBJECT_ID(N'dbo.eventos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.eventos', N'data_fim') IS NULL
+    ALTER TABLE dbo.eventos ADD data_fim datetime2(0) NULL;
 GO
 
 IF OBJECT_ID(N'dbo.eventos', N'U') IS NOT NULL
@@ -757,6 +765,194 @@ BEGIN
         CONSTRAINT fk_transferencias_destinatario FOREIGN KEY (destinatario_id) REFERENCES dbo.usuarios(id)
     );
     CREATE INDEX idx_transferencias_ingresso ON dbo.transferencias_pendentes(ingresso_id, status);
+END;
+GO
+
+IF OBJECT_ID(N'dbo.evento_lotes', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.evento_lotes (
+        id int IDENTITY(1,1) NOT NULL CONSTRAINT pk_evento_lotes PRIMARY KEY,
+        evento_id int NOT NULL,
+        nome varchar(120) NOT NULL,
+        quantidade int NOT NULL CONSTRAINT df_evento_lotes_quantidade DEFAULT 0,
+        preco decimal(10,2) NOT NULL CONSTRAINT df_evento_lotes_preco DEFAULT 0,
+        regra varchar(30) NOT NULL CONSTRAINT df_evento_lotes_regra DEFAULT 'Esgotamento',
+        data_virada date NULL,
+        criado_em datetime2(0) NOT NULL CONSTRAINT df_evento_lotes_criado DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT fk_evento_lotes_evento FOREIGN KEY (evento_id) REFERENCES dbo.eventos(id) ON DELETE CASCADE
+    );
+    CREATE INDEX idx_evento_lotes_evento ON dbo.evento_lotes(evento_id);
+END;
+GO
+
+IF OBJECT_ID(N'dbo.evento_setores', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.evento_setores (
+        id int IDENTITY(1,1) NOT NULL CONSTRAINT pk_evento_setores PRIMARY KEY,
+        evento_id int NOT NULL,
+        nome varchar(120) NOT NULL,
+        capacidade int NOT NULL CONSTRAINT df_evento_setores_capacidade DEFAULT 0,
+        criado_em datetime2(0) NOT NULL CONSTRAINT df_evento_setores_criado DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT fk_evento_setores_evento FOREIGN KEY (evento_id) REFERENCES dbo.eventos(id) ON DELETE CASCADE
+    );
+    CREATE INDEX idx_evento_setores_evento ON dbo.evento_setores(evento_id);
+END;
+GO
+
+IF OBJECT_ID(N'dbo.evento_lotes', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.evento_lotes', N'data_virada') IS NULL
+    ALTER TABLE dbo.evento_lotes ADD data_virada date NULL;
+GO
+
+IF OBJECT_ID(N'dbo.evento_lotes', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.evento_lotes', N'setor_nome') IS NULL
+    ALTER TABLE dbo.evento_lotes ADD setor_nome varchar(120) NULL;
+GO
+
+IF OBJECT_ID(N'dbo.evento_lotes', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.evento_lotes', N'setor_capacidade') IS NULL
+    ALTER TABLE dbo.evento_lotes ADD setor_capacidade int NULL;
+GO
+
+IF OBJECT_ID(N'dbo.evento_lotes', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.evento_lotes', N'tipo_ingresso') IS NULL
+    ALTER TABLE dbo.evento_lotes ADD tipo_ingresso varchar(40) NULL;
+GO
+
+IF OBJECT_ID(N'dbo.evento_lotes', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.evento_lotes', N'data_inicio') IS NULL
+    ALTER TABLE dbo.evento_lotes ADD data_inicio datetime2(0) NULL;
+GO
+
+IF OBJECT_ID(N'dbo.evento_lotes', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.evento_lotes', N'data_fim') IS NULL
+    ALTER TABLE dbo.evento_lotes ADD data_fim datetime2(0) NULL;
+GO
+
+IF OBJECT_ID(N'dbo.evento_lotes', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.evento_lotes', N'quantidade_total') IS NULL
+    ALTER TABLE dbo.evento_lotes ADD quantidade_total int NULL;
+GO
+
+IF OBJECT_ID(N'dbo.evento_lotes', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.evento_lotes', N'quantidade_meia') IS NULL
+    ALTER TABLE dbo.evento_lotes ADD quantidade_meia int NULL;
+GO
+
+IF OBJECT_ID(N'dbo.evento_lotes', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.evento_lotes', N'quantidade_inteira') IS NULL
+    ALTER TABLE dbo.evento_lotes ADD quantidade_inteira int NULL;
+GO
+
+IF OBJECT_ID(N'dbo.evento_lotes', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.evento_lotes', N'quantidade_solidaria') IS NULL
+    ALTER TABLE dbo.evento_lotes ADD quantidade_solidaria int NULL;
+GO
+
+IF OBJECT_ID(N'dbo.evento_lotes', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.evento_lotes', N'preco_inteira') IS NULL
+    ALTER TABLE dbo.evento_lotes ADD preco_inteira decimal(10,2) NULL;
+GO
+
+IF OBJECT_ID(N'dbo.evento_lotes', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.evento_lotes', N'preco_meia') IS NULL
+    ALTER TABLE dbo.evento_lotes ADD preco_meia decimal(10,2) NULL;
+GO
+
+IF OBJECT_ID(N'dbo.evento_lotes', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.evento_lotes', N'modalidades_json') IS NULL
+    ALTER TABLE dbo.evento_lotes ADD modalidades_json nvarchar(max) NULL;
+GO
+
+IF OBJECT_ID(N'dbo.evento_itens_custo', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.evento_itens_custo (
+        id int IDENTITY(1,1) NOT NULL CONSTRAINT pk_evento_itens_custo PRIMARY KEY,
+        evento_id int NOT NULL,
+        categoria varchar(80) NOT NULL,
+        nome_item varchar(500) NOT NULL,
+        custo_estimado decimal(12,2) NOT NULL CONSTRAINT df_evento_custo_estimado DEFAULT 0,
+        custo_contratado decimal(12,2) NULL,
+        fornecedor varchar(160) NULL,
+        status varchar(30) NOT NULL CONSTRAINT df_evento_custo_status DEFAULT 'pendente',
+        demanda_id int NULL,
+        criado_em datetime2(0) NOT NULL CONSTRAINT df_evento_custo_criado DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT fk_evento_itens_custo_evento FOREIGN KEY (evento_id) REFERENCES dbo.eventos(id) ON DELETE CASCADE
+    );
+    CREATE INDEX idx_evento_itens_custo_evento ON dbo.evento_itens_custo(evento_id, status);
+END;
+GO
+
+IF OBJECT_ID(N'dbo.evento_itens_custo', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.evento_itens_custo', N'nome_item') < 500
+    ALTER TABLE dbo.evento_itens_custo ALTER COLUMN nome_item varchar(500) NOT NULL;
+GO
+
+IF OBJECT_ID(N'dbo.evento_demandas', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.evento_demandas (
+        id int IDENTITY(1,1) NOT NULL CONSTRAINT pk_evento_demandas PRIMARY KEY,
+        evento_id int NOT NULL,
+        titulo varchar(180) NOT NULL,
+        servico varchar(120) NOT NULL,
+        escopo varchar(max) NOT NULL,
+        prazo date NOT NULL,
+        valor_estimado decimal(12,2) NOT NULL,
+        status varchar(30) NOT NULL CONSTRAINT df_evento_demandas_status DEFAULT 'em cotacao',
+        criado_em datetime2(0) NOT NULL CONSTRAINT df_evento_demandas_criado DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT fk_evento_demandas_evento FOREIGN KEY (evento_id) REFERENCES dbo.eventos(id) ON DELETE CASCADE
+    );
+    CREATE INDEX idx_evento_demandas_evento ON dbo.evento_demandas(evento_id, status);
+END;
+GO
+
+IF OBJECT_ID(N'dbo.evento_propostas_fornecedor', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.evento_propostas_fornecedor (
+        id int IDENTITY(1,1) NOT NULL CONSTRAINT pk_evento_propostas_fornecedor PRIMARY KEY,
+        demanda_id int NOT NULL,
+        empresa varchar(180) NOT NULL,
+        valor decimal(12,2) NOT NULL,
+        escopo varchar(max) NOT NULL,
+        prazo varchar(80) NOT NULL,
+        anexos varchar(500) NULL,
+        status varchar(30) NOT NULL CONSTRAINT df_evento_propostas_status DEFAULT 'em analise',
+        criado_em datetime2(0) NOT NULL CONSTRAINT df_evento_propostas_criado DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT fk_evento_propostas_demanda FOREIGN KEY (demanda_id) REFERENCES dbo.evento_demandas(id) ON DELETE CASCADE
+    );
+    CREATE INDEX idx_evento_propostas_demanda ON dbo.evento_propostas_fornecedor(demanda_id, status);
+END;
+GO
+
+IF OBJECT_ID(N'dbo.evento_mensagens_chat', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.evento_mensagens_chat (
+        id int IDENTITY(1,1) NOT NULL CONSTRAINT pk_evento_mensagens_chat PRIMARY KEY,
+        demanda_id int NOT NULL,
+        remetente varchar(30) NOT NULL CONSTRAINT df_evento_msg_remetente DEFAULT 'organizador',
+        texto varchar(max) NOT NULL,
+        enviado_em datetime2(0) NOT NULL CONSTRAINT df_evento_msg_enviado DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT fk_evento_mensagens_demanda FOREIGN KEY (demanda_id) REFERENCES dbo.evento_demandas(id) ON DELETE CASCADE
+    );
+    CREATE INDEX idx_evento_mensagens_demanda ON dbo.evento_mensagens_chat(demanda_id, enviado_em);
+END;
+GO
+
+IF OBJECT_ID(N'dbo.evento_documentos', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.evento_documentos (
+        id int IDENTITY(1,1) NOT NULL CONSTRAINT pk_evento_documentos PRIMARY KEY,
+        evento_id int NOT NULL,
+        nome varchar(180) NOT NULL,
+        prazo date NOT NULL,
+        status varchar(30) NOT NULL CONSTRAINT df_evento_documentos_status DEFAULT 'pendente',
+        anexo_url varchar(500) NULL,
+        criado_em datetime2(0) NOT NULL CONSTRAINT df_evento_documentos_criado DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT fk_evento_documentos_evento FOREIGN KEY (evento_id) REFERENCES dbo.eventos(id) ON DELETE CASCADE
+    );
+    CREATE INDEX idx_evento_documentos_evento ON dbo.evento_documentos(evento_id, status);
+END;
+GO
+
+IF OBJECT_ID(N'dbo.evento_tarefas', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.evento_tarefas (
+        id int IDENTITY(1,1) NOT NULL CONSTRAINT pk_evento_tarefas PRIMARY KEY,
+        evento_id int NOT NULL,
+        horario varchar(15) NOT NULL,
+        atividade varchar(180) NOT NULL,
+        responsavel varchar(120) NOT NULL,
+        concluida bit NOT NULL CONSTRAINT df_evento_tarefas_concluida DEFAULT 0,
+        criado_em datetime2(0) NOT NULL CONSTRAINT df_evento_tarefas_criado DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT fk_evento_tarefas_evento FOREIGN KEY (evento_id) REFERENCES dbo.eventos(id) ON DELETE CASCADE
+    );
+    CREATE INDEX idx_evento_tarefas_evento ON dbo.evento_tarefas(evento_id, concluida);
 END;
 GO
 

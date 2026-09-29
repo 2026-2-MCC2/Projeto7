@@ -8,301 +8,1753 @@
     <link rel="stylesheet" href="organizador.css">
     <title>Painel do Organizador | TrocaTicket</title>
 </head>
-<body class="admin-body">
-    <header class="admin-header">
-        <div class="admin-header-title">
-            <a class="brand" href="index.html" style="text-decoration: none; color: inherit; display: inline-flex; align-items: center; gap: 8px;">
-                <img class="brand-logo" src="imagens/logo troca ticket.png" alt="TrocaTicket" style="height: 32px;">
-                <span>Troca<span class="brand-accent" style="color: var(--accent-cyan, #00d2ff);">Ticket</span></span>
-            </a>
-            <span style="font-size: 0.9rem; opacity: 0.8; margin-left: 12px; border-left: 1px solid rgba(255,255,255,0.3); padding-left: 12px;">Área do Organizador</span>
-        </div>
-        <div style="display: flex; align-items: center; gap: 16px;">
-            <span id="organizer-name" style="font-weight: 600; color: #fff;">Organizador</span>
-            <button type="button" id="btn-organizer-logout" class="btn-logout">Sair</button>
-        </div>
-    </header>
-
-    <nav class="admin-nav">
-        <button type="button" class="nav-btn active" data-section="section-meus-eventos">Meus Eventos</button>
-        <button type="button" class="nav-btn" data-section="section-novo-evento">+ Criar Evento</button>
-        <button type="button" class="nav-btn" data-section="section-precificacao">Simulador de Custos & Preço</button>
-    </nav>
-
-    <main class="admin-layout">
-        
-        <!-- SEÇÃO: MEUS EVENTOS -->
-        <section id="section-meus-eventos" class="admin-section active" style="display: block;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2>Eventos Cadastrados</h2>
-                <button type="button" class="action-btn action-btn-view" id="btn-recarregar-eventos" style="background: var(--primary, #6c5ce7); color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600;">Atualizar Lista</button>
+<body class="organizer-body">
+    <div class="organizer-shell">
+        <aside class="organizer-sidebar">
+            <div class="brand-block">
+                <a class="brand" href="index.html" aria-label="TrocaTicket home">
+                    <img class="brand-logo" src="imagens/logo troca ticket.png" alt="TrocaTicket logo">
+                    <span>Troca<span class="brand-accent">Ticket</span></span>
+                </a>
             </div>
 
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Nome do Evento</th>
-                            <th>Data</th>
-                            <th>Local</th>
-                            <th>Preço Sugerido</th>
-                            <th>No Carrossel</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="eventos-org-table-body">
-                        <tr>
-                            <td colspan="6" style="padding: 24px; text-align: center; color: var(--text-muted, #7e859b);">Carregando eventos...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
+            <nav class="sidebar-nav" aria-label="Menu do organizador">
+                <button class="nav-btn active" type="button" data-panel="overview">Painel Geral</button>
+                <button class="nav-btn" type="button" data-panel="events">Eventos</button>
+                <button class="nav-btn" type="button" data-panel="finance">Viabilidade</button>
+                <button class="nav-btn" type="button" data-panel="providers">Fornecedores</button>
+                <button class="nav-btn" type="button" data-panel="checklist">Checklist</button>
+            </nav>
 
-        <!-- SEÇÃO: NOVO EVENTO -->
-        <section id="section-novo-evento" class="admin-section" style="display: none;">
-            <div style="max-width: 650px;">
-                <h2 style="margin-top: 0; margin-bottom: 16px;">Cadastrar Novo Evento</h2>
-                <form id="form-novo-evento">
-                    <div style="margin-bottom: 16px;">
-                        <label for="ev-nome">Nome do Evento</label>
-                        <input type="text" id="ev-nome" required placeholder="Ex: Festival de Verão 2026">
-                    </div>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+            <div class="sidebar-card">
+                <span class="eyebrow">Evento ativo</span>
+                <strong id="active-event-name">Festival TrocaTicket</strong>
+                <small id="active-event-date">10 de dez. • 20:00</small>
+            </div>
+        </aside>
+
+        <main class="organizer-main">
+            <header class="organizer-topbar">
+                <div>
+                    <span class="eyebrow">Área do Organizador</span>
+                    <h1>Painel Executivo</h1>
+                </div>
+                <div class="topbar-actions">
+                    <span id="organizer-name" class="user-pill">Organizador</span>
+                    <button type="button" id="btn-organizer-logout" class="btn-logout">Sair</button>
+                </div>
+            </header>
+
+            <div class="panel-stack">
+                <section id="panel-overview" class="organizer-panel active">
+                    <div class="header-row">
                         <div>
-                            <label for="ev-data">Data e Hora</label>
-                            <input type="datetime-local" id="ev-data" required>
+                            <p class="section-kicker">Visão geral</p>
+                            <h2>Indicadores do evento</h2>
                         </div>
-                        <div>
-                            <label for="ev-preco">Preço do Ingresso (R$)</label>
-                            <input type="number" step="0.01" id="ev-preco" required placeholder="0.00">
+                        <div class="inline-select">
+                            <label for="event-select">Evento</label>
+                            <select id="event-select"></select>
                         </div>
                     </div>
-                    
-                    <div style="margin-bottom: 16px;">
-                        <label for="ev-local">Local do Evento</label>
-                        <input type="text" id="ev-local" required placeholder="Ex: Allianz Parque, São Paulo - SP">
+
+                    <div class="kpi-grid">
+                        <article class="kpi-card gradient-purple">
+                            <span class="kpi-label">Receita bruta</span>
+                            <strong id="kpi-revenue">R$ 0,00</strong>
+                            <small id="kpi-revenue-detail">0 ingressos vendidos</small>
+                        </article>
+                        <article class="kpi-card gradient-cyan">
+                            <span class="kpi-label">Ocupação</span>
+                            <strong id="kpi-occupancy">0%</strong>
+                            <div class="progress-bar"><span id="occupancy-fill"></span></div>
+                            <small id="kpi-occupancy-detail">0 / 0 lotados</small>
+                        </article>
+                        <article class="kpi-card gradient-green">
+                            <span class="kpi-label">Despesas confirmadas</span>
+                            <strong id="kpi-confirmed-costs">R$ 0,00</strong>
+                            <small id="kpi-estimated-costs">Estimadas: R$ 0,00</small>
+                        </article>
+                        <article class="kpi-card gradient-gold">
+                            <span class="kpi-label">Lucro líquido</span>
+                            <strong id="kpi-profit">R$ 0,00</strong>
+                            <small id="kpi-profit-detail">Projeção em tempo real</small>
+                        </article>
                     </div>
 
-                    <div style="margin-bottom: 16px;">
-                        <label for="ev-imagem">Imagem do Evento</label>
-                        <input type="file" id="ev-imagem" accept="image/*">
-                        <small style="color: var(--text-muted); display: block; margin-top: 4px;">PNG, JPG ou WEBP (opcional - usa o pôster padrão se vazio)</small>
+                    <div class="bottom-grid">
+                        <article class="info-card">
+                            <div class="card-header-row">
+                                <h3>Break-even</h3>
+                                <span class="badge badge-blue" id="break-even-badge">0 ingressos</span>
+                            </div>
+                            <div class="thermometer-wrap">
+                                <div class="thermometer">
+                                    <div class="thermometer-fill" id="thermometer-fill"></div>
+                                </div>
+                                <div class="thermometer-meta">
+                                    <span>Meta de cobertura</span>
+                                    <strong id="break-even-meta">0 / 0 ingressos</strong>
+                                </div>
+                            </div>
+                            <p id="break-even-text">Faltam 0 ingressos para zerar custos contratados.</p>
+                        </article>
+
+                        <article class="info-card">
+                            <div class="card-header-row">
+                                <h3>Contagem regressiva</h3>
+                                <span class="badge badge-cyan">Evento</span>
+                            </div>
+                            <div id="countdown" class="countdown-grid">
+                                <div><strong id="countdown-days">00</strong><span>Dias</span></div>
+                                <div><strong id="countdown-hours">00</strong><span>Horas</span></div>
+                                <div><strong id="countdown-minutes">00</strong><span>Min</span></div>
+                                <div><strong id="countdown-seconds">00</strong><span>Seg</span></div>
+                            </div>
+                        </article>
+
+                        <article class="info-card alerts-card">
+                            <div class="card-header-row">
+                                <h3>Alertas operacionais</h3>
+                                <span class="badge badge-warning">Críticos</span>
+                            </div>
+                            <ul id="alerts-list" class="alert-list"></ul>
+                        </article>
+                    </div>
+                </section>
+
+                <section id="panel-events" class="organizer-panel">
+                    <div class="header-row">
+                        <div>
+                            <p class="section-kicker">Gestão</p>
+                            <h2>Eventos e lotes</h2>
+                        </div>
                     </div>
 
-                    <!-- TOGGLE SELEÇÃO CARROSSEL -->
-                    <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px; background: var(--bg-main); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
-                        <input type="checkbox" id="ev-destaque" style="width: 20px; height: 20px; accent-color: var(--accent-cyan); cursor: pointer;">
-                        <label for="ev-destaque" style="margin: 0; cursor: pointer; color: var(--text-main); text-transform: none; font-size: 0.95rem;">
-                            Exibir este evento no Carrossel Principal da Página Inicial
-                        </label>
+                    <div class="two-column-layout">
+                        <form id="form-novo-evento" class="glass-form">
+                            <div class="field-group">
+                                <label for="ev-nome">Nome do evento</label>
+                                <input type="text" id="ev-nome" required placeholder="Festival de Verão 2026">
+                            </div>
+
+                            <div class="field-row two-columns">
+                                <div class="field-group">
+                                    <label for="ev-classificacao">Classificação indicativa</label>
+                                    <select id="ev-classificacao">
+                                        <option value="Livre">Livre</option>
+                                        <option value="10+">10+</option>
+                                        <option value="12+">12+</option>
+                                        <option value="14+">14+</option>
+                                        <option value="16+">16+</option>
+                                        <option value="18+">18+</option>
+                                    </select>
+                                </div>
+                                <div class="field-group">
+                                    <label for="ev-status">Status</label>
+                                    <select id="ev-status">
+                                        <option value="planejamento">Planejamento</option>
+                                        <option value="publicado">Publicado</option>
+                                        <option value="em venda">Em venda</option>
+                                        <option value="finalizado">Finalizado</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="field-row three-columns">
+                                <div class="field-group">
+                                    <label for="ev-data-inicio">Início</label>
+                                    <input type="datetime-local" id="ev-data-inicio" required>
+                                </div>
+                                <div class="field-group">
+                                    <label for="ev-data-fim">Término</label>
+                                    <input type="datetime-local" id="ev-data-fim" required>
+                                </div>
+                                <div class="field-group">
+                                    <label for="ev-capacidade">Lotação</label>
+                                    <input type="number" id="ev-capacidade" min="50" required placeholder="2500">
+                                </div>
+                            </div>
+
+                            <div class="field-group">
+                                <label for="ev-local">Endereço</label>
+                                <input type="text" id="ev-local" required placeholder="Avenida Paulista, 1000 — São Paulo/SP">
+                            </div>
+
+                            <div class="field-group">
+                                <label for="ev-preco-medio">Preço médio</label>
+                                <input type="number" id="ev-preco-medio" min="0" step="0.01" placeholder="120.00" readonly>
+                            </div>
+
+                            <div class="field-group sector-manager">
+                                <div class="sector-manager-header">
+                                    <div>
+                                        <label>Setores e lotes de venda</label>
+                                        <small class="field-help">Setor &gt; tipo de bilhete &gt; lotes de venda</small>
+                                    </div>
+                                    <button type="button" id="btn-add-sector" class="btn-secondary">+ Adicionar novo setor</button>
+                                </div>
+                                <div id="ticket-sectors" class="sector-list"></div>
+                            </div>
+
+                            <div class="toggle-row">
+                                <input type="checkbox" id="ev-destaque">
+                                <label for="ev-destaque">Exibir no carrossel principal</label>
+                            </div>
+
+                            <div class="event-form-actions">
+                                <button type="submit" class="btn-primary">Salvar evento</button>
+                                <button type="button" id="btn-novo-evento" class="btn-secondary">Novo Evento / Limpar</button>
+                            </div>
+                            <p id="event-form-message" class="form-message"></p>
+                        </form>
+
+                        <div class="glass-panel">
+                            <div class="card-header-row">
+                                <h3>Eventos cadastrados</h3>
+                                <button type="button" id="btn-recarregar-eventos" class="btn-secondary small">Atualizar</button>
+                            </div>
+                            <div class="table-wrap compact">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Nome</th>
+                                            <th>Data</th>
+                                            <th>Lotação</th>
+                                            <th>Status</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="eventos-org-table-body"></tbody>
+                                </table>
+                            </div>
+                            <section id="operational-diagnosis" class="operational-diagnosis" aria-live="polite">
+                                <div class="diagnosis-header">
+                                    <div>
+                                        <span class="diagnosis-kicker">Controle operacional</span>
+                                        <h3>Diagnóstico Operacional: <span id="diagnosis-event-name">Nenhum evento selecionado</span></h3>
+                                    </div>
+                                    <strong id="readiness-label">0% Concluído</strong>
+                                </div>
+                                <div class="readiness-track"><span id="readiness-progress"></span></div>
+                                <div id="operational-checklist" class="operational-checklist"></div>
+                                <p id="capacity-alert" class="capacity-alert" hidden></p>
+                            </section>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="panel-finance" class="organizer-panel">
+                    <div class="header-row">
+                        <div>
+                            <p class="section-kicker">Financeiro</p>
+                            <h2>Simulador de viabilidade</h2>
+                        </div>
                     </div>
 
-                    <p id="msg-novo-evento" style="margin: 0 0 12px 0; font-size: 0.9rem; font-weight: 600;"></p>
-                    <button type="submit" id="btn-submit-evento">Publicar Evento</button>
-                </form>
+                    <div class="finance-grid">
+                        <div class="glass-form">
+                            <div class="field-row two-columns">
+                                <div class="field-group">
+                                    <label for="sim-capacidade">Lotação alvo (Q)</label>
+                                    <input type="number" id="sim-capacidade" min="1" step="1" value="1000">
+                                </div>
+                                <div class="field-group">
+                                    <label for="sim-ocupacao">Ocupação esperada</label>
+                                    <select id="sim-ocupacao">
+                                        <option value="50">50%</option>
+                                        <option value="75" selected>75%</option>
+                                        <option value="90">90%</option>
+                                        <option value="100">100%</option>
+                                    </select>
+                                </div>
+                                <div class="field-group">
+                                    <label for="sim-bebidas">Consumo médio de bebidas</label>
+                                    <input type="number" id="sim-bebidas" min="0" step="0.1" value="1.5">
+                                </div>
+                            </div>
+                            <div class="field-row two-columns">
+                                <div class="field-group">
+                                    <label for="sim-alimentos">Consumo médio de alimentos</label>
+                                    <input type="number" id="sim-alimentos" min="0" step="0.1" value="0.8">
+                                </div>
+                                <div class="field-group">
+                                    <label for="sim-ticket">Preço médio do ingresso</label>
+                                    <input type="number" id="sim-ticket" min="0" step="0.01" value="120">
+                                </div>
+                            </div>
+                            <div class="summary-box">
+                                <div>
+                                    <span>Receita projetada</span>
+                                    <strong id="projection-revenue">R$ 0,00</strong>
+                                </div>
+                                <div>
+                                    <span>Margem estimada</span>
+                                    <strong id="projection-margin">0%</strong>
+                                </div>
+                            </div>
+                            <div class="price-engine-cards">
+                                <div><span>Custo operacional</span><strong id="price-total-cost">R$ 0,00</strong></div>
+                                <div><span>Preço mínimo de cobertura</span><strong id="price-break-even">R$ 0,00</strong></div>
+                                <div><span>Preço ideal sugerido</span><strong id="price-optimum">R$ 0,00</strong></div>
+                                <div><span>Preço teto de risco</span><strong id="price-risk-ceiling">R$ 0,00</strong></div>
+                            </div>
+                            <div class="finance-differential-card">
+                                <div class="card-header-row"><h3>Diagnóstico diferencial e otimização</h3><span id="finance-concavity" class="finance-chip">Aguardando simulação</span></div>
+                                <div class="finance-insights">
+                                    <div><span>Lucro máximo recomendado</span><strong id="finance-optimum">—</strong></div>
+                                    <div><span>Ponto de inflexão</span><strong id="finance-inflection">—</strong></div>
+                                    <div><span>Break-even</span><strong id="finance-break-even">—</strong></div>
+                                </div>
+                                <p id="finance-diagnosis" class="finance-diagnosis">Ajuste os parâmetros para calcular a curva.</p>
+                                <canvas id="finance-profit-chart" height="180" aria-label="Curva de lucro projetada"></canvas>
+                                <div class="finance-chart-legend" aria-label="Legenda do gráfico">
+                                    <span><i class="legend-dot break-even-dot"></i>Break-even</span>
+                                    <span><i class="legend-dot inflection-dot"></i>Ponto de inflexão</span>
+                                    <span><i class="legend-dot maximum-dot"></i>Lucro máximo</span>
+                                    <span><i class="legend-line current-dot"></i>Preço atual</span>
+                                </div>
+                                <div id="finance-chart-tooltip" class="finance-chart-tooltip" hidden></div>
+                            </div>
+                        </div>
+
+                        <div class="glass-panel">
+                            <div class="card-header-row">
+                                <h3>Planilha operacional</h3>
+                                <button type="button" id="btn-add-cost" class="btn-secondary small">+ Item</button>
+                            </div>
+                            <div class="table-wrap">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Categoria</th>
+                                            <th>Item</th>
+                                            <th>Estimado</th>
+                                            <th>Contratado</th>
+                                            <th>Fornecedor</th>
+                                            <th>Status</th>
+                                            <th>Ação</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="cost-table-body"></tbody>
+                                </table>
+                            </div>
+                                <div class="cost-totals"><span>Custo Total Estimado: <strong id="cost-total-estimated">R$ 0,00</strong></span><span>Custo Total Real Contratado: <strong id="cost-total-contracted">R$ 0,00</strong></span></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="panel-providers" class="organizer-panel">
+                    <div class="header-row">
+                        <div>
+                            <p class="section-kicker">B2B</p>
+                            <h2>Mural de fornecedores</h2>
+                        </div>
+                    </div>
+
+                    <div class="provider-layout">
+                        <aside class="glass-panel demand-list-panel">
+                            <h3>Demandas abertas</h3>
+                            <div id="demand-list" class="demand-list"></div>
+                        </aside>
+
+                        <div class="glass-panel proposals-panel">
+                            <div class="card-header-row">
+                                <h3>Comparativo de propostas</h3>
+                            </div>
+                            <div id="proposal-table-wrap" class="table-wrap"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="panel-checklist" class="organizer-panel">
+                    <div class="header-row">
+                        <div>
+                            <p class="section-kicker">Operação</p>
+                            <h2>Checklist e cronograma</h2>
+                        </div>
+                    </div>
+
+                    <div class="checklist-grid">
+                        <div class="glass-panel">
+                            <div class="card-header-row">
+                                <h3>Licenças e documentos</h3>
+                                <button type="button" id="btn-add-document" class="btn-secondary small">+ Documento</button>
+                            </div>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Documento</th>
+                                        <th>Prazo</th>
+                                        <th>Status</th>
+                                        <th>Anexo</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="document-table-body"></tbody>
+                            </table>
+                        </div>
+
+                        <div class="glass-panel">
+                            <div class="card-header-row">
+                                <h3>Run of show</h3>
+                                <button type="button" id="btn-add-task" class="btn-secondary small">+ Tarefa</button>
+                            </div>
+                            <div id="runofshow-list" class="timeline-list"></div>
+                        </div>
+                    </div>
+                </section>
             </div>
-        </section>
+        </main>
+    </div>
 
-        <!-- SEÇÃO: SIMULADOR DE PRECIFICAÇÃO -->
-        <section id="section-precificacao" class="admin-section" style="display: none;">
-            <div class="card-simulador">
-                <h2 style="margin-top: 0; margin-bottom: 8px;">Simulador de Precificação de Ingressos</h2>
-                <p style="color: var(--text-muted, #8c93a8); font-size: 0.9rem; margin-bottom: 20px;">Consulte a margem de lucro e custo total calculados diretamente pelas propostas dos fornecedores e custos fixos.</p>
-                
-                <div style="display: flex; gap: 12px; margin-bottom: 20px;">
-                    <input type="number" id="sim-event-id" placeholder="Informe o ID do Evento" style="flex: 1; padding: 12px 14px; border-radius: 8px; background: var(--bg-main, #0c0e14); border: 1px solid var(--border-color, #272c40); color: var(--text-main, #fff); font-size: 0.95rem; outline: none;">
-                    <button type="button" id="btn-calcular-preco" style="padding: 10px 20px; background: var(--accent-cyan, #00d2ff); color: #000; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; transition: opacity 0.2s;">Simular</button>
-                </div>
-
-                <div id="resultado-precificacao" style="display: none;">
-                    <h3>Resultados Financeiros:</h3>
-                    <p><strong>Custo Total:</strong> <span id="res-custo-total" style="color: var(--accent-green, #2ecc71); font-weight: 600;">R$ 0,00</span></p>
-                    <hr style="border: none; border-top: 1px solid var(--border-color, #272c40); margin: 12px 0;">
-                    <p><strong>Cenário Público Mínimo:</strong> <span id="res-cenario-min">-</span></p>
-                    <p><strong>Cenário Público Máximo:</strong> <span id="res-cenario-max">-</span></p>
-                </div>
+    <div id="quote-modal" class="modal hidden" aria-hidden="true">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Solicitar cotação</h3>
+                <button type="button" class="modal-close" data-close="quote-modal">×</button>
             </div>
-        </section>
+            <form id="quote-form">
+                <div class="field-group">
+                    <label for="quote-title">Nome do serviço</label>
+                    <input type="text" id="quote-title" required>
+                </div>
+                <div class="field-group">
+                    <label for="quote-description">Escopo / demanda</label>
+                    <textarea id="quote-description" rows="4" required></textarea>
+                </div>
+                <div class="field-row two-columns">
+                    <div class="field-group">
+                        <label for="quote-deadline">Prazo</label>
+                        <input type="date" id="quote-deadline" required>
+                    </div>
+                    <div class="field-group">
+                        <label for="quote-value">Estimativa</label>
+                        <input type="number" id="quote-value" step="0.01" min="0" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary full-width">Enviar demanda</button>
+            </form>
+        </div>
+    </div>
 
-    </main>
+    <div id="cost-modal" class="modal hidden" aria-hidden="true">
+        <div class="modal-card">
+            <div class="modal-header"><h3>Novo centro de custo</h3><button type="button" class="modal-close" data-close="cost-modal">×</button></div>
+            <form id="cost-form">
+                <div class="field-group"><label for="cost-category">Categoria</label><select id="cost-category"><option>Artístico / Cachê</option><option>Estrutura & Som</option><option>Segurança & Brigada</option><option>Equipe Médica</option><option>Alimentos & Bebidas</option><option>Taxas / Licenças / ECAD</option><option>Marketing</option></select></div>
+                <div class="field-group"><label for="cost-name">Nome do item</label><input id="cost-name" maxlength="500" required placeholder="Palco, ambulância, cachê..." /></div>
+                <div class="field-group"><label for="cost-estimated">Custo estimado (R$)</label><input id="cost-estimated" type="number" min="0" step="0.01" required /></div>
+                <button type="submit" class="btn-primary full-width">Adicionar custo</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="chat-modal" class="modal hidden" aria-hidden="true">
+        <div class="modal-card chat-modal-card">
+            <div class="modal-header">
+                <h3 id="chat-title">Chat com fornecedor</h3>
+                <button type="button" class="modal-close" data-close="chat-modal">×</button>
+            </div>
+            <div id="chat-messages" class="chat-messages"></div>
+            <form id="chat-form" class="chat-form">
+                <input type="text" id="chat-input" placeholder="Escreva sua mensagem..." required>
+                <button type="submit" class="btn-primary">Enviar</button>
+            </form>
+        </div>
+    </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', async () => {
+        document.addEventListener('DOMContentLoaded', () => {
             const user = JSON.parse(localStorage.getItem('trocaticket-user') || localStorage.getItem('usuario') || 'null');
-            
-            // 1. Verificação de permissão (Organizador ou Admin)
+
             if (!user || !user.email) {
                 window.location.href = 'login.html';
                 return;
             }
 
-            try {
-                const res = await fetch(`/api/usuario/meu-perfil?email=${encodeURIComponent(user.email)}`);
-                const data = await res.json();
+            const organizerState = {
+                selectedEventId: null,
+                occupancy: 75,
+                foodPerPerson: 1.5,
+                beveragePerPerson: 0.8,
+                avgTicket: 120,
+                eventList: [],
+                costItems: [],
+                demands: [],
+                documents: [],
+                tasks: [],
+                activeDemandId: null,
+                activeChatDemandId: null
+            };
 
-                if (!res.ok || !data.ok || !data.user || (data.user.tipo !== 'organizador' && data.user.tipo !== 'admin')) {
-                    alert('Acesso restrito a contas de Organizadores.');
-                    window.location.href = 'index.html';
+            async function fetchJson(url, options = {}) {
+                const response = await fetch(url, {
+                    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+                    ...options
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(data.message || 'Erro ao carregar dados do organizador.');
+                }
+                return data;
+            }
+
+            function normalizeDashboardEvent(rawEvent = {}) {
+                const rawLots = Array.isArray(rawEvent.lots) ? rawEvent.lots : [];
+                const rawSectors = Array.isArray(rawEvent.sectors || rawEvent.setores) ? (rawEvent.sectors || rawEvent.setores) : [];
+                const groupedLegacyLots = rawLots.reduce((groups, lot) => {
+                    const key = lot.setor_nome || lot.setor || 'Setor geral';
+                    if (!groups[key]) groups[key] = { nome: key, capacidade: Number(lot.setor_capacidade || 0), lotes: [] };
+                    groups[key].capacidade = Math.max(groups[key].capacidade, Number(lot.setor_capacidade || 0));
+                    groups[key].lotes.push(lot);
+                    return groups;
+                }, {});
+                const sectors = rawSectors.length ? rawSectors : Object.values(groupedLegacyLots);
+                return {
+                    id: Number(rawEvent.id || 0),
+                    name: rawEvent.name || rawEvent.nome || 'Evento',
+                    date: rawEvent.date || rawEvent.data_evento || new Date().toISOString(),
+                    endDate: rawEvent.endDate || rawEvent.data_fim || null,
+                    address: rawEvent.location || rawEvent.local || rawEvent.address || 'Local não informado',
+                    capacity: Number(rawEvent.capacity || rawEvent.publico_maximo || 0),
+                    avgTicket: Number(rawEvent.avgTicket || rawEvent.ticket_calculado || 0),
+                    classification: rawEvent.classification || rawEvent.classificacao_etaria || 'Livre',
+                    status: rawEvent.status || 'publicado',
+                    destaque: Boolean(rawEvent.destaque),
+                    setores: sectors.map((sector, sectorIndex) => ({
+                        id: sector.id || `sector-${sectorIndex}`,
+                        nome: sector.nome || sector.name || 'Setor',
+                        capacidade: Number(sector.capacidade || sector.capacity || 0),
+                        lotes: (sector.lotes || sector.lots || []).map((lot, lotIndex) => ({
+                            id: lot.id || `lot-${sectorIndex}-${lotIndex}`,
+                            nomeLote: lot.nomeLote || lot.nome || lot.name || 'Lote',
+                            tipoIngresso: lot.tipoIngresso || lot.tipo_ingresso || lot.type || 'Inteira',
+                            quantidadeTotal: Number(lot.quantidade_total || lot.quantidadeTotal || lot.quantidade || lot.quantity || 0),
+                            quantidadeMeia: Number(lot.quantidade_meia || lot.quantidadeMeia || 0),
+                            quantidadeInteira: Number(lot.quantidade_inteira || lot.quantidadeInteira || 0),
+                            quantidadeSolidaria: Number(lot.quantidade_solidaria || lot.quantidadeSolidaria || 0),
+                            precoInteira: Number(lot.preco_inteira || lot.precoInteira || lot.preco || lot.price || 0),
+                            precoMeia: Number(lot.preco_meia || lot.precoMeia || 0),
+                            modalidades: (() => {
+                                if (Array.isArray(lot.modalidades)) return lot.modalidades;
+                                try { return lot.modalidades_json ? JSON.parse(lot.modalidades_json) : []; } catch (error) { return []; }
+                            })(),
+                            regraVirada: lot.regraVirada || lot.regra || lot.rule || 'esgotamento',
+                            dataInicio: lot.dataInicio || lot.data_inicio || '',
+                            dataFim: lot.dataFim || lot.data_fim || lot.data_virada || ''
+                        }))
+                    }))
+                };
+            }
+
+            function normalizeCostItem(rawItem = {}) {
+                return {
+                    id: Number(rawItem.id || Date.now() + Math.random()),
+                    category: rawItem.categoria || rawItem.category || 'Geral',
+                    item: rawItem.nome_item || rawItem.item || 'Item',
+                    estimated: converterMoedaParaFloat(rawItem.custo_estimado ?? rawItem.estimated),
+                    contracted: converterMoedaParaFloat(rawItem.custo_contratado ?? rawItem.contracted),
+                    supplier: rawItem.fornecedor || rawItem.supplier || '',
+                    status: rawItem.status || 'pendente',
+                    quoteRequestId: rawItem.demanda_id || rawItem.quoteRequestId || null
+                };
+            }
+
+            function normalizeDemand(rawDemand = {}) {
+                return {
+                    id: Number(rawDemand.id || Date.now() + Math.random()),
+                    title: rawDemand.titulo || rawDemand.title || 'Demanda',
+                    service: rawDemand.servico || rawDemand.service || 'Solicitação',
+                    scope: rawDemand.escopo || rawDemand.scope || '',
+                    deadline: rawDemand.prazo || rawDemand.deadline || new Date().toISOString().slice(0, 10),
+                    value: Number(rawDemand.valor_estimado || rawDemand.value || 0),
+                    status: rawDemand.status || 'em cotacao',
+                    proposals: Array.isArray(rawDemand.proposals) ? rawDemand.proposals.map((proposal) => ({
+                        id: Number(proposal.id || Date.now() + Math.random()),
+                        company: proposal.empresa || proposal.company || 'Fornecedor',
+                        value: Number(proposal.valor || proposal.value || 0),
+                        scope: proposal.escopo || proposal.scope || '',
+                        deadline: proposal.prazo || proposal.deadline || '',
+                        files: Array.isArray(proposal.anexos) ? proposal.anexos : (proposal.files || []),
+                        status: proposal.status || 'em analise'
+                    })) : [],
+                    messages: Array.isArray(rawDemand.messages) ? rawDemand.messages.map((message) => ({
+                        sender: message.remetente || message.sender || 'organizador',
+                        text: message.texto || message.text || ''
+                    })) : []
+                };
+            }
+
+            function normalizeDocument(rawDocument = {}) {
+                return {
+                    id: Number(rawDocument.id || Date.now() + Math.random()),
+                    name: rawDocument.nome || rawDocument.name || 'Documento',
+                    deadline: rawDocument.prazo || rawDocument.deadline || new Date().toISOString().slice(0, 10),
+                    status: rawDocument.status || 'pendente',
+                    hasAttachment: Boolean(rawDocument.anexo_url || rawDocument.hasAttachment)
+                };
+            }
+
+            function normalizeTask(rawTask = {}) {
+                return {
+                    id: Number(rawTask.id || Date.now() + Math.random()),
+                    time: rawTask.horario || rawTask.time || '09:00',
+                    activity: rawTask.atividade || rawTask.activity || 'Tarefa',
+                    responsible: rawTask.responsavel || rawTask.responsible || 'Responsável',
+                    checked: Boolean(rawTask.concluida || rawTask.checked)
+                };
+            }
+
+            async function loadEventCatalog() {
+                const data = await fetchJson('/api/events');
+                organizerState.eventList = (data.events || []).map((event) => normalizeDashboardEvent({
+                    id: event.id,
+                    name: event.name,
+                    date: event.date,
+                    endDate: event.endDate,
+                    location: event.location,
+                    capacity: event.capacity || event.publico_maximo || 0,
+                    avgTicket: event.price || event.ticket_calculado || 0,
+                    classification: event.classification,
+                    status: event.status,
+                    destaque: event.destaque,
+                    lots: []
+                }));
+
+                if (!organizerState.selectedEventId && organizerState.eventList.length) {
+                    organizerState.selectedEventId = organizerState.eventList[0].id;
+                }
+
+                if (organizerState.selectedEventId) {
+                    const selectedExists = organizerState.eventList.some((event) => event.id === organizerState.selectedEventId);
+                    if (!selectedExists) {
+                        organizerState.selectedEventId = organizerState.eventList[0]?.id || null;
+                    }
+                }
+
+                if (organizerState.selectedEventId) {
+                    await loadOrganizerDashboard();
+                }
+            }
+
+            async function loadOrganizerDashboard() {
+                if (!organizerState.selectedEventId) {
+                    organizerState.costItems = [];
+                    organizerState.demands = [];
+                    organizerState.documents = [];
+                    organizerState.tasks = [];
+                    renderAll();
                     return;
                 }
 
-                document.getElementById('organizer-name').textContent = data.user.nome || user.email;
-            } catch (e) {
-                window.location.href = 'login.html';
-                return;
+                const payload = await fetchJson(`/api/organizador/dashboard?evento_id=${organizerState.selectedEventId}`);
+                const dashboard = payload.dashboard || {};
+                const event = normalizeDashboardEvent({
+                    ...organizerState.eventList.find((item) => item.id === organizerState.selectedEventId),
+                    ...dashboard.event,
+                    lots: dashboard.lots || [],
+                    setores: dashboard.setores || dashboard.sectors || []
+                });
+
+                const currentEventIndex = organizerState.eventList.findIndex((item) => item.id === event.id);
+                if (currentEventIndex >= 0) {
+                    organizerState.eventList[currentEventIndex] = {
+                        ...organizerState.eventList[currentEventIndex],
+                        ...event
+                    };
+                } else if (event.id) {
+                    organizerState.eventList.push(event);
+                }
+
+                organizerState.costItems = (dashboard.costItems || []).map(normalizeCostItem);
+                organizerState.demands = (dashboard.demands || []).map(normalizeDemand);
+                organizerState.documents = (dashboard.documents || []).map(normalizeDocument);
+                organizerState.tasks = (dashboard.tasks || []).map(normalizeTask);
+                if (!organizerState.demands.some((demand) => demand.id === organizerState.activeDemandId)) {
+                    organizerState.activeDemandId = organizerState.demands[0]?.id || null;
+                }
+                if (!organizerState.demands.some((demand) => demand.id === organizerState.activeChatDemandId)) {
+                    organizerState.activeChatDemandId = organizerState.activeDemandId;
+                }
+
+                renderAll();
             }
 
-            // 2. Navegação por abas
-            const navButtons = document.querySelectorAll('.nav-btn');
-            const sections = document.querySelectorAll('.admin-section');
+            function formatCurrency(value) {
+                return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
+            }
 
-            navButtons.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    navButtons.forEach(b => b.classList.remove('active'));
-                    sections.forEach(s => s.style.display = 'none');
+            function parseDecimal(value, fallback = 0) {
+                if (value === null || value === undefined || value === '') return fallback;
+                if (typeof value === 'number') return Number.isFinite(value) ? value : fallback;
+                const raw = String(value).trim();
+                if (!raw) return fallback;
+                const converted = converterMoedaParaFloat(raw);
+                if (Number.isFinite(converted)) return converted;
+                const normalized = raw.replace(/\./g, '').replace(',', '.');
+                const parsed = Number.parseFloat(normalized);
+                return Number.isFinite(parsed) ? parsed : fallback;
+            }
 
-                    btn.classList.add('active');
-                    const target = document.getElementById(btn.dataset.section);
-                    if (target) target.style.display = 'block';
+            function converterMoedaParaFloat(value) {
+                if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+                if (value === null || value === undefined || value === '') return 0;
+                const texto = String(value).trim();
+                if (!texto) return 0;
+                const limpo = texto.replace(/[R$\s]/gi, '');
+                const somenteNumeros = limpo.replace(/[^0-9,.-]/g, '');
+                if (!somenteNumeros) return 0;
+                if (somenteNumeros.includes(',') && somenteNumeros.includes('.')) {
+                    return Number(somenteNumeros.replace(/\./g, '').replace(',', '.'));
+                }
+                if (somenteNumeros.includes(',')) {
+                    return Number(somenteNumeros.replace(',', '.'));
+                }
+                if (/^\d{1,3}(\.\d{3})+$/.test(somenteNumeros)) {
+                    return Number(somenteNumeros.replace(/\./g, ''));
+                }
+                return Number(somenteNumeros);
+            }
+
+            function refreshFinancialSimulation() {
+                organizerState.occupancy = parseDecimal(document.getElementById('sim-ocupacao')?.value, 75);
+                organizerState.beveragePerPerson = parseDecimal(document.getElementById('sim-bebidas')?.value, 0);
+                organizerState.foodPerPerson = parseDecimal(document.getElementById('sim-alimentos')?.value, 0);
+                organizerState.avgTicket = parseDecimal(document.getElementById('sim-ticket')?.value, 0);
+                renderOverview();
+                renderFinancialEngine();
+            }
+
+            function parseDate(dateText) {
+                return new Date(dateText);
+            }
+
+            function renderEventSelect() {
+                const select = document.getElementById('event-select');
+                select.innerHTML = organizerState.eventList.map(event => `
+                    <option value="${event.id}" ${event.id === organizerState.selectedEventId ? 'selected' : ''}>${event.name}</option>
+                `).join('');
+
+                const current = organizerState.eventList.find(event => event.id === organizerState.selectedEventId) || organizerState.eventList[0];
+                if (current) {
+                    const ticketInput = document.getElementById('sim-ticket');
+                    const capacityInput = document.getElementById('sim-capacidade');
+                    if (ticketInput && document.activeElement !== ticketInput) ticketInput.value = Number(current.avgTicket || 0).toFixed(2);
+                    if (capacityInput && document.activeElement !== capacityInput) capacityInput.value = Number(current.capacity || 0);
+                }
+                document.getElementById('active-event-name').textContent = current.name;
+                document.getElementById('active-event-date').textContent = new Date(current.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) + ' • ' + new Date(current.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            }
+
+            function toLocalInputValue(dateValue) {
+                if (!dateValue) return '';
+                const date = new Date(dateValue);
+                if (Number.isNaN(date.getTime())) return '';
+                const timezoneOffset = date.getTimezoneOffset() * 60000;
+                return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 16);
+            }
+
+            function escapeMarkup(value) {
+                return String(value || '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
+            }
+
+            function buildSectorMarkup(sectors = []) {
+                const container = document.getElementById('ticket-sectors');
+                container.innerHTML = sectors.map((sector, sectorIndex) => `
+                    <article class="sector-card ${sectorIndex === 0 ? 'is-open' : ''}" data-sector-index="${sectorIndex}">
+                        <div class="sector-card-header">
+                            <button type="button" class="sector-toggle" aria-expanded="${sectorIndex === 0}">
+                                <span class="sector-chevron">▸</span>
+                                <strong>${escapeMarkup(sector.nome || 'Novo setor')}</strong>
+                            </button>
+                            <button type="button" class="sector-remove" aria-label="Remover setor">×</button>
+                        </div>
+                        <div class="sector-card-body">
+                            <div class="sector-fields">
+                                <label>Nome do setor<input class="sector-name" type="text" value="${escapeMarkup(sector.nome)}" placeholder="Pista, Área VIP..." required></label>
+                                <label>Lotação dedicada<input class="sector-capacity" type="number" min="1" value="${Number(sector.capacidade || 0) || ''}" placeholder="2500" required></label>
+                            </div>
+                            <div class="lot-table-header"><span>Lotes de venda</span><small>Total e preço da inteira informados pelo organizador; demais campos são calculados.</small></div>
+                            <div class="sector-lots">
+                                ${(sector.lotes || []).map((lot) => buildLotMarkup(lot)).join('') || '<p class="lot-empty">Nenhum lote neste setor.</p>'}
+                            </div>
+                            <button type="button" class="add-sector-lot btn-secondary small">+ Adicionar lote a este setor</button>
+                            <p class="sector-summary"></p>
+                        </div>
+                    </article>
+                `).join('') || '<p class="sector-empty">Nenhum setor configurado. Adicione o primeiro setor para começar.</p>';
+                updateSectorSummaries();
+            }
+
+            function buildLotMarkup(lot = {}) {
+                const rule = lot.regraVirada || 'esgotamento';
+                const total = Number(lot.quantidadeTotal || lot.quantidade || 0);
+                const meia = Math.ceil(total * 0.40);
+                const inteira = Math.max(total - meia, 0);
+                const precoInteira = Number(lot.precoInteira || lot.preco || 0);
+                return `<div class="lot-config">
+                    <div class="lot-header">
+                        <div class="lot-header-fields">
+                            <label>Nome do lote<input class="lot-name" type="text" value="${escapeMarkup(lot.nomeLote)}" placeholder="1.º Lote" aria-label="Identificação do lote"></label>
+                            <label>Quantidade total<input class="lot-total" type="number" min="1" value="${total || ''}" placeholder="1000" aria-label="Quantidade total"></label>
+                            <label>Regra de virada<select class="lot-rule" aria-label="Regra de virada">
+                                <option value="data" ${rule === 'data' ? 'selected' : ''}>Por Data/Hora</option>
+                                <option value="esgotamento" ${rule !== 'data' ? 'selected' : ''}>Por Esgotamento</option>
+                            </select></label>
+                            <div class="lot-date-fields" ${rule === 'data' ? '' : 'hidden'}>
+                                <label>Data de início<input class="lot-start" type="datetime-local" value="${toLocalInputValue(lot.dataInicio)}"></label>
+                                <label>Data de término<input class="lot-end" type="datetime-local" value="${toLocalInputValue(lot.dataFim)}"></label>
+                            </div>
+                        </div>
+                        <button type="button" class="lot-remove" aria-label="Excluir lote">×</button>
+                    </div>
+                    <div class="lot-modalities">
+                        <div class="lot-table-row lot-table-head"><span>Modalidade</span><span>Quantidade</span><span>Preço (R$)</span><span>Ações / status</span></div>
+                        <div class="lot-table-row fixed-modality"><div><strong>Meia-Entrada (Lei 12.933/13)</strong><span class="legal-badge">Obrigatório por lei</span></div><input class="lot-half" type="number" value="${meia || ''}" readonly aria-label="Quantidade de meia-entrada"><input class="lot-half-price" type="number" value="${(precoInteira / 2).toFixed(2)}" readonly aria-label="Preço da meia-entrada"><span class="lock-status">🔒 Travado</span></div>
+                        <div class="lot-table-row fixed-modality"><div><strong>Inteira</strong><span class="modality-hint">Saldo após meia e extras</span></div><input class="lot-full" type="number" value="${inteira || ''}" readonly aria-label="Quantidade de inteira"><input class="lot-full-price" type="number" min="0" step="0.01" value="${precoInteira || ''}" placeholder="0,00" aria-label="Preço da inteira"><span class="open-status">Editável</span></div>
+                        <div class="custom-modalities-list">${(lot.modalidades || []).map(modality => buildCustomModalityMarkup(modality)).join('') || '<p class="custom-empty">Adicione uma modalidade personalizada abaixo.</p>'}</div>
+                    </div>
+                    <div class="lot-footer"><button type="button" class="add-custom-modality btn-secondary small">+ Adicionar modalidade personalizada</button><p class="modalities-warning" hidden></p><p class="lot-legal-note">Calculado por lei: 40% de meia-entrada garantida e 50% do preço da inteira.</p><p class="lot-summary"></p></div>
+                </div>`;
+            }
+
+            function buildCustomModalityMarkup(modality = {}) {
+                return `<div class="lot-table-row custom-modality"><input class="custom-name" type="text" value="${escapeMarkup(modality.nome)}" placeholder="Ingresso Solidário" aria-label="Nome da modalidade"><input class="custom-quantity" type="number" min="0" value="${Number(modality.quantidade || 0) || ''}" placeholder="Qtd" aria-label="Quantidade da modalidade"><input class="custom-price" type="number" min="0" step="0.01" value="${Number(modality.preco || 0) || ''}" placeholder="0,00" aria-label="Preço da modalidade"><button type="button" class="custom-remove" aria-label="Remover modalidade">×</button></div>`;
+            }
+
+            function addSector() {
+                const container = document.getElementById('ticket-sectors');
+                container.querySelector('.sector-empty')?.remove();
+                const sectors = readSectorsFromForm();
+                sectors.push({ nome: '', capacidade: 0, lotes: [] });
+                buildSectorMarkup(sectors);
+                const cards = container.querySelectorAll('.sector-card');
+                cards[cards.length - 1]?.querySelector('.sector-name')?.focus();
+            }
+
+            function addLotToSector(card) {
+                card.querySelector('.sector-lots .lot-empty')?.remove();
+                card.querySelector('.sector-lots').insertAdjacentHTML('beforeend', buildLotMarkup());
+                updateSectorSummaries();
+            }
+
+            function readSectorsFromForm() {
+                return Array.from(document.querySelectorAll('.sector-card')).map((card) => ({
+                    id: card.dataset.sectorId || undefined,
+                    nome: card.querySelector('.sector-name')?.value.trim() || '',
+                    capacidade: Number(card.querySelector('.sector-capacity')?.value || 0),
+                    lotes: Array.from(card.querySelectorAll('.lot-config')).map((row) => ({
+                        id: row.dataset.lotId || undefined,
+                        nomeLote: row.querySelector('.lot-name')?.value.trim() || '',
+                        tipoIngresso: 'Inteira',
+                        quantidadeTotal: Number(row.querySelector('.lot-total')?.value || 0),
+                        quantidadeMeia: Number(row.querySelector('.lot-half')?.value || 0),
+                        quantidadeInteira: Number(row.querySelector('.lot-full')?.value || 0),
+                        precoInteira: Number(row.querySelector('.lot-full-price')?.value || 0),
+                        precoMeia: Number(row.querySelector('.lot-half-price')?.value || 0),
+                        quantidade: Number(row.querySelector('.lot-total')?.value || 0),
+                        preco: Number(row.querySelector('.lot-full-price')?.value || 0),
+                        regraVirada: row.querySelector('.lot-rule')?.value || 'esgotamento',
+                        dataInicio: row.querySelector('.lot-start')?.value || '',
+                        dataFim: row.querySelector('.lot-end')?.value || '',
+                        modalidades: Array.from(row.querySelectorAll('.custom-modality')).map((modality) => ({
+                            nome: modality.querySelector('.custom-name')?.value.trim() || '',
+                            quantidade: Number(modality.querySelector('.custom-quantity')?.value || 0),
+                            preco: Number(modality.querySelector('.custom-price')?.value || 0)
+                        })).filter(modality => modality.nome)
+                    })).filter(lot => lot.nomeLote)
+                })).filter(sector => sector.nome || sector.lotes.length);
+            }
+
+            function updateSectorSummaries() {
+                let weightedQuantity = 0;
+                let weightedRevenue = 0;
+                document.querySelectorAll('.sector-card').forEach((card) => {
+                    const quantity = Array.from(card.querySelectorAll('.lot-total')).reduce((sum, input) => sum + Number(input.value || 0), 0);
+                    const revenue = Array.from(card.querySelectorAll('.lot-config')).reduce((sum, row) => {
+                        const baseRevenue = Number(row.querySelector('.lot-full')?.value || 0) * Number(row.querySelector('.lot-full-price')?.value || 0);
+                        const halfRevenue = Number(row.querySelector('.lot-half')?.value || 0) * Number(row.querySelector('.lot-half-price')?.value || 0);
+                        const customRevenue = Array.from(row.querySelectorAll('.custom-modality')).reduce((customSum, modality) => customSum + Number(modality.querySelector('.custom-quantity')?.value || 0) * Number(modality.querySelector('.custom-price')?.value || 0), 0);
+                        return sum + baseRevenue + halfRevenue + customRevenue;
+                    }, 0);
+                    const capacity = Number(card.querySelector('.sector-capacity')?.value || 0);
+                    card.querySelector('.sector-summary').textContent = `Total de bilhetes alocados: ${quantity} / ${capacity} | Receita potencial: ${formatCurrency(revenue)}`;
+                    const half = Array.from(card.querySelectorAll('.lot-half')).reduce((sum, input) => sum + Number(input.value || 0), 0);
+                    card.querySelector('.lot-summary').textContent = `Total alocado: ${quantity.toLocaleString('pt-BR')} / ${quantity.toLocaleString('pt-BR')} ingressos | Cota de meia: ${half.toLocaleString('pt-BR')} (40%) garantida`;
+                    weightedQuantity += quantity;
+                    weightedRevenue += revenue;
+                });
+                const average = weightedQuantity ? weightedRevenue / weightedQuantity : 0;
+                document.getElementById('ev-preco-medio').value = average.toFixed(2);
+            }
+
+            function recalculateLot(row, changedInput = null) {
+                const totalInput = row.querySelector('.lot-total');
+                const halfInput = row.querySelector('.lot-half');
+                const fullInput = row.querySelector('.lot-full');
+                const fullPriceInput = row.querySelector('.lot-full-price');
+                const halfPriceInput = row.querySelector('.lot-half-price');
+                const total = Math.max(Number(totalInput?.value || 0), 0);
+                const half = Math.ceil(total * 0.40);
+                if (halfInput) halfInput.value = half || '';
+                const availableFull = Math.max(total - half, 0);
+                const modalities = Array.from(row.querySelectorAll('.custom-modality'));
+                let customQuantity = modalities.reduce((sum, modality) => sum + Number(modality.querySelector('.custom-quantity')?.value || 0), 0);
+                const exceeded = customQuantity > availableFull;
+                if (exceeded && changedInput?.classList.contains('custom-quantity')) {
+                    const currentModality = changedInput.closest('.custom-modality');
+                    const otherQuantity = modalities.filter(modality => modality !== currentModality).reduce((sum, modality) => sum + Number(modality.querySelector('.custom-quantity')?.value || 0), 0);
+                    changedInput.value = Math.max(availableFull - otherQuantity, 0);
+                    customQuantity = modalities.reduce((sum, modality) => sum + Number(modality.querySelector('.custom-quantity')?.value || 0), 0);
+                }
+                if (fullInput) fullInput.value = Math.max(availableFull - customQuantity, 0) || '';
+                if (halfPriceInput) halfPriceInput.value = (Math.max(Number(fullPriceInput?.value || 0), 0) / 2).toFixed(2);
+                const warning = row.querySelector('.modalities-warning');
+                if (warning) {
+                    warning.hidden = !exceeded;
+                    warning.textContent = exceeded
+                        ? 'A cota de inteiras foi atingida. A quantidade informada foi limitada para preservar os 40% de meia-entrada.'
+                        : '';
+                }
+            }
+
+            function handleFormLotEvents() {
+                const container = document.getElementById('ticket-sectors');
+                container.addEventListener('click', (event) => {
+                    const card = event.target.closest('.sector-card');
+                    if (!card) return;
+                    if (event.target.closest('.sector-toggle')) {
+                        const open = card.classList.toggle('is-open');
+                        card.querySelector('.sector-toggle').setAttribute('aria-expanded', String(open));
+                    } else if (event.target.closest('.sector-remove')) {
+                        card.remove();
+                        updateSectorSummaries();
+                    } else if (event.target.closest('.add-sector-lot')) {
+                        addLotToSector(card);
+                    } else if (event.target.closest('.add-custom-modality')) {
+                        const lot = event.target.closest('.lot-config');
+                        const list = lot.querySelector('.custom-modalities-list');
+                        list.querySelector('.custom-empty')?.remove();
+                        list.insertAdjacentHTML('beforeend', buildCustomModalityMarkup());
+                        list.querySelector('.custom-modality:last-child .custom-name')?.focus();
+                    } else if (event.target.closest('.lot-remove')) {
+                        event.target.closest('.lot-config').remove();
+                        if (!card.querySelector('.lot-config')) card.querySelector('.sector-lots').innerHTML = '<p class="lot-empty">Nenhum lote neste setor.</p>';
+                        updateSectorSummaries();
+                    } else if (event.target.closest('.custom-remove')) {
+                        const modality = event.target.closest('.custom-modality');
+                        const lot = modality.closest('.lot-config');
+                        modality.remove();
+                        if (!lot.querySelector('.custom-modality')) lot.querySelector('.custom-modalities-list').innerHTML = '<p class="custom-empty">Adicione uma modalidade personalizada abaixo.</p>';
+                        recalculateLot(lot);
+                    }
+                });
+                container.addEventListener('input', updateSectorSummaries);
+                container.addEventListener('input', (event) => {
+                    const row = event.target.closest('.lot-config');
+                    if (row) {
+                        recalculateLot(row, event.target);
+                        updateSectorSummaries();
+                    }
+                });
+                container.addEventListener('change', (event) => {
+                    if (event.target.classList.contains('lot-rule')) {
+                        const lot = event.target.closest('.lot-config');
+                        lot.querySelector('.lot-date-fields').hidden = event.target.value !== 'data';
+                    }
+                    updateSectorSummaries();
+                });
+            }
+
+            function getSelectedEvent() {
+                return organizerState.eventList.find(event => event.id === organizerState.selectedEventId) || organizerState.eventList[0];
+            }
+
+            function statusClass(status) {
+                return String(status || 'publicado').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-');
+            }
+
+            function calculateOverview() {
+                const event = getSelectedEvent();
+                const occupancyRate = parseDecimal(document.getElementById('sim-ocupacao')?.value, organizerState.occupancy);
+                const soldTickets = Math.round((event.capacity * occupancyRate) / 100);
+                const rawTicketPrice = converterMoedaParaFloat(document.getElementById('sim-ticket')?.value);
+                const ticketPrice = rawTicketPrice || parseDecimal(document.getElementById('sim-ticket')?.value, event.avgTicket || organizerState.avgTicket);
+                const barPerPerson = converterMoedaParaFloat(document.getElementById('sim-bebidas')?.value) * 18 + converterMoedaParaFloat(document.getElementById('sim-alimentos')?.value) * 25;
+                const grossRevenue = soldTickets * (ticketPrice + barPerPerson);
+                const totalEstimated = organizerState.costItems.reduce((sum, item) => sum + (item.status === 'contratado' ? 0 : converterMoedaParaFloat(item.estimated)), 0);
+                const totalConfirmed = organizerState.costItems.filter(item => item.status === 'contratado').reduce((sum, item) => sum + converterMoedaParaFloat(item.contracted || item.estimated), 0);
+                const economicModel = buildEconomicModel();
+                const netProjection = cubicValue(economicModel.coefficients, 0);
+                const breakEvenTickets = economicModel.netPerPerson > 0 ? Math.ceil(economicModel.fixedCost / economicModel.netPerPerson) : 0;
+                const remainingBreakEven = Math.max(breakEvenTickets - soldTickets, 0);
+                const percentBreakEven = breakEvenTickets > 0 ? Math.min((soldTickets / breakEvenTickets) * 100, 100) : 0;
+
+                return {
+                    event,
+                    occupancyRate,
+                    soldTickets,
+                    grossRevenue,
+                    totalEstimated,
+                    totalConfirmed,
+                    netProjection,
+                    breakEvenTickets,
+                    remainingBreakEven,
+                    percentBreakEven
+                };
+            }
+
+            function renderOverview() {
+                const metrics = calculateOverview();
+                const { event, occupancyRate, soldTickets, grossRevenue, totalEstimated, totalConfirmed, netProjection, breakEvenTickets, remainingBreakEven, percentBreakEven } = metrics;
+
+                document.getElementById('kpi-revenue').textContent = formatCurrency(grossRevenue);
+                document.getElementById('kpi-revenue-detail').textContent = `${soldTickets} ingressos vendidos`;
+                document.getElementById('kpi-occupancy').textContent = `${occupancyRate}%`;
+                document.getElementById('occupancy-fill').style.width = `${Math.min(occupancyRate, 100)}%`;
+                document.getElementById('kpi-occupancy-detail').textContent = `${soldTickets} / ${event.capacity} lotados`;
+                document.getElementById('kpi-confirmed-costs').textContent = formatCurrency(totalConfirmed);
+                document.getElementById('kpi-estimated-costs').textContent = `Estimadas: ${formatCurrency(totalEstimated)}`;
+                document.getElementById('kpi-profit').textContent = formatCurrency(netProjection);
+                document.getElementById('kpi-profit-detail').textContent = `Custo fixo: ${formatCurrency(totalConfirmed)}`;
+
+                document.getElementById('break-even-badge').textContent = `${breakEvenTickets} ingressos`;
+                document.getElementById('thermometer-fill').style.height = `${Math.max(12, percentBreakEven)}%`;
+                document.getElementById('break-even-meta').textContent = `${soldTickets} / ${breakEvenTickets} ingressos`;
+                document.getElementById('break-even-text').textContent = remainingBreakEven > 0
+                    ? `Faltam ${remainingBreakEven} ingressos para cobrir 100% dos custos contratados.`
+                    : 'Você já atingiu o ponto de equilíbrio com os custos contratados.';
+
+                const countdownTarget = new Date(event.date).getTime();
+                const now = Date.now();
+                const diff = Math.max(countdownTarget - now, 0);
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+                const minutes = Math.floor((diff / (1000 * 60)) % 60);
+                const seconds = Math.floor((diff / 1000) % 60);
+
+                document.getElementById('countdown-days').textContent = String(days).padStart(2, '0');
+                document.getElementById('countdown-hours').textContent = String(hours).padStart(2, '0');
+                document.getElementById('countdown-minutes').textContent = String(minutes).padStart(2, '0');
+                document.getElementById('countdown-seconds').textContent = String(seconds).padStart(2, '0');
+
+                const alerts = [];
+                if (breakEvenTickets > soldTickets) alerts.push({ type: 'warning', text: `${remainingBreakEven} ingressos faltando para quebrar o ponto de equilíbrio.` });
+                if (organizerState.documents.some(doc => ['pendente', 'em análise'].includes(doc.status))) {
+                    alerts.push({ type: 'warning', text: 'Há documentos operacionais pendentes de revisão.' });
+                }
+                if (organizerState.demands.some(d => d.status === 'em cotação')) {
+                    alerts.push({ type: 'info', text: 'Demandas em cotação precisam de resposta de fornecedores.' });
+                }
+                if (alerts.length === 0) alerts.push({ type: 'success', text: 'Tudo em ordem: sem alertas críticos no momento.' });
+
+                const alertsList = document.getElementById('alerts-list');
+                alertsList.innerHTML = alerts.map(alert => `
+                    <li class="alert-item ${alert.type}">${alert.text}</li>
+                `).join('');
+            }
+
+            function renderFinanceTable() {
+                const tbody = document.getElementById('cost-table-body');
+                tbody.innerHTML = organizerState.costItems.map(item => `
+                    <tr>
+                        <td>${item.category}</td>
+                        <td>${item.item}</td>
+                        <td>${formatCurrency(item.estimated)}</td>
+                        <td>${item.status === 'contratado' ? formatCurrency(item.contracted || item.estimated) : formatCurrency(item.contracted || 0)}</td>
+                        <td>${item.supplier || '—'}</td>
+                        <td><span class="status-badge ${item.status}">${item.status}</span></td>
+                        <td>
+                            <button type="button" data-item-id="${item.id}" class="btn-secondary small request-quote-btn">${item.status === 'pendente' ? 'Solicitar cotação' : 'Atualizar'}</button>
+                        </td>
+                    </tr>
+                `).join('');
+
+                const projectionRevenue = calculateOverview().grossRevenue;
+                const totalConfirmed = organizerState.costItems.filter(item => item.status === 'contratado').reduce((sum, item) => sum + converterMoedaParaFloat(item.contracted || item.estimated || 0), 0);
+                const totalEstimated = organizerState.costItems.filter(item => item.status !== 'contratado').reduce((sum, item) => sum + converterMoedaParaFloat(item.estimated || 0), 0);
+                const margin = ((projectionRevenue - totalConfirmed - totalEstimated * 0.35) / Math.max(projectionRevenue, 1)) * 100;
+
+                document.getElementById('projection-revenue').textContent = formatCurrency(projectionRevenue);
+                document.getElementById('projection-margin').textContent = `${margin.toFixed(1)}%`;
+                document.getElementById('cost-total-estimated').textContent = formatCurrency(organizerState.costItems.reduce((sum, item) => sum + converterMoedaParaFloat(item.estimated || 0), 0));
+                document.getElementById('cost-total-contracted').textContent = formatCurrency(organizerState.costItems.filter(item => item.status === 'contratado').reduce((sum, item) => sum + converterMoedaParaFloat(item.contracted || item.estimated || 0), 0));
+                renderFinancialEngine();
+            }
+
+            function solveQuadratic(a, b, c) {
+                if (Math.abs(a) < 1e-9) return Math.abs(b) < 1e-9 ? [] : [-c / b];
+                const delta = b * b - 4 * a * c;
+                if (delta < 0) return [];
+                const root = Math.sqrt(delta);
+                return [(-b - root) / (2 * a), (-b + root) / (2 * a)];
+            }
+
+            function cubicValue(coefficients, quantity) {
+                return coefficients.a * quantity ** 3 + coefficients.b * quantity ** 2 + coefficients.c * quantity + coefficients.d;
+            }
+
+            function buildEconomicModel() {
+                const event = getSelectedEvent();
+                const capacity = Math.max(parseDecimal(document.getElementById('sim-capacidade')?.value, event?.capacity || 1), 1);
+                const price = Math.max(converterMoedaParaFloat(document.getElementById('sim-ticket').value) || parseDecimal(document.getElementById('sim-ticket').value, event?.avgTicket || 0), 0);
+                const occupancy = Math.max(0, Math.min(100, parseDecimal(document.getElementById('sim-ocupacao')?.value, 75)));
+                const beverage = Math.max(converterMoedaParaFloat(document.getElementById('sim-bebidas').value) || parseDecimal(document.getElementById('sim-bebidas').value, 0), 0);
+                const food = Math.max(converterMoedaParaFloat(document.getElementById('sim-alimentos').value) || parseDecimal(document.getElementById('sim-alimentos').value, 0), 0);
+                const fixedCost = organizerState.costItems.reduce((sum, item) => sum + converterMoedaParaFloat(item.estimated || 0), 0);
+                const barRevenuePerPerson = beverage * 18 + food * 25;
+                const cmvPerPerson = (barRevenuePerPerson * 0.40);
+                const netBarPerPerson = barRevenuePerPerson - cmvPerPerson;
+                const demandAtBase = capacity * occupancy / 100;
+                const elasticity = 0.85;
+                const q1 = -demandAtBase * elasticity / Math.max(price, 1);
+                const q2 = demandAtBase * elasticity ** 2 / (2 * Math.max(price, 1) ** 2);
+                const q3 = -demandAtBase * elasticity ** 3 / (6 * Math.max(price, 1) ** 3);
+                const coefficients = {
+                    a: q2 + netBarPerPerson * q3,
+                    b: q1 + netBarPerPerson * q2 + demandAtBase * q2 * price,
+                    c: demandAtBase + netBarPerPerson * q1 + demandAtBase * q1 * price,
+                    d: (price + netBarPerPerson) * demandAtBase - fixedCost
+                };
+                return { capacity, price, occupancy, beverage, food, fixedCost, demandAtBase, netBarPerPerson, netPerPerson: price + netBarPerPerson, coefficients };
+            }
+
+            function renderFinancialEngine() {
+                const model = buildEconomicModel();
+                const { price, coefficients } = model;
+                const derivativeAtBase = 3 * coefficients.a * 0 ** 2 + 2 * coefficients.b * 0 + coefficients.c;
+                const secondAtBase = 6 * coefficients.a * 0 + 2 * coefficients.b;
+                const criticalPoints = solveQuadratic(3 * coefficients.a, 2 * coefficients.b, coefficients.c);
+                const maximumOffset = criticalPoints.filter(point => 6 * coefficients.a * point + 2 * coefficients.b < 0).sort((left, right) => cubicValue(coefficients, right) - cubicValue(coefficients, left))[0] || 0;
+                const maximum = Math.max(0, price + maximumOffset);
+                const inflectionOffset = coefficients.a ? -coefficients.b / (3 * coefficients.a) : null;
+                const inflection = inflectionOffset === null ? null : price + inflectionOffset;
+                let breakEven = null;
+                for (let candidatePrice = 1; candidatePrice <= Math.max(price * 3, 500); candidatePrice += 1) {
+                    if (cubicValue(coefficients, candidatePrice - price) >= 0) { breakEven = candidatePrice; break; }
+                }
+                const currentProfit = cubicValue(coefficients, 0);
+                const currentRevenue = model.demandAtBase * (price + model.netBarPerPerson);
+                const margin = currentRevenue > 0 ? Math.max(0, Math.min(100, currentProfit / currentRevenue * 100)) : 0;
+                document.getElementById('projection-revenue').textContent = formatCurrency(currentRevenue);
+                document.getElementById('projection-margin').textContent = `${margin.toFixed(1)}%`;
+                document.getElementById('price-total-cost').textContent = formatCurrency(model.fixedCost);
+                document.getElementById('price-break-even').textContent = breakEven === null ? 'Não atingido' : formatCurrency(breakEven);
+                document.getElementById('price-optimum').textContent = formatCurrency(maximum);
+                document.getElementById('price-risk-ceiling').textContent = inflection !== null && inflection > price ? formatCurrency(inflection) : 'Sem ponto válido';
+                document.getElementById('finance-optimum').textContent = `${formatCurrency(maximum)} | ${formatCurrency(cubicValue(coefficients, maximum - price))}`;
+                document.getElementById('finance-inflection').textContent = inflection !== null && inflection > 0 ? formatCurrency(inflection) : 'Sem ponto válido';
+                document.getElementById('finance-break-even').textContent = breakEven === null ? 'Não atingido' : formatCurrency(breakEven);
+                document.getElementById('finance-concavity').textContent = secondAtBase < 0 ? 'Concavidade para baixo' : 'Retornos crescentes';
+                document.getElementById('finance-diagnosis').textContent = secondAtBase < 0
+                    ? `Preço base em regime de concavidade para baixo. Derivada no preço base: ${derivativeAtBase.toFixed(2)}.`
+                    : 'A curva ainda está em regime de expansão; monitore a sobrecarga operacional antes de ampliar a ocupação.';
+                drawProfitChart(coefficients, price, maximum, inflection, breakEven);
+            }
+
+            function drawProfitChart(coefficients, basePrice, maximum, inflection, breakEven) {
+                const canvas = document.getElementById('finance-profit-chart');
+                if (!canvas) return;
+                const context = canvas.getContext('2d');
+                const width = canvas.clientWidth || 620;
+                const height = canvas.height;
+                const ratio = window.devicePixelRatio || 1;
+                canvas.width = width * ratio;
+                canvas.height = height * ratio;
+                context.setTransform(1, 0, 0, 1, 0, 0);
+                context.scale(ratio, ratio);
+                context.clearRect(0, 0, width, height);
+                const chartMin = Math.max(0, basePrice * 0.25);
+                const chartMax = Math.max(basePrice * 2.5, maximum || 0, inflection || 0, breakEven || 0, 100);
+                const values = Array.from({ length: 61 }, (_, index) => { const candidate = chartMin + (chartMax - chartMin) * index / 60; return cubicValue(coefficients, candidate - basePrice); });
+                const min = Math.min(...values, 0);
+                const max = Math.max(...values, 0);
+                const x = candidatePrice => (candidatePrice - chartMin) / Math.max(chartMax - chartMin, 1) * (width - 24) + 12;
+                const y = value => height - 18 - ((value - min) / Math.max(max - min, 1)) * (height - 34);
+                context.font = '10px Segoe UI';
+                context.fillStyle = '#a3b4d3';
+                context.fillText('Lucro (R$)', 12, 12);
+                context.fillText('Preço do ingresso (R$)', Math.max(width - 135, 12), height - 2);
+                context.strokeStyle = 'rgba(148,163,184,.2)';
+                context.beginPath(); context.moveTo(12, y(0)); context.lineTo(width - 12, y(0)); context.stroke();
+                context.fillText(formatCurrency(max), 12, 25);
+                context.fillText('0', 12, height - 20);
+                context.fillText(formatCurrency(chartMax), width - 58, height - 20);
+                context.strokeStyle = '#5ee7a8'; context.lineWidth = 2; context.beginPath();
+                values.forEach((value, index) => { const px = x(chartMin + (chartMax - chartMin) * index / 60); const py = y(value); index ? context.lineTo(px, py) : context.moveTo(px, py); });
+                context.stroke();
+                context.strokeStyle = 'rgba(76,201,240,.55)'; context.setLineDash([4, 4]); context.beginPath(); context.moveTo(x(basePrice), 18); context.lineTo(x(basePrice), height - 18); context.stroke(); context.setLineDash([]);
+                [[maximum, '#4cc9f0'], [inflection, '#f7c948'], [breakEven, '#c2bbff']].forEach(([candidatePrice, color]) => {
+                    if (candidatePrice === null || candidatePrice < chartMin || candidatePrice > chartMax) return;
+                    context.fillStyle = color; context.beginPath(); context.arc(x(candidatePrice), y(cubicValue(coefficients, candidatePrice - basePrice)), 4, 0, Math.PI * 2); context.fill();
+                });
+                const tooltip = document.getElementById('finance-chart-tooltip');
+                canvas.onmousemove = event => {
+                    const bounds = canvas.getBoundingClientRect();
+                    const candidatePrice = Math.max(chartMin, Math.min(chartMax, chartMin + ((event.clientX - bounds.left) / bounds.width) * (chartMax - chartMin)));
+                    const profit = cubicValue(coefficients, candidatePrice - basePrice);
+                    tooltip.hidden = false;
+                    tooltip.textContent = `${formatCurrency(candidatePrice)} | Lucro: ${formatCurrency(profit)}`;
+                    tooltip.style.left = `${Math.min(event.clientX - bounds.left + 12, bounds.width - 170)}px`;
+                    tooltip.style.top = `${Math.max(event.clientY - bounds.top - 34, 4)}px`;
+                };
+                canvas.onmouseleave = () => { tooltip.hidden = true; };
+            }
+
+            function renderDemandList() {
+                const demandList = document.getElementById('demand-list');
+                demandList.innerHTML = organizerState.demands.map(demand => `
+                    <button type="button" class="demand-item ${demand.id === organizerState.activeDemandId ? 'selected' : ''}" data-demand-id="${demand.id}">
+                        <span class="demand-title">${demand.title}</span>
+                        <span class="demand-meta">${demand.service}</span>
+                        <span class="status-badge ${demand.status}">${demand.status}</span>
+                    </button>
+                `).join('');
+
+                const selectedDemand = organizerState.demands.find(demand => demand.id === organizerState.activeDemandId) || organizerState.demands[0];
+                const wrap = document.getElementById('proposal-table-wrap');
+                if (!selectedDemand) return;
+
+                wrap.innerHTML = `
+                    <div class="proposal-header">
+                        <div>
+                            <h4>${selectedDemand.title}</h4>
+                            <p>${selectedDemand.scope}</p>
+                        </div>
+                        <span class="badge badge-blue">Prazo: ${new Date(selectedDemand.deadline).toLocaleDateString('pt-BR')}</span>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fornecedor</th>
+                                <th>Valor</th>
+                                <th>Escopo</th>
+                                <th>Prazos</th>
+                                <th>Anexos</th>
+                                <th>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${selectedDemand.proposals.map(proposal => `
+                                <tr>
+                                    <td>${proposal.company}</td>
+                                    <td>${formatCurrency(proposal.value)}</td>
+                                    <td>${proposal.scope}</td>
+                                    <td>${proposal.deadline}</td>
+                                    <td>${proposal.files.join(', ')}</td>
+                                    <td>
+                                        <button type="button" class="btn-primary small approve-btn" data-demand-id="${selectedDemand.id}" data-proposal-id="${proposal.id}">Aprovar</button>
+                                        <button type="button" class="btn-secondary small chat-btn" data-demand-id="${selectedDemand.id}" data-company="${proposal.company}">Chat</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            }
+
+            function renderDocuments() {
+                const tableBody = document.getElementById('document-table-body');
+                tableBody.innerHTML = organizerState.documents.map(doc => `
+                    <tr>
+                        <td>${doc.name}</td>
+                        <td>${new Date(doc.deadline).toLocaleDateString('pt-BR')}</td>
+                        <td><span class="status-badge ${doc.status}">${doc.status}</span></td>
+                        <td>${doc.hasAttachment ? '<span class="attachment-tag">Arquivo</span>' : '—'}</td>
+                    </tr>
+                `).join('');
+            }
+
+            function renderRunOfShow() {
+                const list = document.getElementById('runofshow-list');
+                list.innerHTML = organizerState.tasks.map(task => `
+                    <label class="timeline-item ${task.checked ? 'checked' : ''}">
+                        <input type="checkbox" data-task-id="${task.id}" ${task.checked ? 'checked' : ''}>
+                        <span class="time">${task.time}</span>
+                        <span class="task-copy">
+                            <strong>${task.activity}</strong>
+                            <small>${task.responsible}</small>
+                        </span>
+                    </label>
+                `).join('');
+            }
+
+            function renderEventTable() {
+                const tableBody = document.getElementById('eventos-org-table-body');
+                if (!tableBody) return;
+
+                tableBody.innerHTML = organizerState.eventList.length
+                    ? organizerState.eventList.map((event) => `
+                        <tr data-event-id="${event.id}" class="${event.id === organizerState.selectedEventId ? 'is-selected' : ''}">
+                            <td>${event.name}</td>
+                            <td>${event.date ? new Date(event.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
+                            <td>${event.capacity || 0}</td>
+                            <td><span class="status-badge ${statusClass(event.status)}">${event.status || 'publicado'}</span></td>
+                            <td class="event-actions">
+                                <button type="button" class="event-action activate" data-event-action="activate" data-event-id="${event.id}">Ativar</button>
+                                <button type="button" class="event-action edit" data-event-action="edit" data-event-id="${event.id}">Editar</button>
+                            </td>
+                        </tr>
+                    `).join('')
+                    : '<tr><td colspan="5">Nenhum evento cadastrado.</td></tr>';
+
+                tableBody.querySelectorAll('tr[data-event-id]').forEach((row) => {
+                    row.addEventListener('click', () => {
+                        const eventId = Number(row.dataset.eventId);
+                        activateEvent(eventId, false);
+                    });
+                });
+
+                tableBody.querySelectorAll('[data-event-action]').forEach((button) => {
+                    button.addEventListener('click', async (event) => {
+                        event.stopPropagation();
+                        const eventId = Number(button.dataset.eventId);
+                        await activateEvent(eventId, button.dataset.eventAction === 'edit');
+                    });
+                });
+            }
+
+            async function activateEvent(eventId, editForm = false) {
+                if (!organizerState.eventList.some((event) => event.id === eventId)) return;
+                organizerState.selectedEventId = eventId;
+                await loadOrganizerDashboard();
+                const selectedEvent = getSelectedEvent();
+                if (editForm) {
+                    populateEventForm(selectedEvent);
+                    setActivePanel('events');
+                }
+                renderAll();
+            }
+
+            function operationalStatus(value) {
+                const status = String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                if (['regularizado', 'aprovado', 'aprovada', 'concluido', 'concluida', 'contratado'].includes(status)) return 'regularizado';
+                if (['em analise', 'em cotacao', 'em andamento'].includes(status)) return 'em-analise';
+                return 'pendente';
+            }
+
+            function findOperationalStatus(keywords) {
+                const sources = [
+                    ...organizerState.documents.map((item) => ({ name: item.name, status: item.status })),
+                    ...organizerState.demands.map((item) => ({ name: `${item.title} ${item.service}`, status: item.status }))
+                ];
+                const match = sources.find((item) => keywords.some((keyword) => item.name.toLowerCase().includes(keyword)));
+                return match ? operationalStatus(match.status) : 'pendente';
+            }
+
+            function renderOperationalDiagnosis() {
+                const event = getSelectedEvent();
+                const nameElement = document.getElementById('diagnosis-event-name');
+                const checklist = document.getElementById('operational-checklist');
+                const progress = document.getElementById('readiness-progress');
+                const label = document.getElementById('readiness-label');
+                const capacityAlert = document.getElementById('capacity-alert');
+                if (!event || !checklist) return;
+
+                const lotTotal = event.setores.reduce((sum, sector) => sum + sector.lotes.reduce((sectorSum, lot) => sectorSum + Number(lot.quantidade || 0), 0), 0);
+                const capacityExceeded = lotTotal > Number(event.capacity || 0);
+                const checks = [
+                    { label: 'Alvará da Prefeitura / Licença de Funcionamento', status: findOperationalStatus(['alvara', 'licenca']) },
+                    { label: 'AVCB do Corpo de Bombeiros', status: findOperationalStatus(['avcb', 'bombeiros']) },
+                    { label: 'Liberação / Pagamento de ECAD', status: findOperationalStatus(['ecad']) },
+                    { label: 'Equipe Médica e Ambulância Contratadas', status: findOperationalStatus(['medica', 'ambulancia', 'ambulância']) },
+                    { label: 'Empresa de Segurança Privada Fechada', status: findOperationalStatus(['seguranca', 'segurança']) },
+                    { label: 'Validação de Lotação', status: capacityExceeded ? 'pendente' : 'regularizado' }
+                ];
+                const score = Math.round(checks.reduce((total, check) => total + (check.status === 'regularizado' ? 1 : check.status === 'em-analise' ? 0.5 : 0), 0) / checks.length * 100);
+
+                nameElement.textContent = event.name;
+                label.textContent = `${score}% Concluído`;
+                progress.style.width = `${score}%`;
+                checklist.innerHTML = checks.map((check) => `
+                    <article class="operational-item ${check.status}">
+                        <span>${check.label}</span>
+                        <strong>${check.status === 'regularizado' ? 'Regularizado' : check.status === 'em-analise' ? 'Em Análise' : 'Pendente'}</strong>
+                    </article>
+                `).join('');
+
+                capacityAlert.hidden = !capacityExceeded;
+                capacityAlert.textContent = capacityExceeded
+                    ? `A soma dos lotes (${lotTotal}) excede a lotação máxima cadastrada (${event.capacity}).`
+                    : '';
+            }
+
+            function populateEventForm(event) {
+                if (!event) return;
+
+                const form = document.getElementById('form-novo-evento');
+                form.dataset.eventId = String(event.id);
+                document.getElementById('ev-nome').value = event.name || '';
+                document.getElementById('ev-classificacao').value = event.classification || 'Livre';
+                document.getElementById('ev-status').value = event.status || 'publicado';
+                document.getElementById('ev-data-inicio').value = toLocalInputValue(event.date);
+                document.getElementById('ev-data-fim').value = toLocalInputValue(event.endDate);
+                document.getElementById('ev-capacidade').value = event.capacity || 0;
+                document.getElementById('ev-local').value = event.address || '';
+                document.getElementById('ev-preco-medio').value = event.avgTicket || 0;
+                document.getElementById('ev-destaque').checked = Boolean(event.destaque);
+                buildSectorMarkup(event.setores || []);
+                const message = document.getElementById('event-form-message');
+                if (message) {
+                    message.textContent = `Editando evento: ${event.name}`;
+                    message.classList.remove('success');
+                }
+            }
+
+            function renderAll() {
+                renderEventSelect();
+                renderEventTable();
+                renderOperationalDiagnosis();
+                renderOverview();
+                renderFinanceTable();
+                renderDemandList();
+                renderDocuments();
+                renderRunOfShow();
+            }
+
+            function setActivePanel(panelId) {
+                document.querySelectorAll('.organizer-panel').forEach(panel => panel.classList.toggle('active', panel.id === `panel-${panelId}`));
+                document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.panel === panelId));
+            }
+
+            document.querySelectorAll('.nav-btn').forEach(button => {
+                button.addEventListener('click', () => setActivePanel(button.dataset.panel));
+            });
+
+            document.getElementById('event-select').addEventListener('change', async (event) => {
+                organizerState.selectedEventId = Number(event.target.value);
+                await loadOrganizerDashboard();
+                refreshFinancialSimulation();
+            });
+
+            document.getElementById('sim-ocupacao').addEventListener('change', () => {
+                refreshFinancialSimulation();
+            });
+
+            document.getElementById('sim-bebidas').addEventListener('input', () => {
+                refreshFinancialSimulation();
+            });
+
+            document.getElementById('sim-alimentos').addEventListener('input', () => {
+                refreshFinancialSimulation();
+            });
+
+            document.getElementById('sim-ticket').addEventListener('input', () => {
+                refreshFinancialSimulation();
+            });
+
+            document.getElementById('sim-capacidade').addEventListener('input', () => {
+                refreshFinancialSimulation();
+            });
+
+            document.getElementById('btn-add-sector').addEventListener('click', addSector);
+            handleFormLotEvents();
+
+            document.getElementById('btn-novo-evento').addEventListener('click', () => {
+                const form = document.getElementById('form-novo-evento');
+                form.reset();
+                form.removeAttribute('data-event-id');
+                buildSectorMarkup([]);
+                const message = document.getElementById('event-form-message');
+                message.textContent = 'Pronto para cadastrar um novo evento.';
+                message.classList.remove('success');
+            });
+
+            document.getElementById('form-novo-evento').addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const form = event.currentTarget;
+                const id = Number(form.dataset.eventId || 0);
+                const nome = document.getElementById('ev-nome').value.trim();
+                const dataInicio = document.getElementById('ev-data-inicio').value;
+                const dataFim = document.getElementById('ev-data-fim').value;
+                const local = document.getElementById('ev-local').value.trim();
+                const capacidade = Number(document.getElementById('ev-capacidade').value || 0);
+                const price = Number(document.getElementById('ev-preco-medio').value || 120);
+
+                if (!nome || !dataInicio || !dataFim || !local || !capacidade) {
+                    document.getElementById('event-form-message').textContent = 'Preencha todos os campos obrigatórios.';
+                    return;
+                }
+
+                const setores = readSectorsFromForm();
+                const sectorCapacity = setores.reduce((sum, sector) => sum + sector.capacidade, 0);
+                if (sectorCapacity > capacidade) {
+                    document.getElementById('event-form-message').textContent = `A lotação dos setores (${sectorCapacity}) excede a lotação total (${capacidade}).`;
+                    return;
+                }
+                const lots = setores.flatMap((sector) => sector.lotes.map((lot) => ({
+                    nome: lot.nomeLote,
+                    tipo_ingresso: lot.tipoIngresso,
+                    quantidade: lot.quantidadeTotal,
+                    quantidade_total: lot.quantidadeTotal,
+                    quantidade_meia: lot.quantidadeMeia,
+                    quantidade_inteira: lot.quantidadeInteira,
+                    quantidade_solidaria: lot.quantidadeSolidaria,
+                    preco: lot.precoInteira,
+                    preco_inteira: lot.precoInteira,
+                    preco_meia: lot.precoMeia,
+                    modalidades: lot.modalidades,
+                    regra: lot.regraVirada,
+                    data_inicio: lot.dataInicio,
+                    data_fim: lot.dataFim,
+                    setor_nome: sector.nome,
+                    setor_capacidade: sector.capacidade
+                })));
+
+                try {
+                    const payload = await fetchJson('/api/organizador/eventos', {
+                        method: id ? 'PUT' : 'POST',
+                        body: JSON.stringify({
+                            id: id || undefined,
+                            nome,
+                            local,
+                            data_evento: dataInicio,
+                            data_fim: dataFim,
+                            status: document.getElementById('ev-status').value,
+                            destaque: document.getElementById('ev-destaque').checked,
+                            preco: price,
+                            capacidade,
+                            classificacao: document.getElementById('ev-classificacao').value,
+                            setores,
+                            lotes: lots
+                        })
+                    });
+
+                    document.getElementById('event-form-message').textContent = payload.message || 'Evento salvo com sucesso.';
+                    document.getElementById('event-form-message').classList.add('success');
+                    form.removeAttribute('data-event-id');
+                    form.reset();
+                    buildSectorMarkup([]);
+                    await loadEventCatalog();
+                } catch (error) {
+                    document.getElementById('event-form-message').textContent = error.message;
+                    document.getElementById('event-form-message').classList.remove('success');
+                }
+            });
+
+            document.getElementById('btn-recarregar-eventos').addEventListener('click', () => {
+                loadEventCatalog().catch((error) => alert(error.message));
+            });
+
+            document.getElementById('btn-add-cost').addEventListener('click', () => {
+                document.getElementById('cost-modal').classList.remove('hidden');
+                document.getElementById('cost-modal').setAttribute('aria-hidden', 'false');
+            });
+
+            document.getElementById('cost-form').addEventListener('submit', async (event) => {
+                event.preventDefault();
+                try {
+                    await fetchJson('/api/organizador/custos', { method: 'POST', body: JSON.stringify({
+                        evento_id: organizerState.selectedEventId,
+                        categoria: document.getElementById('cost-category').value,
+                        nome_item: document.getElementById('cost-name').value.trim(),
+                        custo_estimado: Number(document.getElementById('cost-estimated').value || 0)
+                    }) });
+                    document.getElementById('cost-modal').classList.add('hidden');
+                    document.getElementById('cost-modal').setAttribute('aria-hidden', 'true');
+                    event.target.reset();
+                    await loadOrganizerDashboard();
+                } catch (error) { alert(error.message || 'Não foi possível salvar o item de custo.'); }
+            });
+
+            document.getElementById('cost-table-body').addEventListener('click', (event) => {
+                const button = event.target.closest('.request-quote-btn');
+                if (!button) return;
+                const itemId = Number(button.dataset.itemId);
+                const item = organizerState.costItems.find(entry => entry.id === itemId);
+                if (!item) return;
+                document.getElementById('quote-title').value = item.item;
+                document.getElementById('quote-description').value = `Solicitação para ${item.category}: ${item.item}.`;
+                document.getElementById('quote-deadline').value = new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10);
+                document.getElementById('quote-value').value = item.estimated;
+                document.getElementById('quote-modal').classList.remove('hidden');
+                document.getElementById('quote-modal').setAttribute('aria-hidden', 'false');
+                document.getElementById('quote-form').dataset.itemId = String(itemId);
+            });
+
+            document.getElementById('quote-form').addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const itemId = Number(document.getElementById('quote-form').dataset.itemId || 0);
+                const title = document.getElementById('quote-title').value.trim();
+                const description = document.getElementById('quote-description').value.trim();
+                const deadline = document.getElementById('quote-deadline').value;
+                const value = Number(document.getElementById('quote-value').value || 0);
+
+                try {
+                    const payload = await fetchJson('/api/organizador/cotacoes', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            evento_id: organizerState.selectedEventId,
+                            item_id: itemId,
+                            titulo: title,
+                            servico: 'Solicitação',
+                            escopo: description,
+                            prazo: deadline,
+                            valor_estimado: value
+                        })
+                    });
+
+                    if (payload.demanda_id) {
+                        organizerState.activeDemandId = Number(payload.demanda_id);
+                    }
+                    document.getElementById('quote-modal').classList.add('hidden');
+                    document.getElementById('quote-modal').setAttribute('aria-hidden', 'true');
+                    document.getElementById('quote-form').reset();
+                    await loadOrganizerDashboard();
+                } catch (error) {
+                    console.error('Erro ao salvar cotação:', error);
+                    alert(error.message || 'Não foi possível registrar a cotação.');
+                }
+            });
+
+            document.getElementById('demand-list').addEventListener('click', (event) => {
+                const target = event.target.closest('.demand-item');
+                if (!target) return;
+                organizerState.activeDemandId = Number(target.dataset.demandId);
+                renderDemandList();
+            });
+
+            document.getElementById('proposal-table-wrap').addEventListener('click', async (event) => {
+                const chatButton = event.target.closest('.chat-btn');
+                if (chatButton) {
+                    const demandId = Number(chatButton.dataset.demandId);
+                    const company = chatButton.dataset.company;
+                    organizerState.activeChatDemandId = demandId;
+                    document.getElementById('chat-title').textContent = `Chat com ${company}`;
+                    const demand = organizerState.demands.find(item => item.id === demandId);
+                    const messages = document.getElementById('chat-messages');
+                    messages.innerHTML = (demand?.messages || []).map(message => `
+                        <div class="chat-message ${message.sender === 'organizador' ? 'outgoing' : 'incoming'}">
+                            <p>${message.text}</p>
+                        </div>
+                    `).join('');
+                    document.getElementById('chat-modal').classList.remove('hidden');
+                    return;
+                }
+
+                const approveButton = event.target.closest('.approve-btn');
+                if (!approveButton) return;
+                const demandId = Number(approveButton.dataset.demandId);
+                const proposalId = Number(approveButton.dataset.proposalId);
+
+                try {
+                    const response = await fetchJson(`/api/organizador/propostas/${proposalId}/aprovar`, {
+                        method: 'POST'
+                    });
+                    alert(response.message || 'Proposta aprovada com sucesso!');
+                    await loadOrganizerDashboard();
+                } catch (error) {
+                    alert(error.message || 'Não foi possível aprovar a proposta.');
+                }
+            });
+
+            document.getElementById('chat-form').addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const input = document.getElementById('chat-input');
+                const text = input.value.trim();
+                if (!text) return;
+                const demand = organizerState.demands.find(item => item.id === organizerState.activeChatDemandId);
+                if (!demand) return;
+
+                try {
+                    await fetchJson(`/api/organizador/demandas/${demand.id}/mensagens`, {
+                        method: 'POST',
+                        body: JSON.stringify({ texto: text, remetente: 'organizador' })
+                    });
+                    input.value = '';
+                    await loadOrganizerDashboard();
+                    const updatedDemand = organizerState.demands.find(item => item.id === organizerState.activeChatDemandId);
+                    const messages = document.getElementById('chat-messages');
+                    messages.innerHTML = (updatedDemand?.messages || []).map(message => `
+                        <div class="chat-message ${message.sender === 'organizador' ? 'outgoing' : 'incoming'}">
+                            <p>${message.text}</p>
+                        </div>
+                    `).join('');
+                    messages.scrollTop = messages.scrollHeight;
+                } catch (error) {
+                    alert(error.message || 'Não foi possível enviar a mensagem.');
+                }
+            });
+
+            document.querySelectorAll('.modal-close').forEach(button => {
+                button.addEventListener('click', () => {
+                    const modalId = button.dataset.close;
+                    document.getElementById(modalId).classList.add('hidden');
+                    document.getElementById(modalId).setAttribute('aria-hidden', 'true');
                 });
             });
 
-            // 3. Logout
-            document.getElementById('btn-organizer-logout').addEventListener('click', () => {
-                localStorage.removeItem('trocaticket-user');
-                localStorage.removeItem('usuario');
-                window.location.href = 'index.html';
-            });
-
-            // 4. Carregar Eventos na Tabela
-            async function carregarEventos() {
-                const tbody = document.getElementById('eventos-org-table-body');
-                tbody.innerHTML = '<tr><td colspan="6" style="padding: 24px; text-align: center; color: var(--text-muted, #7e859b);">Carregando eventos...</td></tr>';
-                
+            document.getElementById('runofshow-list').addEventListener('change', async (event) => {
+                if (!event.target.matches('input[type="checkbox"]')) return;
+                const checkbox = event.target;
+                const taskId = Number(checkbox.dataset.taskId);
                 try {
-                    const res = await fetch('/api/events');
-                    const data = await res.json();
-                    
-                    if (!data.ok || !data.events.length) {
-                        tbody.innerHTML = '<tr><td colspan="6" style="padding: 24px; text-align: center; color: var(--text-muted, #7e859b);">Nenhum evento publicado até o momento.</td></tr>';
-                        return;
-                    }
-
-                    tbody.innerHTML = data.events.map(ev => `
-                        <tr>
-                            <td style="font-weight: 600;">${ev.name || 'Sem nome'}</td>
-                            <td style="color: var(--text-muted, #a0a5ba);">${new Date(ev.date).toLocaleDateString('pt-BR')}</td>
-                            <td style="color: var(--text-muted, #a0a5ba);">${ev.location || '-'}</td>
-                            <td style="color: var(--accent-green, #2ecc71); font-weight: 600;">R$ ${Number(ev.price || 0).toFixed(2)}</td>
-                            <td>
-                                <span style="background: ${ev.destaque ? 'rgba(0, 210, 255, 0.15)' : 'rgba(255, 255, 255, 0.05)'}; color: ${ev.destaque ? 'var(--accent-cyan)' : 'var(--text-muted)'}; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">
-                                    ${ev.destaque ? 'SIM' : 'NÃO'}
-                                </span>
-                            </td>
-                            <td><span style="background: var(--success-bg, rgba(46, 204, 113, 0.15)); color: var(--accent-green, #2ecc71); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">${ev.status || 'Ativo'}</span></td>
-                        </tr>
-                    `).join('');
-                } catch (err) {
-                    tbody.innerHTML = '<tr><td colspan="6" style="padding: 24px; text-align: center; color: var(--danger, #ff4757);">Erro ao buscar eventos.</td></tr>';
-                }
-            }
-
-            document.getElementById('btn-recarregar-eventos').addEventListener('click', carregarEventos);
-            carregarEventos();
-
-            // 5. Cadastrar Novo Evento
-            const formNovoEvento = document.getElementById('form-novo-evento');
-            const msgNovoEvento = document.getElementById('msg-novo-evento');
-            const btnSubmit = document.getElementById('btn-submit-evento');
-
-            formNovoEvento.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                msgNovoEvento.textContent = '';
-                msgNovoEvento.style.color = '#38bdf8';
-                msgNovoEvento.textContent = 'Cadastrando evento...';
-                btnSubmit.disabled = true;
-
-                const imageInput = document.getElementById('ev-imagem');
-                let uploadedImageUrl = '';
-
-                // Faz upload da imagem se o usuário selecionou alguma
-                if (imageInput.files.length > 0) {
-                    const formData = new FormData();
-                    formData.append('imagem', imageInput.files[0]);
-                    try {
-                        const uploadRes = await fetch('/api/eventos/upload-imagem', {
-                            method: 'POST',
-                            body: formData
-                        });
-                        const uploadData = await uploadRes.json();
-                        if (uploadRes.ok && uploadData.ok) {
-                            uploadedImageUrl = uploadData.imageUrl;
-                        }
-                    } catch (err) {
-                        console.warn('Falha no upload de imagem, usando padrão:', err);
-                    }
-                }
-
-                const payload = {
-                    email: user.email,
-                    nome: document.getElementById('ev-nome').value.trim(),
-                    data_evento: document.getElementById('ev-data').value,
-                    preco: parseFloat(document.getElementById('ev-preco').value) || 0,
-                    local: document.getElementById('ev-local').value.trim(),
-                    imagem: uploadedImageUrl || null,
-                    destaque: document.getElementById('ev-destaque').checked ? 1 : 0
-                };
-
-                try {
-                    const response = await fetch('/api/events', {
+                    await fetchJson(`/api/organizador/tarefas/${taskId}/status`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
+                        body: JSON.stringify({
+                            evento_id: organizerState.selectedEventId,
+                            concluida: checkbox.checked
+                        })
                     });
-
-                    const data = await response.json();
-                    if (!response.ok || !data.ok) throw new Error(data.message || 'Erro ao publicar evento.');
-
-                    msgNovoEvento.style.color = '#2ecc71';
-                    msgNovoEvento.textContent = 'Evento publicado com sucesso!';
-                    formNovoEvento.reset();
-                    carregarEventos();
-
-                    // Volta para a aba de eventos após 1 segundo
-                    setTimeout(() => {
-                        document.querySelector('.nav-btn[data-section="section-meus-eventos"]').click();
-                        msgNovoEvento.textContent = '';
-                    }, 1200);
-
+                    const task = organizerState.tasks.find(item => item.id === taskId);
+                    if (task) task.checked = checkbox.checked;
+                    checkbox.closest('.timeline-item')?.classList.toggle('checked', checkbox.checked);
                 } catch (error) {
-                    msgNovoEvento.style.color = '#ff4757';
-                    msgNovoEvento.textContent = error.message;
-                } finally {
-                    btnSubmit.disabled = false;
+                    checkbox.checked = !checkbox.checked;
+                    alert(error.message || 'Não foi possível atualizar a tarefa.');
                 }
             });
 
-            // 6. Simulação de Precificação
-            document.getElementById('btn-calcular-preco').addEventListener('click', async () => {
-                const eventId = document.getElementById('sim-event-id').value;
-                const resultBox = document.getElementById('resultado-precificacao');
-                if (!eventId) return alert('Informe o ID do evento.');
-
+            document.getElementById('btn-add-document').addEventListener('click', async () => {
+                const name = window.prompt('Nome do documento:')?.trim();
+                if (!name) return;
+                const deadline = window.prompt('Prazo (AAAA-MM-DD):', new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10));
+                if (!deadline) return;
                 try {
-                    const res = await fetch(`/api/eventos/${eventId}/precificacao`);
-                    const data = await res.json();
-                    if (!res.ok || !data.ok) throw new Error(data.message || 'Falha ao precificar.');
-
-                    document.getElementById('res-custo-total').textContent = `R$ ${Number(data.custo_total).toFixed(2)}`;
-                    document.getElementById('res-cenario-min').textContent = `${data.cenarios.publico_minimo.publico} pessoas -> Ticket Sugerido: R$ ${Number(data.cenarios.publico_minimo.ticket_estimado).toFixed(2)}`;
-                    document.getElementById('res-cenario-max').textContent = `${data.cenarios.publico_maximo.publico} pessoas -> Ticket Sugerido: R$ ${Number(data.cenarios.publico_maximo.ticket_estimado).toFixed(2)}`;
-                    resultBox.style.display = 'block';
-                } catch (e) {
-                    alert(e.message);
+                    await fetchJson('/api/organizador/documentos', {
+                        method: 'POST',
+                        body: JSON.stringify({ evento_id: organizerState.selectedEventId, nome: name, prazo: deadline })
+                    });
+                    await loadOrganizerDashboard();
+                } catch (error) {
+                    alert(error.message || 'Não foi possível salvar o documento.');
                 }
             });
+
+            document.getElementById('btn-add-task').addEventListener('click', async () => {
+                const activity = window.prompt('Atividade da tarefa:')?.trim();
+                if (!activity) return;
+                const responsible = window.prompt('Responsável:')?.trim();
+                if (!responsible) return;
+                const time = window.prompt('Horário (HH:MM):', '09:00')?.trim() || '09:00';
+                try {
+                    await fetchJson('/api/organizador/tarefas', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            evento_id: organizerState.selectedEventId,
+                            horario: time,
+                            atividade: activity,
+                            responsavel: responsible
+                        })
+                    });
+                    await loadOrganizerDashboard();
+                } catch (error) {
+                    alert(error.message || 'Não foi possível salvar a tarefa.');
+                }
+            });
+
+            if (document.getElementById('event-select')) {
+                buildSectorMarkup([]);
+                loadEventCatalog().catch((error) => {
+                    console.error('Erro ao carregar o dashboard do organizador:', error);
+                    alert(error.message || 'Não foi possível carregar o painel do organizador.');
+                });
+                setInterval(() => {
+                    if (organizerState.selectedEventId) {
+                        renderOverview();
+                    }
+                }, 1000);
+            }
         });
     </script>
 </body>
