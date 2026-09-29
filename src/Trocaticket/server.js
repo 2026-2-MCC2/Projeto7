@@ -109,6 +109,38 @@ function parseEventDate(value) {
   }
   return parsed;
 }
+function normalizeTicketLot(lote = {}) {
+  const total = Math.max(Number(lote.quantidade_total || lote.quantidadeTotal || lote.quantidade || 0), 0);
+  const meia = Math.ceil(total * 0.40);
+  const solidaria = Math.min(Math.max(Number(lote.quantidade_solidaria || lote.quantidadeSolidaria || 0), 0), Math.max(total - meia, 0));
+  const inteira = Math.max(total - meia - solidaria, 0);
+  const precoInteira = Math.max(Number(lote.preco_inteira || lote.precoInteira || lote.preco || 0), 0);
+  let customBalance = Math.max(inteira, 0);
+  const modalidades = Array.isArray(lote.modalidades) ? lote.modalidades.map(modalidade => {
+    const requestedQuantity = Math.max(Number(modalidade.quantidade || 0), 0);
+    const quantity = Math.min(requestedQuantity, customBalance);
+    customBalance -= quantity;
+    return {
+      nome: String(modalidade.nome || '').trim(),
+      quantidade: quantity,
+      preco: Math.max(Number(modalidade.preco || 0), 0)
+    };
+  }).filter(modalidade => modalidade.nome && modalidade.quantidade > 0) : [];
+  const adjustedInteira = Math.max(inteira - modalidades.reduce((sum, modalidade) => sum + modalidade.quantidade, 0), 0);
+  return {
+    ...lote,
+    quantidade: total,
+    quantidade_total: total,
+    quantidade_meia: meia,
+    quantidade_inteira: adjustedInteira,
+    quantidade_solidaria: solidaria,
+    preco: precoInteira,
+    preco_inteira: precoInteira,
+    preco_meia: precoInteira / 2,
+    modalidades,
+    modalidades_json: JSON.stringify(modalidades)
+  };
+}
 function makeCode(prefix) { return `${prefix}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`; }
 function makeQrPayload(ticket) { return `TROCATICKET:${ticket.numero_ingresso}:${ticket.evento_id}:${ticket.versao_titularidade}:${crypto.randomBytes(16).toString('hex')}`; }
 
@@ -447,37 +479,72 @@ const server = http.createServer(async (request, response) => {
   if (request.method === 'PUT' && url.pathname === '/api/usuario/meu-perfil') {
     try {
       const body = await parseBody(request);
-      const email = normalizeEmail(body.email);
-      const nome = String(body.nome || '').trim();
-      const sobrenome = String(body.sobrenome || '').trim();
-      const cpf = normalizeCpf(body.cpf);
-      const telefone = String(body.telefone || '').trim();
+      const emailAtual = normalizeEmail(body.emailAtual || body.currentEmail || body.email);
+      const novoEmail = normalizeEmail(body.email || emailAtual);
 
-      if (!email || !nome) {
-        return send(response, 400, { ok: false, message: 'Nome e e-mail são obrigatórios.' });
+      if (!emailAtual || !novoEmail) {
+        return send(response, 400, { ok: false, message: 'E-mail é obrigatório.' });
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(novoEmail)) {
+        return send(response, 400, { ok: false, message: 'E-mail inválido.' });
+      }
+
+      const [[existingUser]] = await db.query(
+        'SELECT id, nome, email, cpf, telefone, genero, data_nascimento, senha_hash FROM dbo.usuarios WHERE email = ?',
+        [emailAtual]
+      );
+      if (!existingUser) {
+        return send(response, 404, { ok: false, message: 'Usuário não encontrado.' });
+      }
+
+      if (novoEmail !== emailAtual) {
+        const [[emailOwner]] = await db.query('SELECT id FROM dbo.usuarios WHERE email = ?', [novoEmail]);
+        if (emailOwner && emailOwner.id !== existingUser.id) {
+          return send(response, 409, { ok: false, message: 'Este e-mail já está em uso.' });
+        }
+      }
+
+      const nomeInformado = body.nome !== undefined;
+      const nome = nomeInformado ? String(body.nome || '').trim() : existingUser.nome;
+      const sobrenome = body.sobrenome !== undefined ? String(body.sobrenome || '').trim() : '';
+      const nomeCompleto = nomeInformado
+        ? [nome, sobrenome].filter(Boolean).join(' ')
+        : existingUser.nome;
+      const cpf = body.cpf !== undefined ? normalizeCpf(body.cpf) : normalizeCpf(existingUser.cpf);
+      const telefone = body.telefone !== undefined ? String(body.telefone || '').trim() : existingUser.telefone;
+      const genero = body.genero !== undefined ? String(body.genero || '').trim() : existingUser.genero;
+      const dataNascimento = body.data_nascimento !== undefined ? body.data_nascimento || null : existingUser.data_nascimento;
+
+      if (!nomeCompleto) {
+        return send(response, 400, { ok: false, message: 'Nome é obrigatório.' });
       }
       if (cpf && cpf.length !== 11) {
         return send(response, 400, { ok: false, message: 'CPF inválido.' });
       }
 
+      const senha = String(body.senha || '');
+      const senhaHash = senha ? await bcrypt.hash(senha, 10) : existingUser.senha_hash;
+
       const [result] = await db.query(
         `UPDATE dbo.usuarios
-         SET nome = ?, cpf = ?, telefone = ?, genero = ?, data_nascimento = ?
+         SET nome = ?, email = ?, cpf = ?, telefone = ?, genero = ?, data_nascimento = ?, senha_hash = ?
          OUTPUT INSERTED.id
          WHERE email = ?`,
         [
-          [nome, sobrenome].filter(Boolean).join(' '),
+          nomeCompleto,
+          novoEmail,
           cpf || null,
           telefone || null,
-          body.genero || null,
-          body.data_nascimento || null,
-          email
+          genero || null,
+          dataNascimento,
+          senhaHash,
+          emailAtual
         ]
       );
-      await audit('compra', `Pedido criado com ${quantidade} ingresso(s) para o evento ${event.nome}.`, 'pedido', `Compra de ingressos - ${event.nome}`, { id: user.id, nome: email, tipo: 'cliente' });
 
       if (!result.length) return send(response, 404, { ok: false, message: 'Usuário não encontrado.' });
       const [rows] = await db.query('SELECT id, nome, email, cpf, telefone, genero, data_nascimento, tipo, status, foto_perfil FROM dbo.usuarios WHERE id = ?', [result[0].id]);
+      await audit('atualizacao_perfil', `Perfil de ${nomeCompleto} atualizado.`, 'usuario', result[0].id, rows[0]);
       return send(response, 200, { ok: true, user: formatUser(rows[0]), message: 'Dados atualizados com sucesso.' });
     } catch (error) {
       console.error('[usuario] Erro ao atualizar perfil:', error.message);
@@ -717,13 +784,414 @@ const server = http.createServer(async (request, response) => {
         artista: r.artista || '',
         location: r.local || '',
         date: r.data_evento ? new Date(r.data_evento).toISOString() : '',
+        endDate: r.data_fim ? new Date(r.data_fim).toISOString() : null,
+        classification: r.classificacao_etaria || 'Livre',
         price: Number(r.ticket_calculado || 0),
+        capacity: Number(r.publico_maximo || 0),
         imagem: r.imagem || null,
         destaque: Boolean(r.destaque),
         status: r.status || 'publicado'
       }));
       return send(response, 200, { ok: true, events });
     } catch (error) { return send(response, 500, { ok: false, message: error.message }); }
+  }
+
+  if (request.method === 'GET' && url.pathname === '/api/organizador/dashboard') {
+    try {
+      const eventoId = Number(url.searchParams.get('evento_id') || 1);
+      const [eventRows] = await db.query('SELECT * FROM dbo.eventos WHERE id = ? LIMIT 1', [eventoId]);
+      if (!eventRows.length) return send(response, 404, { ok: false, message: 'Evento não encontrado.' });
+
+      const event = eventRows[0];
+      const [lots] = await db.query('SELECT * FROM dbo.evento_lotes WHERE evento_id = ? ORDER BY id', [event.id]);
+      const [sectorRows] = await db.query('SELECT * FROM dbo.evento_setores WHERE evento_id = ? ORDER BY id', [event.id]);
+      const [costItems] = await db.query('SELECT * FROM dbo.evento_itens_custo WHERE evento_id = ? ORDER BY id', [event.id]);
+      const [documents] = await db.query('SELECT * FROM dbo.evento_documentos WHERE evento_id = ? ORDER BY prazo', [event.id]);
+      const [tasks] = await db.query('SELECT * FROM dbo.evento_tarefas WHERE evento_id = ? ORDER BY horario', [event.id]);
+      const [demandsRows] = await db.query('SELECT * FROM dbo.evento_demandas WHERE evento_id = ? ORDER BY id DESC', [event.id]);
+
+      const demands = await Promise.all(demandsRows.map(async demand => {
+        const [proposalRows] = await db.query('SELECT * FROM dbo.evento_propostas_fornecedor WHERE demanda_id = ? ORDER BY id', [demand.id]);
+        const [messageRows] = await db.query('SELECT * FROM dbo.evento_mensagens_chat WHERE demanda_id = ? ORDER BY enviado_em', [demand.id]);
+        return {
+          ...demand,
+          prazo: demand.prazo ? new Date(demand.prazo).toISOString().slice(0, 10) : null,
+          proposals: proposalRows,
+          messages: messageRows
+        };
+      }));
+
+      return send(response, 200, {
+        ok: true,
+        dashboard: {
+          event: {
+            id: event.id,
+            name: event.nome,
+            date: event.data_evento ? new Date(event.data_evento).toISOString() : null,
+            endDate: event.data_fim ? new Date(event.data_fim).toISOString() : null,
+            classification: event.classificacao_etaria || 'Livre',
+            location: event.local,
+            capacity: Number(event.publico_maximo || 0),
+            avgTicket: Number(event.ticket_calculado || 0),
+            status: event.status,
+            destaque: Boolean(event.destaque),
+            setores: sectorRows.map(sector => ({
+              id: sector.id,
+              nome: sector.nome,
+              capacidade: Number(sector.capacidade || 0),
+              lotes: lots.filter(lot => lot.setor_nome === sector.nome)
+            }))
+          },
+          lots: lots.map(lote => ({
+            ...lote,
+            data_virada: lote.data_virada ? new Date(lote.data_virada).toISOString().slice(0, 10) : null
+          })),
+          costItems,
+          documents,
+          tasks,
+          demands
+        }
+      });
+    } catch (error) {
+      console.error('[organizador] dashboard:', error.message);
+      return send(response, 500, { ok: false, message: error.message });
+    }
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/organizador/eventos') {
+    try {
+      const body = await parseBody(request);
+      const nome = String(body.nome || '').trim();
+      const local = String(body.local || body.location || '').trim();
+      const dataEvento = parseEventDate(body.data_evento || body.date);
+      const dataFim = body.data_fim ? parseEventDate(body.data_fim) : null;
+      const ticketCalculado = Number(body.preco || body.ticket_calculado || 0);
+      const lotacao = Number(body.capacidade || body.publico_maximo || 0);
+      const destaque = body.destaque === true || body.destaque === 1 || body.destaque === 'true' ? 1 : 0;
+      const classificacaoEtaria = String(body.classificacao || body.classificacao_etaria || 'Livre').trim();
+
+      if (!nome || !local || !dataEvento || !lotacao) {
+        return send(response, 400, { ok: false, message: 'Nome, local, lotação e data do evento são obrigatórios.' });
+      }
+
+      const [result] = await db.query(
+        `INSERT INTO dbo.eventos (organizador_id, nome, artista, classificacao_etaria, [local], data_evento, data_fim, ticket_calculado, publico_minimo, publico_maximo, margem_lucro, status, destaque, imagem)
+         OUTPUT INSERTED.id VALUES (?, ?, ?, ?, ?, ?, ?, ?, 500, ?, 0.20, ?, ?, ?)`,
+        [body.organizador_id || 1, nome, body.artista || null, classificacaoEtaria, local, dataEvento, dataFim, ticketCalculado, lotacao, body.status || 'publicado', destaque, body.imagem || null]
+      );
+
+      const eventoId = result[0]?.id || result.insertId;
+      if (Array.isArray(body.setores)) {
+        for (const setor of body.setores) {
+          const setorNome = String(setor.nome || '').trim();
+          if (!setorNome) continue;
+          await db.query('INSERT INTO dbo.evento_setores (evento_id, nome, capacidade) VALUES (?, ?, ?)', [eventoId, setorNome, Number(setor.capacidade || 0)]);
+        }
+      }
+      const submittedLots = Array.isArray(body.lotes) && body.lotes.length
+        ? body.lotes
+        : (Array.isArray(body.setores) ? body.setores.flatMap(setor => (setor.lotes || []).map(lote => ({
+          ...lote,
+          setor_nome: setor.nome,
+          setor_capacidade: setor.capacidade
+        }))) : []);
+      if (submittedLots.length) {
+        for (const lote of submittedLots) {
+          if (!lote?.nome && !lote?.nomeLote) continue;
+          const ticketLot = normalizeTicketLot(lote);
+          await db.query(
+            'INSERT INTO dbo.evento_lotes (evento_id, nome, quantidade, preco, regra, data_virada, setor_nome, setor_capacidade, tipo_ingresso, data_inicio, data_fim, quantidade_total, quantidade_meia, quantidade_inteira, quantidade_solidaria, preco_inteira, preco_meia, modalidades_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [eventoId, String(ticketLot.nome || ticketLot.nomeLote).trim(), ticketLot.quantidade, ticketLot.preco, String(ticketLot.regra || ticketLot.regraVirada || 'Esgotamento'), ticketLot.data_virada ? parseEventDate(ticketLot.data_virada) : (ticketLot.data_fim ? parseEventDate(ticketLot.data_fim) : null), ticketLot.setor_nome || null, ticketLot.setor_capacidade || null, ticketLot.tipo_ingresso || ticketLot.tipoIngresso || 'Inteira', ticketLot.data_inicio ? parseEventDate(ticketLot.data_inicio) : (ticketLot.dataInicio ? parseEventDate(ticketLot.dataInicio) : null), ticketLot.data_fim ? parseEventDate(ticketLot.data_fim) : (ticketLot.dataFim ? parseEventDate(ticketLot.dataFim) : null), ticketLot.quantidade_total, ticketLot.quantidade_meia, ticketLot.quantidade_inteira, ticketLot.quantidade_solidaria, ticketLot.preco_inteira, ticketLot.preco_meia, ticketLot.modalidades_json]
+          );
+        }
+      }
+
+      return send(response, 201, { ok: true, evento_id: eventoId, message: 'Evento criado com sucesso.' });
+    } catch (error) {
+      console.error('[organizador] criar evento:', error.message);
+      return send(response, 500, { ok: false, message: error.message });
+    }
+  }
+
+  if (request.method === 'PUT' && url.pathname === '/api/organizador/eventos') {
+    try {
+      const body = await parseBody(request);
+      const eventoId = Number(body.id || body.evento_id || body.eventId);
+      const nome = String(body.nome || '').trim();
+      const local = String(body.local || body.location || '').trim();
+      const dataEvento = parseEventDate(body.data_evento || body.date);
+      const dataFim = body.data_fim ? parseEventDate(body.data_fim) : null;
+      const ticketCalculado = Number(body.preco || body.ticket_calculado || 0);
+      const lotacao = Number(body.capacidade || body.publico_maximo || 0);
+      const destaque = body.destaque === true || body.destaque === 1 || body.destaque === 'true' ? 1 : 0;
+      const classificacaoEtaria = String(body.classificacao || body.classificacao_etaria || 'Livre').trim();
+
+      if (!eventoId || !nome || !local || !dataEvento || !lotacao) {
+        return send(response, 400, { ok: false, message: 'Evento, nome, local, lotação e data são obrigatórios.' });
+      }
+
+      const connection = await db.getConnection();
+      await connection.beginTransaction();
+
+      try {
+        await connection.query(
+          `UPDATE dbo.eventos
+           SET nome = ?, artista = ?, classificacao_etaria = ?, [local] = ?, data_evento = ?, data_fim = ?, ticket_calculado = ?, publico_maximo = ?, status = ?, destaque = ?, imagem = ?
+           WHERE id = ?`,
+          [nome, body.artista || null, classificacaoEtaria, local, dataEvento, dataFim, ticketCalculado, lotacao, body.status || 'publicado', destaque, body.imagem || null, eventoId]
+        );
+
+        await connection.query('DELETE FROM dbo.evento_lotes WHERE evento_id = ?', [eventoId]);
+        await connection.query('DELETE FROM dbo.evento_setores WHERE evento_id = ?', [eventoId]);
+        if (Array.isArray(body.setores)) {
+          for (const setor of body.setores) {
+            const setorNome = String(setor.nome || '').trim();
+            if (!setorNome) continue;
+            await connection.query('INSERT INTO dbo.evento_setores (evento_id, nome, capacidade) VALUES (?, ?, ?)', [eventoId, setorNome, Number(setor.capacidade || 0)]);
+          }
+        }
+
+        const submittedLots = Array.isArray(body.lotes) && body.lotes.length
+          ? body.lotes
+          : (Array.isArray(body.setores) ? body.setores.flatMap(setor => (setor.lotes || []).map(lote => ({
+            ...lote,
+            setor_nome: setor.nome,
+            setor_capacidade: setor.capacidade
+          }))) : []);
+        if (submittedLots.length) {
+          for (const lote of submittedLots) {
+            if (!lote?.nome && !lote?.nomeLote) continue;
+            const ticketLot = normalizeTicketLot(lote);
+            await connection.query(
+              'INSERT INTO dbo.evento_lotes (evento_id, nome, quantidade, preco, regra, data_virada, setor_nome, setor_capacidade, tipo_ingresso, data_inicio, data_fim, quantidade_total, quantidade_meia, quantidade_inteira, quantidade_solidaria, preco_inteira, preco_meia, modalidades_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+              [eventoId, String(ticketLot.nome || ticketLot.nomeLote).trim(), ticketLot.quantidade, ticketLot.preco, String(ticketLot.regra || ticketLot.regraVirada || 'Esgotamento'), ticketLot.data_virada ? parseEventDate(ticketLot.data_virada) : (ticketLot.data_fim ? parseEventDate(ticketLot.data_fim) : null), ticketLot.setor_nome || null, ticketLot.setor_capacidade || null, ticketLot.tipo_ingresso || ticketLot.tipoIngresso || 'Inteira', ticketLot.data_inicio ? parseEventDate(ticketLot.data_inicio) : (ticketLot.dataInicio ? parseEventDate(ticketLot.dataInicio) : null), ticketLot.data_fim ? parseEventDate(ticketLot.data_fim) : (ticketLot.dataFim ? parseEventDate(ticketLot.dataFim) : null), ticketLot.quantidade_total, ticketLot.quantidade_meia, ticketLot.quantidade_inteira, ticketLot.quantidade_solidaria, ticketLot.preco_inteira, ticketLot.preco_meia, ticketLot.modalidades_json]
+            );
+          }
+        }
+
+        await connection.commit();
+        return send(response, 200, { ok: true, evento_id: eventoId, message: 'Evento atualizado com sucesso.' });
+      } catch (error) {
+        await connection.rollback();
+        throw error;
+      } finally {
+        connection.release();
+      }
+    } catch (error) {
+      console.error('[organizador] atualizar evento:', error.message);
+      return send(response, 500, { ok: false, message: error.message });
+    }
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/organizador/cotacoes') {
+    try {
+      const body = await parseBody(request);
+      const eventoId = Number(body.evento_id || body.eventId);
+      const itemId = body.item_id ? Number(body.item_id) : null;
+      const titulo = String(body.titulo || '').trim();
+      const servico = String(body.servico || '').trim();
+      const escopo = String(body.escopo || '').trim();
+      const prazo = body.prazo ? new Date(body.prazo) : new Date(Date.now() + 5 * 86400000);
+      const valorEstimado = Number(body.valor_estimado || body.value || 0);
+
+      if (!eventoId || !titulo || !escopo || !valorEstimado) {
+        return send(response, 400, { ok: false, message: 'Dados da cotação incompletos.' });
+      }
+
+      const [result] = await db.query(
+        `INSERT INTO dbo.evento_demandas (evento_id, titulo, servico, escopo, prazo, valor_estimado, status)
+         OUTPUT INSERTED.id VALUES (?, ?, ?, ?, ?, ?, 'em cotacao')`,
+        [eventoId, titulo, servico || 'Solicitação', escopo, prazo, valorEstimado]
+      );
+
+      const demandaId = result[0]?.id || result.insertId;
+      if (itemId) {
+        await db.query(
+          'UPDATE dbo.evento_itens_custo SET status = ?, demanda_id = ? WHERE id = ?',
+          ['em cotacao', demandaId, itemId]
+        );
+      }
+
+      return send(response, 201, { ok: true, demanda_id: demandaId, message: 'Cotação registrada com sucesso.' });
+    } catch (error) {
+      console.error('[organizador] criar cotação:', error.message);
+      return send(response, 500, { ok: false, message: error.message });
+    }
+  }
+
+  if (request.method === 'POST' && /^\/api\/organizador\/propostas\/.+\/aprovar$/.test(url.pathname)) {
+    const connection = await db.getConnection();
+    try {
+      const proposalId = Number(url.pathname.split('/')[3]);
+      await connection.beginTransaction();
+
+      const [[proposal]] = await connection.query(
+        `SELECT p.id, p.demanda_id, p.empresa, p.valor, p.escopo, d.evento_id, d.titulo, d.valor_estimado
+         FROM dbo.evento_propostas_fornecedor p
+         JOIN dbo.evento_demandas d ON d.id = p.demanda_id
+         WHERE p.id = ?`,
+        [proposalId]
+      );
+
+      if (!proposal) {
+        await connection.rollback();
+        return send(response, 404, { ok: false, message: 'Proposta não encontrada.' });
+      }
+
+      await connection.query(
+        'UPDATE dbo.evento_propostas_fornecedor SET status = CASE WHEN id = ? THEN ? ELSE ? END WHERE demanda_id = ?',
+        [proposalId, 'aprovada', 'recusada', proposal.demanda_id]
+      );
+
+      await connection.query(
+        'UPDATE dbo.evento_demandas SET status = ?, valor_estimado = ? WHERE id = ?',
+        ['aprovada', proposal.valor, proposal.demanda_id]
+      );
+
+      const [itemRows] = await connection.query(
+        'SELECT id FROM dbo.evento_itens_custo WHERE demanda_id = ? LIMIT 1',
+        [proposal.demanda_id]
+      );
+
+      if (itemRows.length) {
+        await connection.query(
+          'UPDATE dbo.evento_itens_custo SET status = ?, custo_contratado = ?, fornecedor = ? WHERE id = ?',
+          ['contratado', proposal.valor, proposal.empresa, itemRows[0].id]
+        );
+      }
+
+      await connection.commit();
+      return send(response, 200, {
+        ok: true,
+        message: 'Proposta aprovada com sucesso. O custo foi atualizado automaticamente.'
+      });
+    } catch (error) {
+      await connection.rollback();
+      console.error('[organizador] aprovar proposta:', error.message);
+      return send(response, 500, { ok: false, message: error.message });
+    } finally {
+      connection.release();
+    }
+  }
+
+  if (request.method === 'POST' && /^\/api\/organizador\/demandas\/.+\/mensagens$/.test(url.pathname)) {
+    try {
+      const demandId = Number(url.pathname.split('/')[3]);
+      const body = await parseBody(request);
+      const texto = String(body.texto || '').trim();
+      if (!demandId || !texto) {
+        return send(response, 400, { ok: false, message: 'Mensagem inválida.' });
+      }
+      const [result] = await db.query(
+        'INSERT INTO dbo.evento_mensagens_chat (demanda_id, remetente, texto) OUTPUT INSERTED.id VALUES (?, ?, ?)',
+        [demandId, String(body.remetente || 'organizador'), texto]
+      );
+      return send(response, 201, { ok: true, mensagem_id: result[0]?.id || result.insertId });
+    } catch (error) {
+      console.error('[organizador] mensagem:', error.message);
+      return send(response, 500, { ok: false, message: error.message });
+    }
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/organizador/propostas') {
+    try {
+      const body = await parseBody(request);
+      const demandaId = Number(body.demanda_id);
+      const empresa = String(body.empresa || '').trim();
+      const valor = Number(body.valor || 0);
+      const escopo = String(body.escopo || '').trim();
+      const prazo = String(body.prazo || '');
+      const anexos = Array.isArray(body.anexos) ? body.anexos.join(',') : '';
+
+      if (!demandaId || !empresa || !valor || !escopo) {
+        return send(response, 400, { ok: false, message: 'Proposta incompleta.' });
+      }
+
+      const [result] = await db.query(
+        `INSERT INTO dbo.evento_propostas_fornecedor (demanda_id, empresa, valor, escopo, prazo, anexos, status)
+         OUTPUT INSERTED.id VALUES (?, ?, ?, ?, ?, ?, 'em analise')`,
+        [demandaId, empresa, valor, escopo, prazo, anexos]
+      );
+      return send(response, 201, { ok: true, proposta_id: result[0]?.id || result.insertId });
+    } catch (error) {
+      console.error('[organizador] proposta:', error.message);
+      return send(response, 500, { ok: false, message: error.message });
+    }
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/organizador/documentos') {
+    try {
+      const body = await parseBody(request);
+      const eventoId = Number(body.evento_id);
+      const nome = String(body.nome || '').trim();
+      const prazo = body.prazo ? new Date(body.prazo) : new Date(Date.now() + 7 * 86400000);
+      if (!eventoId || !nome) return send(response, 400, { ok: false, message: 'Documento incompleto.' });
+      const [result] = await db.query(
+        'INSERT INTO dbo.evento_documentos (evento_id, nome, prazo, status) OUTPUT INSERTED.id VALUES (?, ?, ?, ?)',
+        [eventoId, nome, prazo, body.status || 'pendente']
+      );
+      return send(response, 201, { ok: true, documento_id: result[0]?.id || result.insertId });
+    } catch (error) {
+      return send(response, 500, { ok: false, message: error.message });
+    }
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/organizador/custos') {
+    try {
+      const body = await parseBody(request);
+      const eventoId = Number(body.evento_id);
+      const categoria = String(body.categoria || '').trim();
+      const nomeItem = String(body.nome_item || '').trim();
+      const custoEstimado = Number(body.custo_estimado);
+      if (!eventoId || !categoria || !nomeItem || !Number.isFinite(custoEstimado) || custoEstimado < 0) {
+        return send(response, 400, { ok: false, message: 'Dados do item de custo inválidos.' });
+      }
+      const [rows] = await db.query(
+        `INSERT INTO dbo.evento_itens_custo (evento_id, categoria, nome_item, custo_estimado, status)
+         OUTPUT INSERTED.id VALUES (?, ?, ?, ?, 'pendente')`,
+        [eventoId, categoria, nomeItem, custoEstimado]
+      );
+      return send(response, 201, { ok: true, item_id: rows[0]?.id });
+    } catch (error) {
+      console.error('[organizador] criar item de custo:', error.message);
+      return send(response, 500, { ok: false, message: error.message });
+    }
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/organizador/tarefas') {
+    try {
+      const body = await parseBody(request);
+      if (!body.evento_id || !body.atividade || !body.responsavel) {
+        return send(response, 400, { ok: false, message: 'Dados da tarefa incompletos.' });
+      }
+      const [result] = await db.query(
+        'INSERT INTO dbo.evento_tarefas (evento_id, horario, atividade, responsavel, concluida) OUTPUT INSERTED.id VALUES (?, ?, ?, ?, ?)',
+        [Number(body.evento_id), body.horario || '09:00', String(body.atividade).trim(), String(body.responsavel).trim(), body.concluida ? 1 : 0]
+      );
+      return send(response, 201, { ok: true, tarefa_id: result[0]?.id || result.insertId });
+    } catch (error) {
+      return send(response, 500, { ok: false, message: error.message });
+    }
+  }
+
+  if (request.method === 'POST' && /^\/api\/organizador\/tarefas\/\d+\/status$/.test(url.pathname)) {
+    try {
+      const taskId = Number(url.pathname.split('/')[4]);
+      const body = await parseBody(request);
+      const eventoId = Number(body.evento_id);
+      if (!taskId || !eventoId || typeof body.concluida !== 'boolean') {
+        return send(response, 400, { ok: false, message: 'Status da tarefa inválido.' });
+      }
+      const [rows] = await db.query(
+        'UPDATE dbo.evento_tarefas SET concluida = ? OUTPUT INSERTED.id WHERE id = ? AND evento_id = ?',
+        [body.concluida ? 1 : 0, taskId, eventoId]
+      );
+      if (!rows.length) return send(response, 404, { ok: false, message: 'Tarefa não encontrada.' });
+      return send(response, 200, { ok: true, tarefa_id: taskId, concluida: body.concluida });
+    } catch (error) {
+      console.error('[organizador] atualizar tarefa:', error.message);
+      return send(response, 500, { ok: false, message: error.message });
+    }
   }
 
   if (request.method === 'POST' && url.pathname === '/api/events') {
