@@ -1,1 +1,81 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="pages.css"><title>Bilheteria Matriz | TrocaTicket</title></head><body class="page-body"><header class="site-header"><a class="brand" href="index.html">TrocaTicket</a></header><main class="page-main"><section class="page-form"><div class="page-form-content"><h1>Validação de acesso</h1><p>Digite ou leia o payload do QR Code.</p><form id="validate-form"><textarea name="qr_code_payload" required rows="4" placeholder="Payload do ingresso"></textarea><button class="button button-primary button-full" type="submit">Validar ingresso</button></form><div id="validation-result" role="status"></div></div></section></main><script src="bilheteria.js" defer></script></body></html>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="theme-color" content="#101418">
+	<title>Painel da Bilheteria | Troca Ticket</title>
+	<link rel="stylesheet" href="style.css">
+	<link rel="stylesheet" href="bilheteria.css">
+	<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
+	<script src="bilheteria-app.js" type="module"></script>
+</head>
+<body>
+	<div class="app-shell">
+		<header class="app-header site-header">
+			<a class="brand" href="index.html" aria-label="Troca Ticket, início">
+				<img class="brand-logo" src="imagens/logo troca ticket.png" alt="Troca Ticket">
+				<span>Troca<span class="brand-accent">Ticket</span></span>
+			</a>
+			<div class="header-meta"><span class="live-dot"></span><span>Base integrada Troca Ticket</span><time id="current-time"></time></div>
+		</header>
+
+		<main class="main-content">
+			<div class="page-heading">
+				<div><p class="eyebrow">Operação de evento</p><h1>Painel da Bilheteria</h1><p class="subheading">Validação, contingência e controle de ingressos em um só lugar.</p></div>
+				<div class="operator-badge"><span class="operator-avatar">OP</span><span><strong id="operator-name">Equipe de Portaria</strong><small id="operator-status">Verificando acesso</small></span></div>
+			</div>
+
+			<nav class="tab-bar" aria-label="Módulos da bilheteria" role="tablist">
+				<button class="tab-button is-active" id="tab-scan" type="button" role="tab" aria-selected="true" aria-controls="panel-scan" data-tab="scan">Validador de Portaria</button>
+				<button class="tab-button" id="tab-support" type="button" role="tab" aria-selected="false" aria-controls="panel-support" data-tab="support">Suporte &amp; Contingência</button>
+				<button class="tab-button" id="tab-integrators" type="button" role="tab" aria-selected="false" aria-controls="panel-integrators" data-tab="integrators">Bilheterias &amp; Ingestão</button>
+				<button class="tab-button" id="tab-transfers" type="button" role="tab" aria-selected="false" aria-controls="panel-transfers" data-tab="transfers">Transferências</button>
+			</nav>
+
+			<section class="tab-panel is-active" id="panel-scan" role="tabpanel" aria-labelledby="tab-scan" data-panel="scan">
+				<div class="panel-title-row"><div><p class="eyebrow">Acesso em tempo real</p><h2>Leitor da catraca</h2></div><span class="status-chip status-neutral" id="scanner-status">Câmera pausada</span></div>
+				<div class="gate-config surface">
+					<label>Evento ativo<select id="gate-event"></select></label>
+					<label>Setor desta catraca<select id="gate-sector"></select></label>
+					<button class="button button-start" id="toggle-scanner" type="button">Iniciar validação contínua</button>
+				</div>
+				<div class="scanner-layout">
+					<div class="scanner-column surface">
+						<div class="camera-controls">
+							<label for="camera-select">Câmera<select id="camera-select"><option value="">Automática · priorizar traseira</option></select></label>
+							<button class="button button-secondary button-small" id="refresh-cameras" type="button">Atualizar câmeras</button>
+						</div>
+						<div class="scanner-frame"><div id="reader" aria-label="Imagem da câmera para leitura do QR Code"></div><button class="torch-toggle" id="torch-toggle" type="button" aria-label="Ligar lanterna" title="Ligar lanterna" hidden>Lanterna</button><div class="scanner-placeholder" id="scanner-placeholder"><span class="scan-symbol" aria-hidden="true">⌗</span><strong>Câmera pronta</strong><span>Inicie a validação para abrir o leitor.</span></div></div>
+						<p class="scanner-hint" id="camera-hint">A câmera traseira é priorizada. A leitura contínua não exige toque a cada pessoa.</p>
+						<details class="manual-token" id="manual-token-details"><summary>Testar ou informar código manualmente</summary><form id="token-form"><label for="token-input">Payload TICKET_ID:TIMESTEP:HASH</label><textarea id="token-input" rows="2" placeholder="Cole o payload QR do ingresso" autocomplete="off" autofocus></textarea><button class="button button-secondary" type="submit">Validar código</button></form><div class="demo-token-tools"><label for="demo-ticket-search">Gerar payload de ingresso real</label><div class="inline-controls"><div class="ticket-combobox" id="demo-ticket-combobox"><input id="demo-ticket-search" type="search" role="combobox" aria-autocomplete="list" aria-controls="demo-ticket-options" aria-expanded="false" autocomplete="off" placeholder="Busque titular, CPF ou código"><div class="combobox-options" id="demo-ticket-options" role="listbox" hidden></div></div><button class="button button-small button-secondary" id="generate-token" type="button">Gerar payload atual</button></div></div></details>
+					</div>
+					<aside class="gate-side surface"><div class="gate-side-heading"><span class="gate-icon">G</span><div><p class="eyebrow">Catraca configurada</p><strong id="gate-summary">Carregando evento</strong></div></div><div class="side-divider"></div><div class="side-stat"><span>Leituras nesta sessão</span><strong id="session-count">0</strong></div><div class="side-stat"><span>Última leitura</span><strong id="last-scan">Aguardando</strong></div><p class="security-note">O QR rotativo é validado no servidor e o check-in é gravado atomicamente no banco da plataforma.</p></aside>
+				</div>
+			</section>
+
+			<section class="tab-panel" id="panel-support" role="tabpanel" aria-labelledby="tab-support" data-panel="support" hidden>
+				<div class="panel-title-row"><div><p class="eyebrow">Atendimento assistido</p><h2>Busca manual de ingresso</h2></div><span class="status-chip status-neutral">Contingência</span></div>
+				<div class="support-layout"><div class="surface search-surface"><label for="ticket-search">CPF ou código do ingresso</label><div class="search-input-wrap"><span aria-hidden="true">⌕</span><input id="ticket-search" type="search" autocomplete="off" placeholder="Digite CPF ou ID do ingresso"></div><p class="field-hint">A busca é atualizada enquanto você digita.</p><div class="quick-filters" role="group" aria-label="Filtrar ingressos por status"><button class="filter-chip is-active" type="button" data-support-status="*" aria-pressed="true">Todos</button><button class="filter-chip" type="button" data-support-status="disponível" aria-pressed="false">Disponível</button><button class="filter-chip" type="button" data-support-status="utilizado" aria-pressed="false">Utilizado</button><button class="filter-chip" type="button" data-support-status="expirado" aria-pressed="false">Expirado</button></div><div id="search-results" class="search-results" aria-live="polite"></div></div><article class="surface ticket-detail" id="ticket-detail"><div class="empty-state"><span aria-hidden="true">▤</span><strong>Nenhum ingresso selecionado</strong><p>Busque por documento ou código para consultar os dados.</p></div></article></div>
+			</section>
+
+			<section class="tab-panel" id="panel-integrators" role="tabpanel" aria-labelledby="tab-integrators" data-panel="integrators" hidden>
+				<div class="panel-title-row"><div><p class="eyebrow">Origem dos ingressos</p><h2>Bilheterias integradas</h2></div><span class="status-chip status-success">Webhook disponível</span></div>
+				<div class="integrator-tabs" role="tablist" aria-label="Selecionar bilheteria"><button class="integrator-pill is-active" type="button" data-provider="Troca Ticket">Troca Ticket <small>Própria</small></button><button class="integrator-pill" type="button" data-provider="BlackTag">BlackTag</button><button class="integrator-pill" type="button" data-provider="Ticketmaster">Ticketmaster</button><button class="integrator-pill" type="button" data-provider="Ticket360">Ticket360</button></div>
+				<div class="metrics-grid"><article class="metric-card"><span>Ingressos ingeridos</span><strong id="metric-ingested">0</strong></article><article class="metric-card"><span>Check-ins concluídos</span><strong id="metric-checkins">0</strong></article><article class="metric-card"><span>Transferidos na plataforma</span><strong id="metric-transferred">0</strong></article><article class="metric-card"><span>Conexão da API</span><strong class="api-status">Ativa · webhook OK</strong></article></div>
+				<div class="surface integration-settings"><label>Evento<select id="provider-event"></select></label><label>Encerramento da portaria<input id="gate-deadline" type="datetime-local"></label><button class="button button-primary" id="sync-provider" type="button">Sincronizar lote da matriz</button></div>
+				<div class="surface provider-filters"><label for="provider-status-filter">Status do QR dinâmico<select id="provider-status-filter"><option value="*">Todos os status</option><option value="disponível">Disponível</option><option value="utilizado">Utilizado</option><option value="expirado">Expirado</option><option value="revogado/transferido">Revogado / transferido</option></select></label><label for="provider-origin-filter">Origem da ingestão<select id="provider-origin-filter"><option value="*">Todas as origens</option><option value="own">Troca Ticket</option><option value="partner">Parceiros</option></select></label></div>
+				<div class="surface table-surface"><div class="table-heading"><div><h3>Ingressos cadastrados na plataforma</h3><p id="provider-caption">Carregando registros reais</p></div><button class="button button-secondary button-small" id="sync-provider-table" type="button">Atualizar do banco</button></div><div class="table-scroll"><table><thead><tr><th>Evento</th><th>Código externo</th><th>ID Troca Ticket</th><th>Titular</th><th>CPF</th><th>Setor</th><th>Origem / Canal</th><th>Status</th><th>QR dinâmico</th></tr></thead><tbody id="provider-ticket-rows"></tbody></table></div></div>
+			</section>
+
+			<section class="tab-panel" id="panel-transfers" role="tabpanel" aria-labelledby="tab-transfers" data-panel="transfers" hidden>
+				<div class="panel-title-row"><div><p class="eyebrow">Titularidade e antifraude</p><h2>Transferir ingresso</h2></div><span class="status-chip status-neutral">Revogação imediata</span></div>
+				<div class="transfer-layout"><form class="surface transfer-form" id="transfer-form"><label>Código do ingresso<input id="transfer-ticket-id" required placeholder="TKT-..."></label><label>Motivo<select id="transfer-reason" required><option value="Revenda na Plataforma">Revenda na Plataforma</option><option value="Presente/Transferência Direta">Presente/Transferência Direta</option><option value="Ajuste Cadastral">Ajuste Cadastral</option></select></label><label>Nome completo do novo titular<input id="new-holder-name" required autocomplete="name"></label><label>CPF ou e-mail do novo titular<input id="new-holder-contact" required autocomplete="email"></label><p class="security-note transfer-warning">O novo titular precisa ter uma conta Troca Ticket. A sincronização externa depende de uma API parceira configurada.</p><button class="button button-primary" type="submit">Confirmar transferência e revogar hash antigo</button><p id="transfer-message" class="form-message" role="status"></p></form><div class="surface audit-surface"><div class="table-heading"><div><h3>Trilha de auditoria</h3><p>Movimentações recentes</p></div><label class="audit-search" for="audit-search">Buscar logs por ID ou CPF<input id="audit-search" type="search" autocomplete="off" placeholder="ID, código ou CPF"></label></div><div class="table-scroll"><table><thead><tr><th>Ingresso / titulares</th><th>Setor</th><th>Data e hora</th><th>Hash anterior</th><th>Matriz</th></tr></thead><tbody id="audit-rows"></tbody></table></div></div></div>
+			</section>
+		</main>
+	</div>
+
+	<div class="feedback-overlay" id="feedback-overlay" aria-live="assertive" aria-atomic="true" hidden><div class="feedback-content"><span class="feedback-symbol" id="feedback-symbol" aria-hidden="true"></span><p class="feedback-kicker" id="feedback-kicker">VALIDAÇÃO</p><h2 id="feedback-title"></h2><div id="feedback-detail"></div></div></div>
+	<div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

@@ -292,6 +292,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function openEventModal(ev) {
     if (!eventModal || !eventDetail) return;
+    const eventSectors = Array.isArray(ev.sectors) ? ev.sectors : [];
+    const sectorOptions = eventSectors.length
+      ? eventSectors.map(sector => `<option value="${String(sector.name || sector.nome || '').replace(/[&<>"']/g, '')}">${String(sector.name || sector.nome || '')}</option>`).join('')
+      : '<option value="">Setores ainda não cadastrados</option>';
 
     eventDetail.innerHTML = `
       <div style="padding: 28px; text-align: left;">
@@ -302,6 +306,12 @@ document.addEventListener('DOMContentLoaded', () => {
         <p style="color: #6c7280; font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
           Ingresso 100% digital com reemissão nominal única e garantia antifraude TrocaTicket.
         </p>
+        <label for="purchase-sector" style="display: grid; gap: 8px; margin-bottom: 18px; color: #6c7280; font-size: 13px;">
+          Setor do ingresso
+          <select id="purchase-sector" ${eventSectors.length ? 'required' : 'disabled'} style="height: 44px; border: 1px solid #cbd0da; border-radius: 5px; padding: 0 12px; background: #fff; color: #141a2c;">
+            ${sectorOptions}
+          </select>
+        </label>
         <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e5e7eb; padding-top: 16px; margin-bottom: 16px;">
           <span style="font-size: 14px; color: #6c7280;">Valor unitário</span>
           <strong style="font-size: 24px; color: #141a2c;">R$ ${Number(ev.price || 0).toFixed(2).replace('.', ',')}</strong>
@@ -316,11 +326,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const purchaseBtn = document.getElementById('btn-confirm-purchase');
     if (purchaseBtn) {
-      purchaseBtn.addEventListener('click', () => handlePurchase(ev));
+      purchaseBtn.addEventListener('click', () => handlePurchase(ev, document.getElementById('purchase-sector')?.value || null));
     }
   }
 
-  async function handlePurchase(ev) {
+  async function handlePurchase(ev, sectorName) {
     const user = getSessionUser();
     if (!user || !user.email) {
       alert('You need to be logged in to make a purchase.');
@@ -340,7 +350,8 @@ document.addEventListener('DOMContentLoaded', () => {
           email: user.email,
           evento_id: ev.id,
           quantidade: 1,
-          preco: ev.price
+          preco: ev.price,
+          setor_nome: sectorName
         })
       });
 
