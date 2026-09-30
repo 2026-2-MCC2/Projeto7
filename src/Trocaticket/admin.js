@@ -510,6 +510,7 @@ class AdminPanel {
     const name = value('filter-user-name');
     const email = value('filter-user-email');
     const phone = value('filter-user-phone');
+    const phoneDigits = phone.replace(/\D/g, '');
     const status = value('filter-user-status');
     const type = value('filter-user-type');
     const date = document.getElementById('filter-user-date')?.value || '';
@@ -520,8 +521,9 @@ class AdminPanel {
       const cell = index => (cells[index]?.textContent || '').trim().toLowerCase();
       const rowDate = cell(3).split('/').reverse().join('-');
       const rowStatus = row.querySelector('.status-badge')?.dataset.status || '';
+      const rowPhone = cell(2);
       row.style.display = (!name || cell(0).includes(name)) && (!email || cell(1).includes(email)) &&
-        (!phone || cell(2).includes(phone)) && (!status || rowStatus === status) &&
+        (!phone || (phoneDigits ? rowPhone.replace(/\D/g, '').includes(phoneDigits) : rowPhone.includes(phone))) && (!status || rowStatus === status) &&
         (!type || cell(5) === this.translateUserType(type).toLowerCase()) && (!date || rowDate === date) ? '' : 'none';
     });
   }
@@ -680,10 +682,17 @@ class AdminPanel {
         if (form.elements['status']) form.elements['status'].value = ev.status || 'publicado';
         if (form.elements['destaque']) form.elements['destaque'].checked = Boolean(ev.destaque);
 
-        if (form.elements['data_evento'] && ev.date) {
-          form.elements['data_evento'].value = ev.date.replace(' ', 'T').slice(0, 16);
-        } else if (form.elements['data_evento'] && ev.data_evento) {
-          form.elements['data_evento'].value = ev.data_evento.replace(' ', 'T').slice(0, 16);
+        const toLocalDateTimeValue = value => {
+          const date = new Date(value);
+          if (Number.isNaN(date.getTime())) return '';
+          return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+        };
+        const eventStart = ev.date || ev.data_evento;
+        if (form.elements['data_evento'] && eventStart) {
+          form.elements['data_evento'].value = toLocalDateTimeValue(eventStart);
+        }
+        if (form.elements['data_fim'] && ev.endDate) {
+          form.elements['data_fim'].value = toLocalDateTimeValue(ev.endDate);
         }
 
         if (ev.imagem) {
@@ -806,7 +815,8 @@ class AdminPanel {
 
   async loadTicketsData() {
     try {
-      const response = await fetch('/api/admin/tickets');
+      const actor = JSON.parse(localStorage.getItem('trocaticket-user') || localStorage.getItem('usuario') || 'null');
+      const response = await fetch('/api/admin/tickets', { headers: { Authorization: `Bearer ${actor?.session_token || ''}` } });
       const data = await response.json();
       this.renderTicketsTable(data.tickets || []);
     } catch (error) {

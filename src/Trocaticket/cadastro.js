@@ -21,9 +21,13 @@ form.addEventListener('submit', async event => {
   event.preventDefault();
   const data = Object.fromEntries(new FormData(form));
   if (data.senha !== data.confirmarSenha) return showMessage('As senhas precisam ser iguais.');
+  const cpf = String(data.cpf || '').replace(/\D/g, '');
+  const telefone = String(data.celular || '').replace(/\D/g, '');
+  if (cpf.length !== 11) return showMessage('Informe um CPF com 11 números. A pontuação é opcional.');
+  if (telefone.length < 10 || telefone.length > 15) return showMessage('Informe um telefone com 10 a 15 números, incluindo o código do país se necessário.');
   try {
     showMessage('Enviando cadastro...');
-    await post('/api/auth/register-pf', { nome: `${data.nome} ${data.sobrenome}`, cpf: data.cpf, telefone: data.celular, nascimento: data.nascimento, sexo: data.sexo, email: data.email, senha: data.senha });
+    await post('/api/auth/register-pf', { nome: `${data.nome} ${data.sobrenome}`, cpf, telefone, nascimento: data.nascimento, sexo: data.sexo, email: data.email, senha: data.senha });
     verificationEmail = data.email;
     document.querySelector('.page-form-content').hidden = true;
     verificationStep.hidden = false;

@@ -749,6 +749,18 @@ BEGIN
 END;
 GO
 
+IF OBJECT_ID(N'dbo.ingressos_emitidos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.ingressos_emitidos', N'secret_key') IS NULL
+    ALTER TABLE dbo.ingressos_emitidos ADD secret_key varchar(64) NULL;
+IF OBJECT_ID(N'dbo.ingressos_emitidos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.ingressos_emitidos', N'setor_nome') IS NULL
+    ALTER TABLE dbo.ingressos_emitidos ADD setor_nome varchar(120) NULL;
+IF OBJECT_ID(N'dbo.ingressos_emitidos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.ingressos_emitidos', N'bilheteria_origem') IS NULL
+    ALTER TABLE dbo.ingressos_emitidos ADD bilheteria_origem varchar(40) NULL;
+IF OBJECT_ID(N'dbo.ingressos_emitidos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.ingressos_emitidos', N'utilizado_em') IS NULL
+    ALTER TABLE dbo.ingressos_emitidos ADD utilizado_em datetime2(0) NULL;
+IF OBJECT_ID(N'dbo.ingressos_emitidos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.ingressos_emitidos', N'motivo_checkin') IS NULL
+    ALTER TABLE dbo.ingressos_emitidos ADD motivo_checkin varchar(240) NULL;
+GO
+
 IF OBJECT_ID(N'dbo.transferencias_pendentes', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.transferencias_pendentes (

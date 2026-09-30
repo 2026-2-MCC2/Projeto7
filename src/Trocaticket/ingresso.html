@@ -42,13 +42,30 @@
                 <!-- Bloco do QR Code Central -->
                 <div class="ticket-qr-box">
                     <div class="canvas-container">
-                        <canvas id="qr-code-canvas"></canvas>
+                        <img id="qr-code-image" alt="QR dinâmico do ingresso">
                     </div>
+                    <div class="ticket-used-overlay" id="ticket-used-overlay" hidden>
+                        <strong>INGRESSO UTILIZADO</strong>
+                        <span>Este acesso já foi consumido.</span>
+                    </div>
+                    <p id="qr-refresh-status" class="qr-refresh-status" aria-live="polite"></p>
                 </div>
 
                 <div class="ticket-info-pills">
                     <span class="ticket-type-label" id="ticket-category">INGRESSO DIGITAL</span>
                     <span class="ticket-schedule-pill" id="ticket-time-text">Data e Horário</span>
+                </div>
+
+                <div class="ticket-digital-actions">
+                    <div class="ticket-digital-actions" id="ticket-digital-actions">
+                    <button type="button" class="btn-digital-action btn-offline" id="btn-offline-ticket">
+                        <span class="digital-action-icon" aria-hidden="true">&#8681;</span>
+                        <span class="digital-action-label">Baixar para Acesso Offline (Enviar por E-mail)</span>
+                    </button>
+                    <button type="button" class="btn-digital-action btn-google-wallet" id="btn-google-wallet">
+                        <span class="wallet-mark" aria-hidden="true">G</span>
+                        <span class="digital-action-label">Adicionar à Carteira do Google</span>
+                    </button>
                 </div>
 
                 <!-- Botões de Ação -->
@@ -61,6 +78,8 @@
                     </button>
                 </div>
                 <p class="transfer-alert" id="transfer-alert-msg"></p>
+                <p class="ticket-used-notice" id="ticket-used-notice" role="status" hidden></p>
+                <p class="ticket-toast" id="ticket-action-toast" role="status" aria-live="polite"></p>
 
                 <!-- Rodapé com Código do Ingresso e Pedido nas pontas -->
                 <div class="ticket-metadata-footer">
@@ -92,7 +111,6 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     <script src="ingresso.js"></script>
 </body>
 </html>

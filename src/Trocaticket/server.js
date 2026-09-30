@@ -5,10 +5,13 @@ const crypto = require('crypto');
 require('dotenv').config();
 const bcrypt = require('bcrypt');
 const nodemailer = require('nodemailer');
+const QRCode = require('qrcode');
+const jwt = require('jsonwebtoken');
 const db = require('./db');
 
 const port = process.env.PORT || 3000;
 const root = __dirname;
+const sessionTokenSecret = process.env.TROCATICKET_SESSION_SECRET || process.env.DB_PASSWORD || crypto.randomBytes(32);
 const uploadDir = path.join(root, 'public', 'uploads', 'avatars');
 const smtpHost = String(process.env.SMTP_HOST || '').trim();
 const smtpPort = Number(process.env.SMTP_PORT || 587);
@@ -35,6 +38,11 @@ const mimeTypes = {
 
 function normalizeEmail(value) { return String(value || '').trim().toLowerCase(); }
 function normalizeCpf(value) { return String(value || '').replace(/\D/g, ''); }
+function normalizePhone(value) { return String(value || '').replace(/\D/g, ''); }
+function hasValidPhoneLength(value) {
+  const digits = normalizePhone(value);
+  return digits.length >= 10 && digits.length <= 15;
+}
 function getVerificationTransporter() {
   if (!smtpHost || !smtpUser || !smtpPass || !smtpFrom) {
     return null;
@@ -81,6 +89,257 @@ async function sendVerificationEmail({ to, name, code }) {
 
   return { sent: true };
 }
+
+function base64Url(value) {
+  return Buffer.from(value).toString('base64url');
+}
+
+function escapeHtml(value) {
+  return String(value || '').replace(/[&<>"']/g, character => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[character]);
+}
+
+function formatEmailDateTime(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? 'A confirmar'
+    : date.toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short' });
+}
+
+function slugifyEventName(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '') || 'evento';
+}
+
+function createOfflineTicketEmailHtml(ticket, filename, expiresAt, walletUrl, bannerSrc) {
+  const eventName = escapeHtml(ticket.eventName);
+  const eventStart = escapeHtml(formatEmailDateTime(ticket.eventDate));
+  const eventEnd = escapeHtml(formatEmailDateTime(expiresAt));
+  const location = escapeHtml(ticket.location || 'A confirmar');
+  const holder = escapeHtml(ticket.holder || 'Titular do ingresso');
+  const email = escapeHtml(ticket.email);
+  const ticketNumber = escapeHtml(ticket.numero_ingresso);
+  const orderCode = escapeHtml(ticket.orderCode || ticket.pedido_id || 'A confirmar');
+  const sector = escapeHtml(ticket.sector || 'Setor a confirmar');
+  const safeFilename = escapeHtml(filename);
+  const supportUrl = escapeHtml(process.env.TROCATICKET_SUPPORT_URL || 'https://trocaticket.com/suporte');
+  const title = escapeHtml(`Seu ingresso offline para o ${ticket.eventName} está pronto, aguardamos sua presença!`);
+  const walletButton = walletUrl
+    ? `<a href="${escapeHtml(walletUrl)}" target="_blank" style="display:inline-block;padding:14px 22px;border-radius:8px;background:#111827;border:1px solid #374151;color:#ffffff;text-decoration:none;font-size:15px;font-weight:bold;"><span style="display:inline-block;margin-right:8px;color:#4285f4;font-size:18px;font-weight:bold;">G</span>Adicionar à Carteira do Google</a>`
+    : '<span role="button" aria-disabled="true" style="display:inline-block;padding:14px 22px;border-radius:8px;background:#111827;border:1px solid #374151;color:#ffffff;opacity:.55;font-size:15px;font-weight:bold;cursor:not-allowed;"><span style="display:inline-block;margin-right:8px;color:#4285f4;font-size:18px;font-weight:bold;">G</span>Adicionar à Carteira do Google</span><p style="margin:8px 0 0;color:#64748b;font-size:12px;line-height:1.6;">A Carteira do Google ainda não está habilitada para este ingresso.</p>';
+
+  const html = `<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>Seu ingresso Troca Ticket</title>
+<style>@media only screen and (max-width:600px){.email-shell{width:100%!important}.email-pad{padding-left:18px!important;padding-right:18px!important}.event-title{font-size:23px!important}.step-cell{padding:12px!important}}</style></head>
+<body style="width:100%;margin:0;padding:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">Seu ingresso digital para ${eventName} está pronto, com acesso offline e QR dinâmico.</div>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#ffffff;"><tr><td align="center" style="padding:0;">
+<table role="presentation" class="email-shell" width="680" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:680px;margin:0 auto;background:#ffffff;">
+<tr><td align="center" style="padding:0;background:#000000;">
+<img src="${escapeHtml(bannerSrc)}" width="680" alt="Troca Ticket" style="display:block;width:100%;max-width:680px;height:auto;margin:0 auto;border:0;">
+</td></tr>
+<tr><td class="email-pad" style="padding:30px 36px 10px;">
+<p style="margin:0 0 8px;color:#475569;font-size:15px;">Olá, ${holder}.</p>
+<h1 class="event-title" style="margin:0;color:#0f172a;font-size:28px;line-height:1.25;">${title}</h1>
+</td></tr>
+<tr><td class="email-pad" style="padding:18px 36px 12px;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#eff6ff;border:1px solid #bfdbfe;border-left:4px solid #2563eb;border-radius:8px;"><tr><td width="42" valign="top" style="padding:16px 0 16px 16px;color:#2563eb;font-size:24px;">&#8681;</td><td style="padding:16px 16px 16px 10px;"><p style="margin:0 0 4px;color:#1e3a8a;font-size:14px;font-weight:bold;">Baixar ingresso offline</p><p style="margin:0;color:#334155;font-size:13px;line-height:1.5;">O arquivo está anexado a este e-mail: <strong>${safeFilename}</strong>. Guarde-o no seu smartphone antes de chegar ao evento.</p></td></tr></table>
+</td></tr>
+<tr><td class="email-pad" align="center" style="padding:8px 36px 24px;">${walletButton}</td></tr>
+<tr><td class="email-pad" style="padding:0 36px 22px;">
+<h2 style="margin:0 0 6px;color:#0f172a;font-size:18px;line-height:1.4;">Instruções de utilização do acesso offline (sem internet)</h2>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td class="step-cell" style="padding:15px 16px;border-bottom:1px solid #e2e8f0;background:#ffffff;">
+<p style="margin:0 0 6px;color:#2563eb;font-size:13px;font-weight:bold;">Passo 1 · Descarregue o anexo</p><p style="margin:0;color:#475569;font-size:13px;line-height:1.6;">Guarde <strong>${safeFilename}</strong> no seu smartphone antes de ir ao evento.</p>
+</td></tr><tr><td class="step-cell" style="padding:15px 16px;border-bottom:1px solid #e2e8f0;background:#ffffff;">
+<p style="margin:0 0 6px;color:#2563eb;font-size:13px;font-weight:bold;">Passo 2 · Abra no navegador</p><p style="margin:0;color:#475569;font-size:13px;line-height:1.6;">Abra o arquivo no Google Chrome, Samsung Internet ou Safari. Se solicitado, escolha <strong>“Sempre”</strong> ou <strong>“Desta vez”</strong>. O arquivo funciona localmente, sem dados móveis.</p>
+</td></tr><tr><td class="step-cell" style="padding:15px 16px;background:#ffffff;">
+<p style="margin:0 0 6px;color:#2563eb;font-size:13px;font-weight:bold;">Passo 3 · Apresente na entrada</p><p style="margin:0;color:#475569;font-size:13px;line-height:1.6;">Na fila, mesmo sem rede ou em modo de voo, o QR continuará atualizando a cada 60 segundos. Apresente a tela do navegador à equipe da portaria.</p>
+</td></tr></table>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:14px;background:#eff6ff;border-left:3px solid #2563eb;"><tr><td style="padding:12px 14px;color:#1e3a8a;font-size:13px;line-height:1.6;"><strong>Validade do Código QR Offline:</strong> Ativo até ao término oficial do evento em ${eventEnd}.</td></tr></table>
+</td></tr>
+<tr><td class="email-pad" style="padding:0 36px 24px;">
+<h2 style="margin:0 0 10px;color:#0f172a;font-size:18px;">Resumo do ingresso</h2>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #e2e8f0;border-radius:8px;background:#f1f5f9;">
+<tr><td style="padding:16px 18px 5px;"><p style="margin:0 0 4px;color:#64748b;font-size:11px;font-weight:bold;text-transform:uppercase;">Data e horário de início</p><p style="margin:0;color:#0f172a;font-size:14px;font-weight:bold;">${eventStart}</p></td></tr>
+<tr><td style="padding:10px 18px 5px;"><p style="margin:0 0 4px;color:#64748b;font-size:11px;font-weight:bold;text-transform:uppercase;">Local</p><p style="margin:0;color:#0f172a;font-size:14px;">${location}</p></td></tr>
+<tr><td style="padding:10px 18px 5px;"><p style="margin:0 0 4px;color:#64748b;font-size:11px;font-weight:bold;text-transform:uppercase;">Titular</p><p style="margin:0;color:#0f172a;font-size:14px;">${holder} <span style="color:#64748b;">(${email})</span></p></td></tr>
+<tr><td style="padding:10px 18px 16px;"><p style="margin:0 0 4px;color:#64748b;font-size:11px;font-weight:bold;text-transform:uppercase;">Bilhete e setor</p><p style="margin:0;color:#0f172a;font-size:14px;font-weight:bold;">#${ticketNumber} <span style="font-weight:normal;color:#475569;">· ${sector}</span></p></td></tr>
+</table>
+</td></tr>
+<tr><td align="center" style="padding:20px 24px;background:#f8fafc;border-top:1px solid #e2e8f0;">
+<p style="margin:0;color:#64748b;font-size:12px;line-height:1.6;">Não responda a este e-mail. Este é um e-mail automático enviado pela plataforma Troca Ticket.</p>
+<p style="margin:8px 0;color:#94a3b8;font-size:12px;">Dúvidas ou suporte? Acesse nossa central de ajuda no site da <a href="${supportUrl}" style="color:#00e5ff;text-decoration:underline;font-weight:bold;">Troca Ticket</a>.</p>
+<p style="margin:12px 0 0;color:#94a3b8;font-size:11px;">© 2026 Troca Ticket. Todos os direitos reservados.</p>
+</td></tr>
+</table></td></tr></table>
+</body></html>`;
+  return html
+    .replace('Baixar ingresso offline (.html)', 'Baixar ingresso offline')
+    .replace('Bilhete e setor', 'Bilhete, pedido e setor')
+    .replace(
+      `#${ticketNumber} <span style="font-weight:normal;color:#475569;">· ${sector}</span>`,
+      `#${ticketNumber} <span style="font-weight:normal;color:#475569;">· Pedido #${orderCode} · ${sector}</span>`
+    );
+}
+
+function createOfflineTicketHtml(ticket, qrLibrary) {
+  const ticketData = JSON.stringify({
+    number: ticket.numero_ingresso,
+    secretKey: ticket.secret_key,
+    eventName: ticket.eventName,
+    eventDate: ticket.eventDate,
+    eventEndDate: ticket.eventEndDate,
+    location: ticket.location,
+    holder: ticket.holder,
+    sector: ticket.sector,
+    expiresAt: new Date(ticket.eventEndDate).getTime()
+  }).replace(/</g, '\\u003c');
+
+  return `<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>Ingresso offline | TrocaTicket</title>
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0c0e14;color:#fff;font:16px system-ui,sans-serif}.pass{width:min(340px,calc(100vw - 40px));padding:24px;box-sizing:border-box;background:#171a24;border:1px solid #30364a;border-radius:16px;text-align:center;box-shadow:0 16px 48px #0008}h1{font-size:20px;margin:0 0 8px}p{color:#aeb5c8;font-size:14px;margin:6px 0}.qr{width:220px;height:220px;margin:20px auto;background:#fff;border-radius:10px;display:grid;place-items:center}.qr canvas{max-width:100%;max-height:100%}.notice{color:#ff9f43!important;min-height:20px}.tag{color:#27b7ff;font-weight:700;font-size:12px;text-transform:uppercase}</style></head>
+<body><main class="pass"><p class="tag">TrocaTicket · Ingresso digital</p><h1 id="event-name"></h1><p id="event-details"></p><div class="qr" id="qr"><canvas id="qr-canvas"></canvas></div><p class="notice" id="status" aria-live="polite">Gerando QR offline...</p><p id="ticket-number"></p><p id="event-end"></p></main>
+<script>${qrLibrary}</script><script>
+const ticket=${ticketData};
+const encoder=new TextEncoder();
+const keyBytes=Uint8Array.from(ticket.secretKey.match(/.{2}/g),part=>parseInt(part,16));
+document.getElementById('event-name').textContent=ticket.eventName;
+document.getElementById('event-details').textContent=[new Date(ticket.eventDate).toLocaleString('pt-BR'),ticket.location,ticket.sector].filter(Boolean).join(' · ');
+document.getElementById('ticket-number').textContent='Ingresso #'+ticket.number+' · '+ticket.holder;
+document.getElementById('event-end').textContent='Válido até '+new Date(ticket.eventEndDate).toLocaleString('pt-BR');
+async function refresh(){const status=document.getElementById('status');if(Date.now()>ticket.expiresAt){document.getElementById('qr').hidden=true;status.textContent='Ingresso expirado: evento encerrado';return}try{const step=Math.floor(Date.now()/60000);const key=await crypto.subtle.importKey('raw',keyBytes,{name:'HMAC',hash:'SHA-256'},false,['sign']);const digest=await crypto.subtle.sign('HMAC',key,encoder.encode(ticket.number+':'+step));const hash=Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join('');await QRCode.toCanvas(document.getElementById('qr-canvas'),ticket.number+':'+step+':'+hash,{width:200,margin:1,errorCorrectionLevel:'M'});status.textContent='QR atualizado · próximo em até 60 segundos'}catch(error){status.textContent='Não foi possível gerar o QR offline neste navegador.'}}
+refresh();setInterval(refresh,Math.max(1000,60000-(Date.now()%60000)+150));
+</script></body></html>`;
+}
+
+function getQrBrowserBundle() {
+  const entryFile = require.resolve('qrcode/lib/browser.js');
+  const moduleIds = new Map();
+  const modules = [];
+
+  function addModule(filename) {
+    if (moduleIds.has(filename)) return moduleIds.get(filename);
+    const id = modules.length;
+    moduleIds.set(filename, id);
+    modules.push('');
+    let source = fs.readFileSync(filename, 'utf8');
+    source = source.replace(/require\((['"])([^'"]+)\1\)/g, (match, quote, request) => {
+      if (request === 'fs') return '({})';
+      const dependency = require.resolve(request, { paths: [path.dirname(filename)] });
+      return `__require(${addModule(dependency)})`;
+    });
+    modules[id] = `function(module,exports,__require){${source}\n}`;
+    return id;
+  }
+
+  const entryId = addModule(entryFile);
+  return `(function(root){var modules=[${modules.join(',')}],cache={};function __require(id){if(cache[id])return cache[id].exports;var module={exports:{}};cache[id]=module;modules[id](module,module.exports,__require);return module.exports}root.QRCode=__require(${entryId})})(window);`;
+}
+
+function gerarLinkGoogleWallet(ingresso) {
+  const ticket = ingresso && typeof ingresso === 'object' ? ingresso : {};
+  const debugPayload = {
+    codigo_bilhete: String(ticket.codigo_bilhete || ticket.numero_ingresso || 'N/A').slice(0, 80),
+    qr_code_interno: ticket.qr_code_interno || ticket.qr_code_payload ? '[REDACTED]' : 'N/A',
+    titular_nome: ticket.titular_nome || ticket.holder ? '[PRESENTE]' : 'N/A',
+    setor: String(ticket.setor || ticket.sector || 'Pista').slice(0, 80)
+  };
+  console.log('Payload do Ingresso recebido:', JSON.stringify(debugPayload));
+
+  const issuerId = String(process.env.GOOGLE_ISSUER_ID || process.env.GOOGLE_WALLET_ISSUER_ID || '').trim();
+  const classId = String(process.env.GOOGLE_WALLET_CLASS_ID || '').trim();
+  const serviceEmail = String(process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_WALLET_SERVICE_ACCOUNT_EMAIL || '').trim();
+  const privateKey = String(process.env.GOOGLE_PRIVATE_KEY || process.env.GOOGLE_WALLET_PRIVATE_KEY || '')
+    .trim()
+    .replace(/^['"]|['"]$/g, '')
+    .replace(/\\n/g, '\n')
+    .trim();
+  if (!issuerId || !classId || !serviceEmail || !privateKey || /COLE_A_CHAVE/i.test(privateKey)) return null;
+
+  const rawTicketCode = String(ticket.codigo_bilhete || ticket.numero_ingresso || 'N/A').trim();
+  const ticketCode = rawTicketCode
+    .replace(/[^A-Za-z0-9._]/g, '_')
+    .replace(/\.{2,}/g, '.')
+    .replace(/^[._]+|[._]+$/g, '')
+    .slice(0, 64) || 'N_A';
+  const qrCode = String(ticket.qr_code_interno || ticket.qr_code_payload || rawTicketCode || 'N/A').trim().slice(0, 500) || 'N/A';
+  const holderName = String(ticket.titular_nome || ticket.holder || 'N/A').trim().slice(0, 128) || 'N/A';
+  const seatName = String(ticket.setor || ticket.sector || 'Pista').trim().slice(0, 128) || 'Pista';
+
+  const claims = {
+    iss: serviceEmail,
+    aud: 'google',
+    typ: 'savetowallet',
+    iat: Math.floor(Date.now() / 1000),
+    origins: [],
+    payload: {
+      eventTicketObjects: [{
+        id: `${issuerId}.${ticketCode}`,
+        classId,
+        state: 'ACTIVE',
+        barcode: {
+          type: 'QR_CODE',
+          value: qrCode,
+          alternateText: ticketCode
+        },
+        ticketHolderName: holderName,
+        ticketSeat: {
+          seat: {
+            defaultValue: {
+              language: 'pt-BR',
+              value: seatName
+            }
+          }
+        }
+      }]
+    }
+  };
+
+  return `https://pay.google.com/gp/v/save/${jwt.sign(claims, privateKey, { algorithm: 'RS256' })}`;
+}
+
+function createWalletMockUrl(ticket) {
+  const details = [ticket.eventDate && new Date(ticket.eventDate).toLocaleString('pt-BR'), ticket.location, ticket.sector, ticket.holder, ticket.numero_ingresso]
+    .filter(Boolean).map(escapeHtml);
+  const html = `<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Prévia Google Wallet</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f1f3f4;font:16px Arial,sans-serif;color:#202124}.pass{width:min(360px,calc(100vw - 40px));background:#171a24;color:#fff;border-radius:18px;padding:24px;box-sizing:border-box;box-shadow:0 8px 28px #0003}.brand{font-size:14px;color:#b9c4d8}.g{font-size:20px;font-weight:700;background:conic-gradient(#4285f4,#34a853,#fbbc05,#ea4335,#4285f4);color:transparent;background-clip:text;-webkit-background-clip:text}h1{font-size:23px;margin:24px 0 18px}p{margin:10px 0;color:#d2d7e2}.mock{margin-top:24px;color:#aeb5c8;font-size:12px}</style><main class="pass"><div class="brand"><span class="g">G</span> Carteira do Google · Demonstração</div><h1>${escapeHtml(ticket.eventName)}</h1>${details.map(detail => `<p>${detail}</p>`).join('')}<p class="mock">Passe de demonstração. Configure as credenciais do Google Wallet para habilitar a emissão real.</p></main></html>`;
+  return `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
+}
+
+async function getTicketForSession(request, ticketId) {
+  const session = readSessionToken(request);
+  if (!session) return { error: { status: 401, message: 'Sessão inválida. Entre novamente para continuar.' } };
+  await ensureTicketSecuritySchema();
+  const [rows] = await db.query(`
+          SELECT i.id, i.numero_ingresso, i.pedido_id, i.secret_key, i.status,
+      COALESCE(NULLIF(TRIM(i.setor_nome), ''), (
+        SELECT CASE WHEN COUNT(DISTINCT NULLIF(TRIM(l.setor_nome), '')) = 1
+          THEN MAX(NULLIF(TRIM(l.setor_nome), '')) END
+        FROM dbo.evento_lotes l
+        WHERE l.evento_id = i.evento_id AND NULLIF(TRIM(l.setor_nome), '') IS NOT NULL
+      )) AS sector,
+      e.nome AS eventName, e.[local] AS location,
+      CONVERT(varchar(19), e.data_evento, 126) AS eventDate,
+      CONVERT(varchar(19), e.data_fim, 126) AS eventEndDate,
+      u.nome AS holder, u.email AS email, p.codigo_pedido AS orderCode
+    FROM dbo.ingressos_emitidos i
+    JOIN dbo.usuarios u ON u.id = i.comprador_id
+    JOIN dbo.eventos e ON e.id = i.evento_id
+    LEFT JOIN dbo.pedidos p ON p.id = i.pedido_id
+    WHERE i.id = ? AND i.comprador_id = ? AND u.email = ?
+  `, [ticketId, session.sub, session.email]);
+  if (!rows.length) return { error: { status: 404, message: 'Ingresso não encontrado para esta conta.' } };
+  const ticket = rows[0];
+  if (!['ativo', 'valido'].includes(String(ticket.status).toLowerCase()) || !ticket.secret_key) {
+    return { error: { status: 409, message: 'Este ingresso não está ativo para acesso digital.' } };
+  }
+  return { ticket };
+}
 function detectCardBrand(cardNumber) {
   const number = String(cardNumber || '').replace(/\D/g, '');
 
@@ -100,7 +359,7 @@ function parseEventDate(value) {
 
   const brazilian = text.match(/^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2}))?$/);
   const normalized = brazilian
-    ? `${brazilian[3]}-${brazilian[2]}-${brazilian[1]}T${brazilian[4] || '00'}:${brazilian[5] || '00'}:00`
+          ? `${brazilian[3]}-${brazilian[2]}-${brazilian[1]}T${brazilian[4] || '00'}:${brazilian[5] || '00'}:00`
     : text.length === 16 && text[10] === 'T' ? `${text}:00` : text;
   const parsed = new Date(normalized);
 
@@ -142,7 +401,91 @@ function normalizeTicketLot(lote = {}) {
   };
 }
 function makeCode(prefix) { return `${prefix}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`; }
-function makeQrPayload(ticket) { return `TROCATICKET:${ticket.numero_ingresso}:${ticket.evento_id}:${ticket.versao_titularidade}:${crypto.randomBytes(16).toString('hex')}`; }
+function makeTicketSecret() { return crypto.randomBytes(32).toString('hex'); }
+function makeTicketHash(ticketId, timeStep, secretKey) {
+  return crypto.createHmac('sha256', Buffer.from(secretKey, 'hex')).update(`${ticketId}:${timeStep}`).digest('hex');
+}
+function makeActiveTicketPayload(ticketId, secretKey, timeStep = Math.floor(Date.now() / 1000 / 60)) {
+  return `${ticketId}:${timeStep}:${makeTicketHash(ticketId, timeStep, secretKey)}`;
+}
+function safeHashEqual(expected, received) {
+  const expectedBuffer = Buffer.from(expected, 'hex');
+  const receivedBuffer = Buffer.from(received, 'hex');
+  return expectedBuffer.length === receivedBuffer.length && crypto.timingSafeEqual(expectedBuffer, receivedBuffer);
+}
+
+let ticketSecuritySchemaPromise;
+function ensureTicketSecuritySchema() {
+  if (!ticketSecuritySchemaPromise) {
+    ticketSecuritySchemaPromise = (async () => {
+      const [columns] = await db.query(`
+        SELECT
+          COL_LENGTH('dbo.ingressos_emitidos', 'secret_key') AS secret_key,
+          COL_LENGTH('dbo.ingressos_emitidos', 'setor_nome') AS setor_nome,
+          COL_LENGTH('dbo.ingressos_emitidos', 'bilheteria_origem') AS bilheteria_origem,
+          COL_LENGTH('dbo.ingressos_emitidos', 'utilizado_em') AS utilizado_em,
+          COL_LENGTH('dbo.ingressos_emitidos', 'motivo_checkin') AS motivo_checkin
+      `);
+      const existing = columns[0] || {};
+      if (existing.secret_key === null) await db.query('ALTER TABLE dbo.ingressos_emitidos ADD secret_key varchar(64) NULL');
+      if (existing.setor_nome === null) await db.query('ALTER TABLE dbo.ingressos_emitidos ADD setor_nome varchar(120) NULL');
+      if (existing.bilheteria_origem === null) await db.query('ALTER TABLE dbo.ingressos_emitidos ADD bilheteria_origem varchar(40) NULL');
+      if (existing.utilizado_em === null) await db.query('ALTER TABLE dbo.ingressos_emitidos ADD utilizado_em datetime2(0) NULL');
+      if (existing.motivo_checkin === null) await db.query('ALTER TABLE dbo.ingressos_emitidos ADD motivo_checkin varchar(240) NULL');
+      await db.query("UPDATE dbo.ingressos_emitidos SET bilheteria_origem = 'Troca Ticket' WHERE bilheteria_origem IS NULL AND bilheteria_id IS NULL");
+      const [ticketsWithoutSecret] = await db.query("SELECT id FROM dbo.ingressos_emitidos WHERE secret_key IS NULL AND status IN ('ativo', 'valido')");
+      for (const ticket of ticketsWithoutSecret) {
+        await db.query('UPDATE dbo.ingressos_emitidos SET secret_key = ? WHERE id = ? AND secret_key IS NULL', [makeTicketSecret(), ticket.id]);
+      }
+    })().catch(error => {
+      ticketSecuritySchemaPromise = null;
+      throw error;
+    });
+  }
+  return ticketSecuritySchemaPromise;
+}
+
+async function getTicketSecret(ticketId) {
+  await ensureTicketSecuritySchema();
+  const [rows] = await db.query('SELECT numero_ingresso, secret_key FROM dbo.ingressos_emitidos WHERE id = ?', [ticketId]);
+  if (!rows.length) return null;
+  if (!rows[0].secret_key) {
+    const secret = makeTicketSecret();
+    await db.query('UPDATE dbo.ingressos_emitidos SET secret_key = ? WHERE id = ? AND secret_key IS NULL', [secret, ticketId]);
+    const [updated] = await db.query('SELECT numero_ingresso, secret_key FROM dbo.ingressos_emitidos WHERE id = ?', [ticketId]);
+    return updated[0] || null;
+  }
+  return rows[0];
+}
+
+function createSessionToken(user) {
+  const now = Math.floor(Date.now() / 1000);
+  const claims = Buffer.from(JSON.stringify({ sub: Number(user.id), email: normalizeEmail(user.email), iat: now, exp: now + (12 * 60 * 60) })).toString('base64url');
+  const signature = crypto.createHmac('sha256', sessionTokenSecret).update(claims).digest('base64url');
+  return `${claims}.${signature}`;
+}
+
+function readSessionToken(request) {
+  const match = String(request.headers.authorization || '').match(/^Bearer\s+([\w.-]+)$/i);
+  if (!match) return null;
+  const [claims, receivedSignature] = match[1].split('.');
+  if (!claims || !receivedSignature) return null;
+  const expectedSignature = crypto.createHmac('sha256', sessionTokenSecret).update(claims).digest();
+  const signature = Buffer.from(receivedSignature, 'base64url');
+  if (signature.length !== expectedSignature.length || !crypto.timingSafeEqual(signature, expectedSignature)) return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(claims, 'base64url').toString('utf8'));
+    if (!Number.isInteger(parsed.sub) || !parsed.email || !Number.isFinite(parsed.exp) || parsed.exp <= Math.floor(Date.now() / 1000)) return null;
+    return parsed;
+  } catch { return null; }
+}
+
+async function getTicketOperator(request) {
+  const session = readSessionToken(request);
+  if (!session) return null;
+  const [rows] = await db.query('SELECT id, nome, email, tipo, status FROM dbo.usuarios WHERE id = ? AND email = ?', [session.sub, session.email]);
+  return rows.find(user => ['admin', 'bilheteria', 'organizador'].includes(String(user.tipo).toLowerCase()) && !['bloqueado', 'suspensa', 'excluida'].includes(String(user.status || '').toLowerCase())) || null;
+}
 
 async function audit(action, description, itemType, itemId, actor = {}) {
   try {
@@ -391,7 +734,7 @@ const server = http.createServer(async (request, response) => {
         return send(response, 403, { ok: false, message: 'Usuário bloqueado pelo administrador.' });
       }
 
-      return send(response, 200, { ok: true, user: formatUser(rows[0]) });
+      return send(response, 200, { ok: true, user: formatUser(rows[0]), session_token: createSessionToken(rows[0]) });
     } catch (error) {
       console.error('[auth] Erro no login:', error.message);
       return send(response, 500, { ok: false, message: 'Não foi possível realizar o login.' });
@@ -403,8 +746,9 @@ const server = http.createServer(async (request, response) => {
       const body = await parseBody(request);
       const email = normalizeEmail(body.email);
       const cpf = normalizeCpf(body.cpf);
-      if (!body.nome || !/^\S+@\S+\.\S+$/.test(email) || cpf.length !== 11 || !body.senha || body.senha.length < 6) {
-        return send(response, 400, { ok: false, message: 'Informe nome, e-mail, CPF válido e senha com ao menos 6 caracteres.' });
+      const telefone = normalizePhone(body.telefone);
+      if (!body.nome || !/^\S+@\S+\.\S+$/.test(email) || cpf.length !== 11 || !hasValidPhoneLength(telefone) || !body.senha || body.senha.length < 6) {
+        return send(response, 400, { ok: false, message: 'Informe nome, e-mail, CPF com 11 números, telefone com 10 a 15 números e senha com ao menos 6 caracteres.' });
       }
       const [duplicate] = await db.query('SELECT id FROM usuarios WHERE email = ? OR cpf = ? LIMIT 1', [email, cpf]);
       if (duplicate.length) return send(response, 409, { ok: false, message: 'E-mail ou CPF já cadastrado.' });
@@ -413,7 +757,7 @@ const server = http.createServer(async (request, response) => {
       await db.query(
         `INSERT INTO usuarios (nome, email, senha_hash, tipo, cpf, telefone, data_nascimento, genero, status, codigo_verificacao, email_verificado) 
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pendente_verificacao', ?, FALSE)`,
-        [body.nome.trim(), email, senhaHash, 'comprador', cpf, body.telefone || '', body.nascimento || null, body.sexo || null, codigo]
+        [body.nome.trim(), email, senhaHash, 'comprador', cpf, telefone, body.nascimento || null, body.sexo || null, codigo]
       );
       await sendVerificationEmail({ to: email, name: body.nome.trim(), code: codigo });
       return send(response, 201, { ok: true, message: 'Cadastro criado com sucesso! Enviamos um código de verificação para o seu e-mail.' });
@@ -511,7 +855,7 @@ const server = http.createServer(async (request, response) => {
         ? [nome, sobrenome].filter(Boolean).join(' ')
         : existingUser.nome;
       const cpf = body.cpf !== undefined ? normalizeCpf(body.cpf) : normalizeCpf(existingUser.cpf);
-      const telefone = body.telefone !== undefined ? String(body.telefone || '').trim() : existingUser.telefone;
+      const telefone = body.telefone !== undefined ? normalizePhone(body.telefone) : normalizePhone(existingUser.telefone);
       const genero = body.genero !== undefined ? String(body.genero || '').trim() : existingUser.genero;
       const dataNascimento = body.data_nascimento !== undefined ? body.data_nascimento || null : existingUser.data_nascimento;
 
@@ -520,6 +864,9 @@ const server = http.createServer(async (request, response) => {
       }
       if (cpf && cpf.length !== 11) {
         return send(response, 400, { ok: false, message: 'CPF inválido.' });
+      }
+      if (body.telefone !== undefined && telefone && !hasValidPhoneLength(telefone)) {
+        return send(response, 400, { ok: false, message: 'Telefone inválido. Informe de 10 a 15 números.' });
       }
 
       const senha = String(body.senha || '');
@@ -555,12 +902,19 @@ const server = http.createServer(async (request, response) => {
   // ===== MEUS INGRESSOS =====
   if (request.method === 'GET' && url.pathname === '/api/usuario/meus-ingressos') {
     try {
+      const session = readSessionToken(request);
+      const requestedEmail = normalizeEmail(url.searchParams.get('email'));
+      if (!session || session.email !== requestedEmail) return send(response, 403, { ok: false, message: 'Sessão inválida. Entre novamente para acessar seus ingressos.' });
+      await ensureTicketSecuritySchema();
       const [tickets] = await db.query(`
         SELECT 
           i.id, 
           i.numero_ingresso, 
           i.qr_code_payload, 
+          i.setor_nome AS setor,
+          i.bilheteria_origem AS bilheteria_origem,
           i.status, 
+          i.utilizado_em AS checkinAt,
           COALESCE(i.versao_titularidade, 1) AS versao_titularidade,
           p.codigo_pedido, 
           e.nome AS evento, 
@@ -581,16 +935,133 @@ const server = http.createServer(async (request, response) => {
         LEFT JOIN dbo.usuarios u2 ON u2.id = tp.destinatario_id
           WHERE u.email = ? AND i.status NOT IN ('cancelado', 'bloqueado')
         ORDER BY i.emitido_em DESC
-      `, [normalizeEmail(url.searchParams.get('email'))]);
-      return send(response, 200, { ok: true, tickets });
+      `, [requestedEmail]);
+      const ticketsWithActiveQr = await Promise.all(tickets.map(async ticket => {
+        if (!['ativo', 'valido'].includes(String(ticket.status).toLowerCase())) {
+          return { ...ticket, qr_code_payload: null, qr_time_step: null };
+        }
+        const ticketSecret = await getTicketSecret(ticket.id);
+        const timeStep = Math.floor(Date.now() / 1000 / 60);
+        const payload = makeActiveTicketPayload(ticket.numero_ingresso, ticketSecret.secret_key, timeStep);
+        return {
+          ...ticket,
+          qr_code_payload: payload,
+          qr_code_image: await QRCode.toDataURL(payload, { width: 240, margin: 1, errorCorrectionLevel: 'M' }),
+          qr_time_step: timeStep
+        };
+      }));
+      return send(response, 200, { ok: true, tickets: ticketsWithActiveQr });
     } catch (error) { 
       console.error('[usuario] Erro nos ingressos:', error.message); 
       return send(response, 500, { ok: false, message: 'Erro ao carregar ingressos.' }); 
     }
   }
 
+  if (request.method === 'POST' && url.pathname === '/api/ingresso/download-offline') {
+    try {
+      const body = await parseBody(request);
+      const ticketId = Number(body.ingresso_id);
+      if (!Number.isInteger(ticketId) || ticketId <= 0) {
+        return send(response, 400, { ok: false, message: 'ID de ingresso inválido.' });
+      }
+      const result = await getTicketForSession(request, ticketId);
+      if (result.error) return send(response, result.error.status, { ok: false, message: result.error.message });
+
+      const { ticket } = result;
+      const eventDate = new Date(ticket.eventDate);
+      if (Number.isNaN(eventDate.getTime())) return send(response, 400, { ok: false, message: 'A data do evento não está configurada.' });
+      const expiresAt = new Date(ticket.eventEndDate);
+      if (!ticket.eventEndDate || Number.isNaN(expiresAt.getTime())) {
+        return send(response, 409, { ok: false, message: 'O horário oficial de encerramento do evento ainda não foi configurado.' });
+      }
+      if (Date.now() >= expiresAt.getTime()) return send(response, 409, { ok: false, message: 'Ingresso expirado: evento encerrado.' });
+
+      const filename = `ingresso-${slugifyEventName(ticket.eventName)}-offline-trocaticket.html`;
+      const offlineHtml = createOfflineTicketHtml(ticket, getQrBrowserBundle());
+      let walletUrl = null;
+      try {
+        walletUrl = gerarLinkGoogleWallet({
+          codigo_bilhete: ticket.numero_ingresso,
+          qr_code_interno: makeActiveTicketPayload(ticket.numero_ingresso, ticket.secret_key),
+          titular_nome: ticket.holder,
+          setor: ticket.sector
+        });
+      } catch (error) {
+        console.error('[google wallet] Não foi possível gerar o link para o e-mail:', error.message);
+      }
+      const transporter = getVerificationTransporter();
+      const banner = fs.readFileSync(path.join(root, 'imagens', 'banner troca ticket.jpg'));
+      const bannerSrc = transporter ? 'cid:trocaticket-banner' : `data:image/jpeg;base64,${banner.toString('base64')}`;
+      const emailHtml = createOfflineTicketEmailHtml(ticket, filename, expiresAt, walletUrl, bannerSrc);
+      if (transporter) {
+        await transporter.sendMail({
+          from: smtpFrom,
+          to: ticket.email,
+          subject: `TrocaTicket - ingresso offline para ${ticket.eventName}`,
+          text: `Olá ${ticket.holder || 'titular'},\n\nSeu ingresso para ${ticket.eventName} está pronto. Baixe o anexo antes do evento e abra-o no navegador do celular; o QR continuará atualizando a cada 60 segundos mesmo sem internet.\n\nValidade do Código QR Offline: ativo até ao término oficial do evento em ${formatEmailDateTime(expiresAt)}.${walletUrl ? `\n\nAdicionar à Carteira do Google: ${walletUrl}` : ''}\n\nDúvidas ou suporte: ${process.env.TROCATICKET_SUPPORT_URL || 'https://trocaticket.com/suporte'}\n\nNão responda a este e-mail. Este é um e-mail automático enviado pela plataforma Troca Ticket.`,
+          html: emailHtml,
+          attachments: [
+            { filename, content: offlineHtml, contentType: 'text/html; charset=utf-8' },
+            { filename: 'banner-trocaticket.jpg', content: banner, contentType: 'image/jpeg', cid: 'trocaticket-banner' }
+          ]
+        });
+      } else {
+        console.info(`[ingresso offline mock] Pacote preparado para ${ticket.email}: ${filename}`);
+      }
+      return send(response, 200, {
+        ok: true,
+        mock: !transporter,
+        email: ticket.email,
+        filename,
+        offlineHtml: transporter ? undefined : offlineHtml,
+        emailPreviewHtml: transporter ? undefined : emailHtml,
+        message: transporter ? 'Pacote offline enviado por e-mail.' : 'Pacote offline preparado em modo de demonstração; SMTP não configurado.'
+      });
+    } catch (error) {
+      console.error('[ingresso offline] Falha ao preparar pacote:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível preparar o pacote offline.' });
+    }
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/ingresso/google-wallet-jwt') {
+    try {
+      const body = await parseBody(request);
+      const ticketId = Number(body.ingresso_id);
+      if (!Number.isInteger(ticketId) || ticketId <= 0) {
+        return send(response, 400, { ok: false, message: 'ID de ingresso inválido.' });
+      }
+      const result = await getTicketForSession(request, ticketId);
+      if (result.error) return send(response, result.error.status, { ok: false, message: result.error.message });
+      const { ticket } = result;
+      if (Number.isNaN(new Date(ticket.eventDate).getTime())) {
+        return send(response, 400, { ok: false, message: 'A data do evento não está configurada.' });
+      }
+
+      const walletUrl = gerarLinkGoogleWallet({
+        codigo_bilhete: ticket.numero_ingresso,
+        qr_code_interno: makeActiveTicketPayload(ticket.numero_ingresso, ticket.secret_key),
+        titular_nome: ticket.holder,
+        setor: ticket.sector
+      });
+      const mock = !walletUrl;
+      const mockJwt = `${base64Url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))}.${base64Url(JSON.stringify({ mock: true, ingresso: ticket.numero_ingresso }))}.mock-signature`;
+      return send(response, 200, {
+        ok: true,
+        mock,
+        walletUrl: walletUrl || `https://pay.google.com/gp/v/save/${mockJwt}`,
+        mockUrl: mock ? createWalletMockUrl(ticket) : null,
+        message: mock ? 'Passe demonstrativo pronto.' : 'Passe Google Wallet assinado.',
+        rotatingBarcode: { type: 'TOTP_SHA1', periodMillis: 60000 }
+      });
+    } catch (error) {
+      console.error('[google wallet] Falha ao preparar passe:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível preparar o passe Google Wallet.' });
+    }
+  }
+
   // ===== COMPRA DE INGRESSO =====
   if (request.method === 'POST' && url.pathname === '/api/ingressos/comprar') {
+    await ensureTicketSecuritySchema();
     const connection = await db.getConnection();
     try {
       const body = await parseBody(request);
@@ -629,13 +1100,14 @@ const server = http.createServer(async (request, response) => {
       const tickets = [];
       for (let index = 0; index < quantidade; index += 1) {
         const numero = makeCode('TKT');
-        const qrPayload = makeQrPayload({ numero_ingresso: numero, evento_id: eventoId, versao_titularidade: 1 });
+        const secretKey = makeTicketSecret();
+        const qrPayload = makeActiveTicketPayload(numero, secretKey);
         const [ticketRows] = await connection.query(
           `INSERT INTO dbo.ingressos_emitidos
-           (pedido_id, comprador_id, evento_id, numero_ingresso, codigo_original_bilheteria, qr_code_payload, versao_titularidade, status)
+           (pedido_id, comprador_id, evento_id, numero_ingresso, codigo_original_bilheteria, qr_code_payload, secret_key, setor_nome, bilheteria_origem, versao_titularidade, status)
            OUTPUT INSERTED.id
-           VALUES (?, ?, ?, ?, ?, ?, 1, 'ativo')`,
-          [pedidoId, user.id, eventoId, numero, numero, qrPayload]
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Troca Ticket', 1, 'ativo')`,
+          [pedidoId, user.id, eventoId, numero, numero, qrPayload, secretKey, body.setor_nome || null]
         );
         tickets.push({ id: ticketRows[0].id, numero_ingresso: numero });
       }
@@ -729,13 +1201,14 @@ const server = http.createServer(async (request, response) => {
   }
 
   if (request.method === 'GET' && url.pathname === '/api/ingressos/confirmar-transferencia') {
+    await ensureTicketSecuritySchema();
     const token = url.searchParams.get('token');
     const connection = await db.getConnection();
 
     try {
       await connection.beginTransaction();
       const [[solicitacao]] = await connection.query(
-        'SELECT tp.*, i.evento_id, i.bilheteria_id, i.codigo_original_bilheteria, i.versao_titularidade, i.qr_code_payload, i.pedido_id FROM transferencias_pendentes tp JOIN ingressos_emitidos i ON i.id = tp.ingresso_id WHERE tp.token = ? FOR UPDATE',
+        'SELECT tp.*, i.evento_id, i.bilheteria_id, i.bilheteria_origem, i.setor_nome, i.codigo_original_bilheteria, i.versao_titularidade, i.qr_code_payload, i.pedido_id FROM transferencias_pendentes tp JOIN ingressos_emitidos i ON i.id = tp.ingresso_id WHERE tp.token = ? FOR UPDATE',
         [token]
       );
 
@@ -746,18 +1219,15 @@ const server = http.createServer(async (request, response) => {
       }
 
       const revokedQr = `${solicitacao.qr_code_payload}_REVOGADO_${Date.now()}`;
-      await connection.query("UPDATE ingressos_emitidos SET status = 'invalidado_por_revenda', qr_code_payload = ? WHERE id = ?", [revokedQr, solicitacao.ingresso_id]);
+      await connection.query("UPDATE ingressos_emitidos SET status = 'invalidado_por_revenda', qr_code_payload = ?, secret_key = NULL WHERE id = ?", [revokedQr, solicitacao.ingresso_id]);
 
       const novoNumero = makeCode('TKT');
-      const novoQr = makeQrPayload({
-        numero_ingresso: novoNumero,
-        evento_id: solicitacao.evento_id,
-        versao_titularidade: Number(solicitacao.versao_titularidade || 1) + 1
-      });
+      const novaSecretKey = makeTicketSecret();
+      const novoQr = makeActiveTicketPayload(novoNumero, novaSecretKey);
 
       await connection.query(
-        `INSERT INTO ingressos_emitidos (pedido_id, comprador_id, evento_id, bilheteria_id, numero_ingresso, codigo_original_bilheteria, qr_code_payload, versao_titularidade, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'valido')`,
-        [solicitacao.pedido_id, solicitacao.destinatario_id, solicitacao.evento_id, solicitacao.bilheteria_id || null, novoNumero, solicitacao.codigo_original_bilheteria || novoNumero, novoQr, Number(solicitacao.versao_titularidade || 1) + 1]
+        `INSERT INTO ingressos_emitidos (pedido_id, comprador_id, evento_id, bilheteria_id, bilheteria_origem, setor_nome, numero_ingresso, codigo_original_bilheteria, qr_code_payload, secret_key, versao_titularidade, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ativo')`,
+        [solicitacao.pedido_id, solicitacao.destinatario_id, solicitacao.evento_id, solicitacao.bilheteria_id || null, solicitacao.bilheteria_origem || 'Troca Ticket', solicitacao.setor_nome || null, novoNumero, solicitacao.codigo_original_bilheteria || novoNumero, novoQr, novaSecretKey, Number(solicitacao.versao_titularidade || 1) + 1]
       );
 
       await connection.query("UPDATE transferencias_pendentes SET status = 'aceita' WHERE id = ?", [solicitacao.id]);
@@ -778,9 +1248,11 @@ const server = http.createServer(async (request, response) => {
   if (request.method === 'GET' && url.pathname === '/api/events') {
     try {
       const [rows] = await db.query('SELECT * FROM eventos ORDER BY id DESC');
+      const [sectorRows] = await db.query('SELECT id, evento_id, nome, capacidade FROM dbo.evento_setores ORDER BY id');
+      const [lotRows] = await db.query('SELECT evento_id, setor_nome FROM dbo.evento_lotes WHERE setor_nome IS NOT NULL ORDER BY id');
       const events = rows.map(r => ({
         id: r.id,
-        name: r.nome || '',
+        name: String(r.nome || '').replace(/edi\?\?o/gi, 'edição'),
         artista: r.artista || '',
         location: r.local || '',
         date: r.data_evento ? new Date(r.data_evento).toISOString() : '',
@@ -790,7 +1262,11 @@ const server = http.createServer(async (request, response) => {
         capacity: Number(r.publico_maximo || 0),
         imagem: r.imagem || null,
         destaque: Boolean(r.destaque),
-        status: r.status || 'publicado'
+        status: r.status || 'publicado',
+        sectors: [...new Map([
+          ...sectorRows.filter(sector => Number(sector.evento_id) === Number(r.id)).map(sector => [sector.nome, { id: sector.id, name: sector.nome, capacity: Number(sector.capacidade || 0) }]),
+          ...lotRows.filter(lot => Number(lot.evento_id) === Number(r.id)).map(lot => [lot.setor_nome, { id: null, name: lot.setor_nome, capacity: 0 }])
+        ]).values()]
       }));
       return send(response, 200, { ok: true, events });
     } catch (error) { return send(response, 500, { ok: false, message: error.message }); }
@@ -873,6 +1349,9 @@ const server = http.createServer(async (request, response) => {
       if (!nome || !local || !dataEvento || !lotacao) {
         return send(response, 400, { ok: false, message: 'Nome, local, lotação e data do evento são obrigatórios.' });
       }
+      if (!dataFim || dataFim <= dataEvento) {
+        return send(response, 400, { ok: false, message: 'Informe um horário de encerramento posterior ao início do evento.' });
+      }
 
       const [result] = await db.query(
         `INSERT INTO dbo.eventos (organizador_id, nome, artista, classificacao_etaria, [local], data_evento, data_fim, ticket_calculado, publico_minimo, publico_maximo, margem_lucro, status, destaque, imagem)
@@ -928,6 +1407,9 @@ const server = http.createServer(async (request, response) => {
 
       if (!eventoId || !nome || !local || !dataEvento || !lotacao) {
         return send(response, 400, { ok: false, message: 'Evento, nome, local, lotação e data são obrigatórios.' });
+      }
+      if (!dataFim || dataFim <= dataEvento) {
+        return send(response, 400, { ok: false, message: 'Informe um horário de encerramento posterior ao início do evento.' });
       }
 
       const connection = await db.getConnection();
@@ -1198,10 +1680,12 @@ const server = http.createServer(async (request, response) => {
     try {
       const body = await parseBody(request);
       const eventDate = parseEventDate(body.data_evento || body.date);
+      const eventEndDate = body.data_fim ? parseEventDate(body.data_fim) : null;
       if (!eventDate) return send(response, 400, { ok: false, message: 'Informe a data do evento.' });
+      if (!eventEndDate || eventEndDate <= eventDate) return send(response, 400, { ok: false, message: 'Informe um horário de encerramento posterior ao início do evento.' });
       const [result] = await db.query(
-        `INSERT INTO eventos (organizador_id, nome, artista, \`local\`, data_evento, ticket_calculado, publico_minimo, publico_maximo, margem_lucro, status, destaque, imagem) OUTPUT INSERTED.id VALUES (1, ?, ?, ?, ?, ?, 500, 2000, 0.20, 'publicado', ?, ?)`,
-        [body.nome.trim(), body.artista || null, body.local.trim(), eventDate, parseFloat(body.preco) || 0, body.destaque ? 1 : 0, body.imagem || null]
+        `INSERT INTO eventos (organizador_id, nome, artista, \`local\`, data_evento, data_fim, ticket_calculado, publico_minimo, publico_maximo, margem_lucro, status, destaque, imagem) OUTPUT INSERTED.id VALUES (1, ?, ?, ?, ?, ?, ?, 500, 2000, 0.20, 'publicado', ?, ?)`,
+        [body.nome.trim(), body.artista || null, body.local.trim(), eventDate, eventEndDate, parseFloat(body.preco) || 0, body.destaque ? 1 : 0, body.imagem || null]
       );
       await audit('criacao_evento', `Evento criado: ${body.nome.trim()}.`, 'evento', body.nome.trim(), auditActor(body));
       return send(response, 201, { ok: true, eventId: result.insertId });
@@ -1222,6 +1706,7 @@ const server = http.createServer(async (request, response) => {
         artista: r.artista || '',
         location: r.local || '',
         date: r.data_evento ? new Date(r.data_evento).toISOString() : '',
+        endDate: r.data_fim ? new Date(r.data_fim).toISOString() : null,
         price: Number(r.ticket_calculado || 0),
         imagem: r.imagem || null,
         destaque: Boolean(r.destaque),
@@ -1238,17 +1723,20 @@ const server = http.createServer(async (request, response) => {
       const eventId = Number(url.pathname.split('/').pop());
       const body = await parseBody(request);
       const eventDate = parseEventDate(body.data_evento || body.date);
+      const eventEndDate = body.data_fim ? parseEventDate(body.data_fim) : null;
       if (!eventDate) return send(response, 400, { ok: false, message: 'Informe a data do evento.' });
+      if (!eventEndDate || eventEndDate <= eventDate) return send(response, 400, { ok: false, message: 'Informe um horário de encerramento posterior ao início do evento.' });
       
       const [eventRows] = await db.query('SELECT nome FROM dbo.eventos WHERE id = ?', [eventId]);
       const eventName = eventRows[0]?.nome || `Evento ${eventId}`;
       await db.query(
-        `UPDATE eventos SET nome = ?, artista = ?, \`local\` = ?, data_evento = ?, ticket_calculado = ?, status = ?, destaque = ?, imagem = ? WHERE id = ?`,
+        `UPDATE eventos SET nome = ?, artista = ?, \`local\` = ?, data_evento = ?, data_fim = ?, ticket_calculado = ?, status = ?, destaque = ?, imagem = ? WHERE id = ?`,
         [
           body.name || body.nome, 
           body.artista || null, 
           body.location || body.local, 
-          eventDate, 
+          eventDate,
+          eventEndDate,
           parseFloat(body.price || body.preco) || 0, 
           body.status || 'publicado', 
           body.destaque ? 1 : 0, 
@@ -1393,6 +1881,9 @@ const server = http.createServer(async (request, response) => {
 
   if (request.method === 'GET' && url.pathname === '/api/admin/tickets') {
     try {
+      const operator = await getTicketOperator(request);
+      if (!operator) return send(response, 403, { ok: false, message: 'Acesso restrito à equipe de operação.' });
+      await ensureTicketSecuritySchema();
       const [objects] = await db.query("SELECT name FROM sys.tables WHERE schema_id = SCHEMA_ID('dbo') AND name = 'ingressos_emitidos'");
       if (!objects.length) return send(response, 200, { ok: true, tickets: [] });
 
@@ -1400,6 +1891,13 @@ const server = http.createServer(async (request, response) => {
         SELECT
           i.id,
           i.numero_ingresso,
+          i.evento_id AS eventId,
+          i.codigo_original_bilheteria AS externalCode,
+          i.bilheteria_id AS integratorId,
+          i.bilheteria_origem AS provider,
+          i.setor_nome AS sector,
+          i.utilizado_em AS checkinAt,
+          i.motivo_checkin AS checkinReason,
           CASE
             WHEN i.status = 'ativo' AND e.data_evento < SYSUTCDATETIME() THEN 'expirado'
             WHEN i.status = 'valido' THEN 'ativo'
@@ -1409,15 +1907,228 @@ const server = http.createServer(async (request, response) => {
           p.codigo_pedido,
           p.valor_total AS orderTotal,
           u.nome AS ownerName,
-          e.nome AS eventName
+          u.cpf AS ownerCpf,
+          e.nome AS eventName,
+          e.data_evento AS eventDate
         FROM dbo.ingressos_emitidos i
         JOIN dbo.usuarios u ON u.id = i.comprador_id
         JOIN dbo.eventos e ON e.id = i.evento_id
         LEFT JOIN dbo.pedidos p ON p.id = i.pedido_id
         ORDER BY i.emitido_em DESC
       `);
+      tickets.forEach(ticket => {
+        if (!ticket.provider) ticket.provider = ticket.integratorId ? `Parceira #${ticket.integratorId}` : 'Troca Ticket';
+        if (!ticket.externalCode) ticket.externalCode = ticket.numero_ingresso;
+      });
       return send(response, 200, { ok: true, tickets });
     } catch (error) { return send(response, 500, { ok: false, message: error.message }); }
+  }
+
+  if (request.method === 'GET' && /^\/api\/admin\/tickets\/\d+\/qr$/.test(url.pathname)) {
+    try {
+      const operator = await getTicketOperator(request);
+      if (!operator) return send(response, 403, { ok: false, message: 'Acesso restrito à equipe de operação.' });
+      await ensureTicketSecuritySchema();
+      const ticketId = Number(url.pathname.split('/')[4]);
+      const [rows] = await db.query('SELECT id, numero_ingresso, status FROM dbo.ingressos_emitidos WHERE id = ?', [ticketId]);
+      if (!rows.length) return send(response, 404, { ok: false, message: 'Ingresso não encontrado.' });
+      if (!['ativo', 'valido'].includes(String(rows[0].status).toLowerCase())) {
+        return send(response, 409, { ok: false, message: 'Este ingresso não possui um hash ativo.' });
+      }
+      const ticketSecret = await getTicketSecret(ticketId);
+      const timeStep = Math.floor(Date.now() / 1000 / 60);
+      const payload = makeActiveTicketPayload(rows[0].numero_ingresso, ticketSecret.secret_key, timeStep);
+      const qrImage = await QRCode.toDataURL(payload, { width: 240, margin: 1, errorCorrectionLevel: 'M' });
+      return send(response, 200, { ok: true, ticketId, timeStep, hash: payload.split(':')[2], payload, qrImage, expiresAt: (timeStep + 1) * 60000 });
+    } catch (error) {
+      console.error('[bilheteria] Erro ao gerar QR ativo:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível gerar o QR ativo.' });
+    }
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/bilheteria/validar-acesso') {
+    const operator = await getTicketOperator(request);
+    if (!operator) return send(response, 403, { ok: false, message: 'Acesso restrito à equipe de operação.' });
+    const connection = await db.getConnection();
+    try {
+      await ensureTicketSecuritySchema();
+      const body = await parseBody(request);
+      const parts = String(body.qr_code_payload || '').trim().split(':');
+      if (parts.length !== 3 || !parts[0] || !/^\d+$/.test(parts[1]) || !/^[a-f\d]{64}$/i.test(parts[2])) {
+        return send(response, 400, { ok: false, kind: 'error', message: 'Ingresso Inválido ou Não Encontrado.' });
+      }
+      const [ticketId, timeStepText, receivedHash] = parts;
+      await connection.beginTransaction();
+      const [rows] = await connection.query(`
+        SELECT TOP (1) i.id, i.numero_ingresso, i.evento_id, i.status, i.secret_key,
+          i.setor_nome, i.utilizado_em, i.bilheteria_origem, u.nome AS titular,
+          e.nome AS evento
+        FROM dbo.ingressos_emitidos i WITH (UPDLOCK, ROWLOCK)
+        JOIN dbo.usuarios u ON u.id = i.comprador_id
+        JOIN dbo.eventos e ON e.id = i.evento_id
+        WHERE i.numero_ingresso = ?
+      `, [ticketId]);
+      const ticket = rows[0];
+      if (!ticket || Number(ticket.evento_id) !== Number(body.evento_id)) {
+        await connection.rollback();
+        return send(response, 404, { ok: false, kind: 'error', message: 'Ingresso Inválido ou Não Encontrado.' });
+      }
+      const status = String(ticket.status || '').toLowerCase();
+      if (['utilizado', 'usado', 'checked_in'].includes(status)) {
+        await connection.rollback();
+        return send(response, 409, { ok: false, kind: 'error', message: 'Ingresso já utilizado.', checkinAt: ticket.utilizado_em });
+      }
+      if (!['ativo', 'valido'].includes(status)) {
+        await connection.rollback();
+        return send(response, 409, { ok: false, kind: 'error', message: 'Ingresso revogado, cancelado ou expirado.' });
+      }
+      if (body.setor_catraca && body.setor_catraca !== '*' && ticket.setor_nome !== body.setor_catraca) {
+        await connection.rollback();
+        return send(response, 409, { ok: false, kind: 'warning', message: `SETOR INCORRETO: Ingresso emitido para ${ticket.setor_nome || 'setor não informado'}. Direcione o cliente para o portão correto.`, sector: ticket.setor_nome || null });
+      }
+      const timeStep = Number(timeStepText);
+      const currentStep = Math.floor(Date.now() / 1000 / 60);
+      if (Math.abs(currentStep - timeStep) > 1) {
+        await connection.rollback();
+        return send(response, 400, { ok: false, kind: 'error', message: 'QR Code Expirado (Print detectado).' });
+      }
+      let secretKey = ticket.secret_key;
+      if (!secretKey) {
+        secretKey = makeTicketSecret();
+        await connection.query('UPDATE dbo.ingressos_emitidos SET secret_key = ? WHERE id = ?', [secretKey, ticket.id]);
+      }
+      if (!safeHashEqual(makeTicketHash(ticket.numero_ingresso, timeStep, secretKey), receivedHash)) {
+        await connection.rollback();
+        return send(response, 401, { ok: false, kind: 'error', message: 'Hash inválido ou chave revogada.' });
+      }
+      const [updated] = await connection.query(`
+        UPDATE dbo.ingressos_emitidos
+        SET status = 'utilizado', utilizado_em = SYSUTCDATETIME(), motivo_checkin = 'Leitura por QR Code'
+        OUTPUT INSERTED.utilizado_em
+        WHERE id = ? AND status IN ('ativo', 'valido')
+      `, [ticket.id]);
+      if (!updated.length) {
+        await connection.rollback();
+        return send(response, 409, { ok: false, kind: 'error', message: 'Ingresso já utilizado por outra catraca.' });
+      }
+      await connection.commit();
+      await audit('checkin_ingresso', `Check-in validado no evento ${ticket.evento}.`, 'ingresso', ticket.numero_ingresso, operator);
+      return send(response, 200, { ok: true, kind: 'success', message: 'ACESSO LIBERADO', ticket: { id: ticket.id, numero_ingresso: ticket.numero_ingresso, titular: ticket.titular, setor: ticket.setor_nome, evento: ticket.evento, bilheteria: ticket.bilheteria_origem || 'Troca Ticket' }, checkinAt: updated[0].utilizado_em });
+    } catch (error) {
+      try { await connection.rollback(); } catch {}
+      console.error('[bilheteria] Erro ao validar ingresso:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível validar o ingresso.' });
+    } finally {
+      connection.release();
+    }
+  }
+
+  if (request.method === 'POST' && /^\/api\/bilheteria\/tickets\/\d+\/checkin-manual$/.test(url.pathname)) {
+    const operator = await getTicketOperator(request);
+    if (!operator) return send(response, 403, { ok: false, message: 'Acesso restrito à equipe de operação.' });
+    const ticketId = Number(url.pathname.split('/')[4]);
+    const connection = await db.getConnection();
+    try {
+      await ensureTicketSecuritySchema();
+      const body = await parseBody(request);
+      const reason = String(body.motivo || '').trim();
+      if (!reason) return send(response, 400, { ok: false, message: 'Informe o motivo da liberação manual.' });
+      await connection.beginTransaction();
+      const [rows] = await connection.query('SELECT id, numero_ingresso, status FROM dbo.ingressos_emitidos WITH (UPDLOCK, ROWLOCK) WHERE id = ?', [ticketId]);
+      if (!rows.length) {
+        await connection.rollback();
+        return send(response, 404, { ok: false, message: 'Ingresso não encontrado.' });
+      }
+      if (!['ativo', 'valido'].includes(String(rows[0].status).toLowerCase())) {
+        await connection.rollback();
+        return send(response, 409, { ok: false, message: 'Ingresso não está disponível para check-in.' });
+      }
+      const [updated] = await connection.query(`
+        UPDATE dbo.ingressos_emitidos
+        SET status = 'utilizado', utilizado_em = SYSUTCDATETIME(), motivo_checkin = ?
+        OUTPUT INSERTED.utilizado_em
+        WHERE id = ? AND status IN ('ativo', 'valido')
+      `, [reason.slice(0, 240), ticketId]);
+      if (!updated.length) {
+        await connection.rollback();
+        return send(response, 409, { ok: false, message: 'Ingresso já utilizado por outra catraca.' });
+      }
+      await connection.commit();
+      await audit('checkin_manual_ingresso', `Check-in manual: ${reason}.`, 'ingresso', rows[0].numero_ingresso, operator);
+      return send(response, 200, { ok: true, message: 'Check-in manual aprovado.', checkinAt: updated[0].utilizado_em });
+    } catch (error) {
+      try { await connection.rollback(); } catch {}
+      console.error('[bilheteria] Erro no check-in manual:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível concluir o check-in manual.' });
+    } finally {
+      connection.release();
+    }
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/bilheteria/transferencias') {
+    const operator = await getTicketOperator(request);
+    if (!operator) return send(response, 403, { ok: false, message: 'Acesso restrito à equipe de operação.' });
+    const connection = await db.getConnection();
+    try {
+      await ensureTicketSecuritySchema();
+      const body = await parseBody(request);
+      const ticketCode = String(body.ticket_id || '').trim();
+      const contact = String(body.novo_titular_contato || '').trim();
+      const holderName = String(body.novo_titular_nome || '').trim();
+      if (!ticketCode || !contact || !holderName) return send(response, 400, { ok: false, message: 'Preencha ingresso e dados do novo titular.' });
+      await connection.beginTransaction();
+      const [ticketRows] = await connection.query(`
+        SELECT TOP (1) i.*, u.nome AS titular_anterior
+        FROM dbo.ingressos_emitidos i WITH (UPDLOCK, ROWLOCK)
+        JOIN dbo.usuarios u ON u.id = i.comprador_id
+        WHERE i.numero_ingresso = ?
+      `, [ticketCode]);
+      const ticket = ticketRows[0];
+      if (!ticket) {
+        await connection.rollback();
+        return send(response, 404, { ok: false, message: 'Ingresso não encontrado.' });
+      }
+      if (!['ativo', 'valido'].includes(String(ticket.status).toLowerCase())) {
+        await connection.rollback();
+        return send(response, 409, { ok: false, message: 'Somente ingressos disponíveis podem ser transferidos.' });
+      }
+      const contactDigits = normalizeCpf(contact);
+      const [recipientRows] = await connection.query(
+        'SELECT id, nome, cpf, email FROM dbo.usuarios WHERE email = ? OR (? <> ? AND cpf = ?)',
+        [normalizeEmail(contact), contactDigits, '', contactDigits]
+      );
+      const recipient = recipientRows[0];
+      if (!recipient) {
+        await connection.rollback();
+        return send(response, 404, { ok: false, message: 'O novo titular precisa ter uma conta Troca Ticket cadastrada com esse CPF ou e-mail.' });
+      }
+      if (Number(recipient.id) === Number(ticket.comprador_id)) {
+        await connection.rollback();
+        return send(response, 400, { ok: false, message: 'O novo titular já é o titular deste ingresso.' });
+      }
+      const revokedPayload = `${ticket.qr_code_payload || ''}_REVOGADO_${Date.now()}`;
+      await connection.query("UPDATE dbo.ingressos_emitidos SET status = 'invalidado_por_revenda', qr_code_payload = ?, secret_key = NULL WHERE id = ?", [revokedPayload, ticket.id]);
+      const newNumber = makeCode('TKT');
+      const newSecret = makeTicketSecret();
+      const newPayload = makeActiveTicketPayload(newNumber, newSecret);
+      const nextVersion = Number(ticket.versao_titularidade || 1) + 1;
+      const [newTicketRows] = await connection.query(`
+        INSERT INTO dbo.ingressos_emitidos
+          (pedido_id, comprador_id, evento_id, bilheteria_id, bilheteria_origem, setor_nome, numero_ingresso, codigo_original_bilheteria, qr_code_payload, secret_key, versao_titularidade, status)
+        OUTPUT INSERTED.id
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ativo')
+      `, [ticket.pedido_id, recipient.id, ticket.evento_id, ticket.bilheteria_id || null, ticket.bilheteria_origem || 'Troca Ticket', ticket.setor_nome || null, newNumber, ticket.codigo_original_bilheteria || newNumber, newPayload, newSecret, nextVersion]);
+      await connection.commit();
+      const matrixSync = ticket.bilheteria_origem && ticket.bilheteria_origem !== 'Troca Ticket' ? 'not_configured' : 'not_applicable';
+      await audit('transferencia_ingresso_painel', `${body.motivo || 'Transferência'}: titularidade alterada para ${recipient.nome}.`, 'ingresso', newNumber, operator);
+      return send(response, 200, { ok: true, message: 'Transferência concluída. Hash antigo revogado e nova chave criada.', matrixSync, ticket: { id: newTicketRows[0].id, numero_ingresso: newNumber, titular: recipient.nome, cpf: recipient.cpf, setor: ticket.setor_nome, evento_id: ticket.evento_id, bilheteria_origem: ticket.bilheteria_origem || 'Troca Ticket' } });
+    } catch (error) {
+      try { await connection.rollback(); } catch {}
+      console.error('[bilheteria] Erro na transferência:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível concluir a transferência.' });
+    } finally {
+      connection.release();
+    }
   }
 
   if (request.method === 'PATCH' && /^\/api\/admin\/tickets\/\d+\/status$/.test(url.pathname)) {
@@ -1517,6 +2228,9 @@ const server = http.createServer(async (request, response) => {
       const email = normalizeEmail(body.email);
       const [users] = await db.query('SELECT id FROM dbo.usuarios WHERE email = ? LIMIT 1', [email]);
       if (!users.length) return send(response, 404, { ok: false, message: 'Comprador não encontrado.' });
+
+      const cpf = normalizeCpf(body.cpf);
+      if (cpf.length !== 11) return send(response, 400, { ok: false, message: 'Informe um CPF com 11 números. A pontuação é opcional.' });
 
       const numCartao = String(body.numero_cartao || body.numero || '').trim();
       const numLimpo = numCartao.replace(/\D/g, '');

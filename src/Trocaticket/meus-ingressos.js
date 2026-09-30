@@ -12,8 +12,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const message = document.getElementById('ticket-message');
 
   if (!user || !user.email) {
-    window.location.href = 'login.html';
+    window.location.replace('login.html?redirect=meus-ingressos.html');
     return;
+  }
+
+  function renewSession() {
+    localStorage.removeItem('trocaticket-user');
+    localStorage.removeItem('usuario');
+    window.location.replace('login.html?redirect=meus-ingressos.html');
   }
 
   function resolveEventImage(ticket) {
@@ -30,15 +36,22 @@ document.addEventListener('DOMContentLoaded', () => {
     return 'imagens/logo troca ticket.png';
   }
 
-  fetch(`/api/usuario/meus-ingressos?email=${encodeURIComponent(user.email)}`)
+  fetch(`/api/usuario/meus-ingressos?email=${encodeURIComponent(user.email)}`, {
+    headers: { Authorization: `Bearer ${user.session_token || ''}` }
+  })
     .then(async res => {
       const data = await res.json();
       if (!res.ok || !data.ok) {
+        if (res.status === 401 || res.status === 403) {
+          renewSession();
+          return null;
+        }
         throw new Error(data.message || `Erro HTTP ${res.status}`);
       }
       return data;
     })
     .then(data => {
+      if (!data) return;
       if (!data.tickets || !Array.isArray(data.tickets) || data.tickets.length === 0) {
         if (message) message.textContent = '';
         container.innerHTML = `
@@ -93,6 +106,10 @@ document.addEventListener('DOMContentLoaded', () => {
     })
     .catch(err => {
       console.error('[meus-ingressos] Erro:', err);
+      if (err.status === 401 || err.status === 403) {
+        renewSession();
+        return;
+      }
       if (container) {
         container.innerHTML = `
           <div class="empty-state">

@@ -9,6 +9,23 @@ document.addEventListener('DOMContentLoaded', () => {
   const codeStep = document.getElementById('code-step');
   let selectedChannel = '';
 
+  function getInternationalPhone() {
+    const rawValue = String(phoneInput.value || '').trim();
+    const countryDigits = String(countryCode.value || '').replace(/\D/g, '');
+    let phoneDigits = rawValue.replace(/\D/g, '');
+    const hasInternationalPrefix = /^\s*(?:\+|00)/.test(rawValue);
+    if (hasInternationalPrefix) {
+      if (/^\s*00/.test(rawValue)) phoneDigits = phoneDigits.slice(2);
+    } else {
+      const maxNationalDigits = { '1': 10, '33': 9, '34': 9, '39': 11, '44': 10, '49': 11, '55': 11, '81': 10, '351': 9 }[countryDigits] || 12;
+      if (phoneDigits.startsWith(countryDigits) && phoneDigits.length > maxNationalDigits) {
+        phoneDigits = phoneDigits.slice(countryDigits.length);
+      }
+      phoneDigits = `${countryDigits}${phoneDigits}`;
+    }
+    return phoneDigits.length >= 10 && phoneDigits.length <= 15 ? `+${phoneDigits}` : null;
+  }
+
   if (!user || !user.email) {
     window.location.href = 'login.html';
     return;
@@ -40,36 +57,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Máscara dinâmica de telefone
-  if (phoneInput) {
-    phoneInput.addEventListener('input', (e) => {
-      let clean = e.target.value.replace(/\D/g, '');
-      if (clean.length > 11) clean = clean.slice(0, 11);
-      if (clean.length > 6) {
-        e.target.value = clean.replace(/^(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3');
-      } else if (clean.length > 2) {
-        e.target.value = clean.replace(/^(\d{2})(\d{0,5})/, '($1) $2');
-      } else if (clean.length > 0) {
-        e.target.value = clean.replace(/^(\d*)/, '($1');
-      } else {
-        e.target.value = '';
-      }
-    });
-  }
-
   // Preenche com o telefone salvo se houver
   fetch(`/api/usuario/meu-perfil?email=${encodeURIComponent(user.email)}`)
     .then(res => res.json())
     .then(data => {
       if (data.ok && data.user && data.user.telefone) {
-        let raw = String(data.user.telefone).replace(/\D/g, '');
-        if (raw.length === 11) {
-          phoneInput.value = raw.replace(/^(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
-        } else if (raw.length === 10) {
-          phoneInput.value = raw.replace(/^(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
-        } else {
-          phoneInput.value = data.user.telefone;
-        }
+        phoneInput.value = data.user.telefone;
       }
     })
     .catch(err => console.error('[editar-telefone]', err));
@@ -79,7 +72,12 @@ document.addEventListener('DOMContentLoaded', () => {
     button.addEventListener('click', async () => {
       if (!form.reportValidity()) return;
       selectedChannel = button.dataset.channel;
-      const cleanNumber = phoneInput.value.replace(/\D/g, '');
+      const phone = getInternationalPhone();
+      if (!phone) {
+        message.style.color = '#f87171';
+        message.textContent = 'Informe um telefone válido com 10 a 15 números, incluindo o código do país.';
+        return;
+      }
       
       try {
         message.style.color = '#38bdf8';
@@ -90,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email: user.email,
-            telefone: `${countryCode.value}${cleanNumber}`,
+            telefone: phone,
             canal: selectedChannel
           })
         });
@@ -114,8 +112,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const confirmBtn = document.getElementById('confirm-phone');
   if (confirmBtn) {
     confirmBtn.addEventListener('click', async () => {
-      const cleanNumber = phoneInput.value.replace(/\D/g, '');
+      const phone = getInternationalPhone();
       const code = document.getElementById('verification-code').value.trim();
+
+      if (!phone) {
+        message.style.color = '#f87171';
+        message.textContent = 'Informe um telefone válido com 10 a 15 números, incluindo o código do país.';
+        return;
+      }
 
       if (!code) {
         message.style.color = '#f87171';
@@ -129,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email: user.email,
-            telefone: cleanNumber,
+            telefone: phone,
             codigo: code
           })
         });
@@ -137,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await response.json();
         if (!response.ok || !data.ok) throw new Error(data.message || `HTTP ${response.status}`);
 
-        user.telefone = cleanNumber;
+        user.telefone = phone.replace(/\D/g, '');
         localStorage.setItem('trocaticket-user', JSON.stringify(user));
 
         message.style.color = '#4ade80';

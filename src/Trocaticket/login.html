@@ -251,12 +251,16 @@
                         throw new Error(data.message || 'E-mail ou senha inválidos.');
                     }
 
-                    // Salva sessão localmente
-                    localStorage.setItem('trocaticket-user', JSON.stringify(data.user));
-                    localStorage.setItem('usuario', JSON.stringify(data.user));
+                    // A sessão assinada é validada pelo servidor nas rotas operacionais.
+                    const sessionUser = { ...data.user, session_token: data.session_token };
+                    localStorage.setItem('trocaticket-user', JSON.stringify(sessionUser));
+                    localStorage.setItem('usuario', JSON.stringify(sessionUser));
 
-                    // Redireciona sempre para a home
-                    window.location.href = 'index.html';
+                    const requestedRedirect = new URLSearchParams(window.location.search).get('redirect') || '';
+                    const safeRedirect = /^(meus-ingressos\.html|ingresso\.html(?:\?evento=[^&]*)?)$/.test(requestedRedirect)
+                        ? requestedRedirect
+                        : 'index.html';
+                    window.location.href = safeRedirect;
                 } catch (err) {
                     console.error('[login] Erro na requisição:', err);
                     errorMsg.textContent = err.message || 'Erro ao conectar ao servidor.';

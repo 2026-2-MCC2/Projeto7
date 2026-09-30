@@ -92,15 +92,15 @@ if (form.validade) {
   });
 }
 
-if (form.cpf) {
-  form.cpf.addEventListener('input', event => {
-    event.target.value = event.target.value.replace(/\D/g, '').slice(0, 11).replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-  });
-}
-
 form.addEventListener('submit', async event => {
   event.preventDefault();
   const values = Object.fromEntries(new FormData(form));
+  values.cpf = String(values.cpf || '').replace(/\D/g, '');
+  if (values.cpf.length !== 11) {
+    message.style.color = '#f87171';
+    message.textContent = 'Informe um CPF com 11 números. A pontuação é opcional.';
+    return;
+  }
   const [month, year] = values.validade.split('/');
   try {
     const response = await fetch('/api/usuario/cartoes', {
