@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="checkout.css">
+  <script src="checkout.js" defer></script>
+  <title>Checkout | TrocaTicket</title>
+</head>
+<body class="checkout-page">
+  <main class="checkout-shell" aria-live="polite">
+    <header class="checkout-hero">
+      <img id="checkout-cover" src="imagens/logo troca ticket.png" alt="">
+      <div class="checkout-hero-shade"></div>
+      <a class="checkout-back" id="checkout-back" href="index.html#eventos" aria-label="Voltar">&#8592;</a>
+      <div class="checkout-event-heading">
+        <p id="checkout-kicker">CARREGANDO EVENTO</p>
+        <h1 id="checkout-event-name">Carregando...</h1>
+        <strong id="checkout-lineup"></strong>
+      </div>
+    </header>
+
+    <div class="checkout-content">
+      <section class="checkout-countdown" aria-live="polite">
+        <span class="countdown-pulse"></span>
+        <div><strong id="countdown-label">Carregando lote...</strong><small id="countdown-value">--d --h --m --s</small></div>
+      </section>
+
+      <section class="checkout-section ticket-section">
+        <div class="section-heading"><div><p class="eyebrow">Escolha seus ingressos</p><h2>Ingressos disponíveis</h2></div></div>
+        <div class="sector-accordion-list" id="sector-list"><p class="loading-state">Carregando lotes...</p></div>
+      </section>
+
+      <aside class="order-summary" aria-label="Resumo do pedido">
+        <div class="summary-inner"><div class="summary-lines"><span id="summary-items">0 ingressos</span><strong id="summary-total">R$ 0,00</strong><small id="summary-fees">Taxa de serviço: R$ 0,00</small></div><button class="buy-button" id="buy-button" type="button">COMPRAR INGRESSOS</button></div>
+      </aside>
+
+      <section class="checkout-section promo-section">
+        <div><h2>Código promocional</h2></div>
+        <form class="promo-form" id="promo-form"><input id="promo-code" type="text" autocomplete="off" placeholder="Digite seu cupom"><button type="submit">Aplicar</button></form>
+        <p class="promo-feedback" id="promo-feedback" role="status"></p>
+      </section>
+
+      <section class="checkout-section map-section">
+        <div><p class="eyebrow">Planeje sua experiência</p><h2>Mapa do evento</h2></div>
+        <button class="secondary-action" type="button" id="map-button">Ver mapa do evento</button>
+      </section>
+
+      <section class="checkout-section official-section">
+        <button class="accordion-trigger" type="button" aria-expanded="true"><span id="official-title">- Informações</span><span class="accordion-chevron">⌃</span></button>
+        <div class="accordion-content"><ul class="official-facts" id="official-facts"><li><span>Evento</span><strong id="official-event-name">A confirmar</strong></li><li><span>Data</span><strong id="official-event-date">A confirmar</strong></li><li><span>Horário</span><strong id="official-event-time">A confirmar</strong></li><li><span>Local</span><strong id="official-event-venue">A confirmar</strong></li><li><span>Endereço do local</span><strong id="official-event-address">A confirmar</strong></li><li><span>Cidade</span><strong id="official-event-city">A confirmar</strong></li><li><span>Classificação indicativa</span><strong id="classification">Livre</strong></li><li><span>Estilo do evento</span><strong id="official-event-style">A confirmar</strong></li><li><span>Hora de abertura dos portões</span><strong id="official-event-opening">A confirmar</strong></li></ul><p class="official-rules">Ingressos digitais e nominais. A meia-entrada exige comprovação na entrada. Compras aprovadas não podem ser canceladas fora das regras oficiais do evento.</p><a href="ajuda.html#comprar">Consultar regras da bilheteria e central de ajuda</a></div>
+      </section>
+
+      <section class="checkout-section stay-section">
+        <button class="accordion-trigger" type="button" aria-expanded="true"><span id="stay-title">+ Garanta sua hospedagem: encontre as melhores opções de acomodações próximas ao evento!</span><span class="accordion-chevron">⌃</span></button>
+        <div class="accordion-content"><p>Encontre as melhores opções de acomodações próximas ao evento.</p><div class="stay-map"><span class="map-road road-one"></span><span class="map-road road-two"></span><span class="map-pin pin-one">⌂</span><span class="map-pin pin-two">⌂</span><span class="map-pin pin-three">⌂</span><strong id="stay-location">Explore a região do evento</strong></div><button class="secondary-action full-action" type="button" id="stay-button">Ver acomodações e explorar no mapa</button></div>
+      </section>
+    </div>
+
+    <div class="map-modal" id="map-modal" hidden><div class="map-overlay" data-close-map></div><div class="map-dialog" role="dialog" aria-modal="true" aria-labelledby="map-title"><button class="map-close" type="button" data-close-map aria-label="Fechar mapa">×</button><h2 id="map-title">Mapa do evento</h2><div class="event-map-visual" id="event-map-visual"><span class="stage-label">PALCO PRINCIPAL</span><span class="map-zone zone-a">PISTA</span><span class="map-zone zone-b">BAR</span><span class="map-zone zone-c">ENTRADA</span></div></div></div>
+  </main>
+</body>
+</html>

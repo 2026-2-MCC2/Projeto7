@@ -64,15 +64,22 @@ document.addEventListener('DOMContentLoaded', () => {
     return Number.isNaN(parsed.getTime()) ? 'horário não disponível' : parsed.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
   }
 
-  function downloadOfflinePackage(content, filename) {
-    const objectUrl = URL.createObjectURL(new Blob([content], { type: 'text/html;charset=utf-8' }));
+  function openExternalUrl(url) {
     const link = document.createElement('a');
-    link.href = objectUrl;
-    link.download = filename || 'trocaticket-offline.html';
-    document.body.appendChild(link);
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
     link.click();
-    link.remove();
-    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+  }
+
+  function openOfflinePackage(content, deliveryMessage) {
+    if (typeof content !== 'string' || !content.trim()) return false;
+    const notice = `<div style="position:fixed;z-index:9999;top:12px;right:12px;left:12px;padding:12px 14px;border:1px solid #467b5a;border-radius:8px;background:#173322;color:#d7ffe3;font:600 13px/1.4 system-ui,sans-serif;text-align:center;box-shadow:0 8px 24px #0006;">${deliveryMessage}</div>`;
+    const standaloneHtml = content.replace(/<body([^>]*)>/i, `<body$1>${notice}`);
+    const blobUrl = URL.createObjectURL(new Blob([standaloneHtml], { type: 'text/html;charset=utf-8' }));
+    openExternalUrl(blobUrl);
+    window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    return true;
   }
 
   function dateFormatted(value) { 
@@ -301,10 +308,15 @@ document.addEventListener('DOMContentLoaded', () => {
     setDigitalActionLoading(button, true, 'Preparando pacote offline...', 'Baixar para Acesso Offline (Enviar por E-mail)');
     try {
       const data = await postTicketAction('/api/ingresso/download-offline', ticket);
-      if (data.mock && data.offlineHtml) downloadOfflinePackage(data.offlineHtml, data.filename);
-      showActionToast(data.mock
-        ? `Pacote offline baixado para teste. Envio para ${data.email} simulado: configure o SMTP para entregar o e-mail.`
-        : '✅ Pacote offline enviado com sucesso para seu e-mail! Ele continuará gerando os QR codes mesmo sem internet até o encerramento do evento.');
+      const deliveryMessage = data.mock
+        ? 'Ingresso offline aberto. O envio por e-mail está em modo de demonstração.'
+        : `E-mail enviado para ${data.email}. O ingresso offline foi aberto em uma nova aba.`;
+      const packageOpened = openOfflinePackage(data.offlineHtml, deliveryMessage);
+      showActionToast(packageOpened
+        ? deliveryMessage
+        : data.mock
+          ? 'Pacote offline preparado em modo de demonstração.'
+          : `E-mail enviado para ${data.email}. O ingresso offline foi anexado ao e-mail.`);
     } catch (error) {
       showActionToast(error.message || 'Não foi possível preparar o pacote offline.', true);
     } finally {
@@ -316,19 +328,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const button = event.currentTarget;
     const ticket = groupTickets[currentIndex];
     if (!ticket || isTicketUsed(ticket)) return;
-    const walletWindow = window.open('', '_blank');
     setDigitalActionLoading(button, true, 'Preparando carteira...', 'Adicionar à Carteira do Google');
     try {
       const data = await postTicketAction('/api/ingresso/google-wallet-jwt', ticket);
       const destination = data.mock ? data.mockUrl : data.walletUrl;
-      if (walletWindow) {
-        walletWindow.location.href = destination;
-      } else {
-        window.location.assign(destination);
-      }
+      openExternalUrl(destination);
       if (data.mock) showActionToast('Prévia da Carteira do Google aberta em modo de demonstração. Configure as credenciais do emissor para ativar a emissão real.');
     } catch (error) {
-      if (walletWindow) walletWindow.close();
       showActionToast(error.message || 'Não foi possível preparar o passe da carteira.', true);
     } finally {
       setDigitalActionLoading(button, false, '', 'Adicionar à Carteira do Google');

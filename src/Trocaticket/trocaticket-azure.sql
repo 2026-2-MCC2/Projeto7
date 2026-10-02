@@ -759,6 +759,10 @@ IF OBJECT_ID(N'dbo.ingressos_emitidos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.i
     ALTER TABLE dbo.ingressos_emitidos ADD utilizado_em datetime2(0) NULL;
 IF OBJECT_ID(N'dbo.ingressos_emitidos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.ingressos_emitidos', N'motivo_checkin') IS NULL
     ALTER TABLE dbo.ingressos_emitidos ADD motivo_checkin varchar(240) NULL;
+IF OBJECT_ID(N'dbo.ingressos_emitidos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.ingressos_emitidos', N'lote_nome') IS NULL
+    ALTER TABLE dbo.ingressos_emitidos ADD lote_nome varchar(120) NULL;
+IF OBJECT_ID(N'dbo.ingressos_emitidos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.ingressos_emitidos', N'categoria_ingresso') IS NULL
+    ALTER TABLE dbo.ingressos_emitidos ADD categoria_ingresso varchar(120) NULL;
 GO
 
 IF OBJECT_ID(N'dbo.transferencias_pendentes', N'U') IS NULL

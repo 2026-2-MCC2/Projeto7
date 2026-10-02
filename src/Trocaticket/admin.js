@@ -491,6 +491,7 @@ class AdminPanel {
         <td>${this.translateUserType(user.tipo)}</td>
         <td class="action-buttons">
           <button class="action-btn action-btn-delete user-access-action" data-user-id="${user.id}" data-user-type="${user.tipo || 'comum'}" data-user-status="${user.status || 'ativa'}">Alterar acesso</button>
+          <button class="action-btn action-btn-delete user-delete-action" data-user-id="${user.id}" data-user-name="${user.name || user.nome || 'este usuário'}">Excluir conta</button>
         </td>
       </tr>
     `).join('');
@@ -501,6 +502,9 @@ class AdminPanel {
         button.dataset.userType,
         button.dataset.userStatus
       ));
+    });
+    tbody.querySelectorAll('.user-delete-action').forEach(button => {
+      button.addEventListener('click', () => this.deleteUser(button.dataset.userId, button.dataset.userName));
     });
   }
 
@@ -571,9 +575,23 @@ class AdminPanel {
     return { admin: 'Admin', comum: 'Comum', comprador: 'Comum', organizador: 'Organizador', fornecedor: 'Fornecedor', bilheteria: 'Bilheteria', sistema: 'Sistema', cliente: 'Cliente' }[type] || 'Comum';
   }
 
-  deleteUser(userId) {
-    if (confirm('Tem certeza que deseja deletar este usuário?')) {
-      console.log(`Deletando usuário: ${userId}`);
+  async deleteUser(userId, userName = 'este usuário') {
+    if (!confirm(`Excluir a conta de ${userName}? A conta será desativada e não poderá acessar a plataforma.`)) return;
+    const adminPassword = prompt('Digite sua senha de administrador para confirmar a exclusão:');
+    if (!adminPassword) return;
+    const user = JSON.parse(localStorage.getItem('trocaticket-user') || localStorage.getItem('usuario') || 'null');
+    try {
+      const response = await fetch(`/api/admin/users/${encodeURIComponent(userId)}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ admin_email: user?.email, admin_password: adminPassword })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) throw new Error(data.message || 'Não foi possível excluir a conta.');
+      alert('Conta excluída com sucesso.');
+      this.loadUsersData();
+    } catch (error) {
+      alert(error.message);
     }
   }
 
