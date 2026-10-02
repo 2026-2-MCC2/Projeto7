@@ -424,7 +424,10 @@ function ensureTicketSecuritySchema() {
           COL_LENGTH('dbo.ingressos_emitidos', 'setor_nome') AS setor_nome,
           COL_LENGTH('dbo.ingressos_emitidos', 'bilheteria_origem') AS bilheteria_origem,
           COL_LENGTH('dbo.ingressos_emitidos', 'utilizado_em') AS utilizado_em,
-          COL_LENGTH('dbo.ingressos_emitidos', 'motivo_checkin') AS motivo_checkin
+          COL_LENGTH('dbo.ingressos_emitidos', 'motivo_checkin') AS motivo_checkin,
+          COL_LENGTH('dbo.ingressos_emitidos', 'checkin_operador') AS checkin_operador,
+          COL_LENGTH('dbo.ingressos_emitidos', 'lote_nome') AS lote_nome,
+          COL_LENGTH('dbo.ingressos_emitidos', 'categoria_ingresso') AS categoria_ingresso
       `);
       const existing = columns[0] || {};
       if (existing.secret_key === null) await db.query('ALTER TABLE dbo.ingressos_emitidos ADD secret_key varchar(64) NULL');
@@ -432,6 +435,9 @@ function ensureTicketSecuritySchema() {
       if (existing.bilheteria_origem === null) await db.query('ALTER TABLE dbo.ingressos_emitidos ADD bilheteria_origem varchar(40) NULL');
       if (existing.utilizado_em === null) await db.query('ALTER TABLE dbo.ingressos_emitidos ADD utilizado_em datetime2(0) NULL');
       if (existing.motivo_checkin === null) await db.query('ALTER TABLE dbo.ingressos_emitidos ADD motivo_checkin varchar(240) NULL');
+      if (existing.checkin_operador === null) await db.query('ALTER TABLE dbo.ingressos_emitidos ADD checkin_operador varchar(160) NULL');
+      if (existing.lote_nome === null) await db.query('ALTER TABLE dbo.ingressos_emitidos ADD lote_nome varchar(120) NULL');
+      if (existing.categoria_ingresso === null) await db.query('ALTER TABLE dbo.ingressos_emitidos ADD categoria_ingresso varchar(120) NULL');
       await db.query("UPDATE dbo.ingressos_emitidos SET bilheteria_origem = 'Troca Ticket' WHERE bilheteria_origem IS NULL AND bilheteria_id IS NULL");
       const [ticketsWithoutSecret] = await db.query("SELECT id FROM dbo.ingressos_emitidos WHERE secret_key IS NULL AND status IN ('ativo', 'valido')");
       for (const ticket of ticketsWithoutSecret) {
@@ -730,7 +736,7 @@ const server = http.createServer(async (request, response) => {
       if (rows[0].email_verificado === false || rows[0].email_verificado === 0 || rows[0].codigo_verificacao) {
         return send(response, 403, { ok: false, message: 'E-mail ainda não verificado. Confira sua caixa de entrada.' });
       }
-      if (rows[0].status === 'bloqueado') {
+      if (['bloqueado', 'excluida'].includes(String(rows[0].status || '').toLowerCase())) {
         return send(response, 403, { ok: false, message: 'Usuário bloqueado pelo administrador.' });
       }
 
@@ -749,6 +755,19 @@ const server = http.createServer(async (request, response) => {
       const telefone = normalizePhone(body.telefone);
       if (!body.nome || !/^\S+@\S+\.\S+$/.test(email) || cpf.length !== 11 || !hasValidPhoneLength(telefone) || !body.senha || body.senha.length < 6) {
         return send(response, 400, { ok: false, message: 'Informe nome, e-mail, CPF com 11 números, telefone com 10 a 15 números e senha com ao menos 6 caracteres.' });
+      }
+      const [excludedUsers] = await db.query(
+        `SELECT id FROM dbo.usuarios
+         WHERE status = 'excluida' AND (email = ? OR cpf = ?)`,
+        [email, cpf]
+      );
+      for (const [index, excludedUser] of excludedUsers.entries()) {
+        await db.query(
+          `UPDATE dbo.usuarios
+           SET email = ?, cpf = NULL, telefone = NULL
+           WHERE id = ? AND status = 'excluida'`,
+          [`excluida-${excludedUser.id}-${Date.now()}-${index}@invalid.trocaticket.local`, excludedUser.id]
+        );
       }
       const [duplicate] = await db.query('SELECT id FROM usuarios WHERE email = ? OR cpf = ? LIMIT 1', [email, cpf]);
       if (duplicate.length) return send(response, 409, { ok: false, message: 'E-mail ou CPF já cadastrado.' });
@@ -1013,7 +1032,7 @@ const server = http.createServer(async (request, response) => {
         mock: !transporter,
         email: ticket.email,
         filename,
-        offlineHtml: transporter ? undefined : offlineHtml,
+        offlineHtml,
         emailPreviewHtml: transporter ? undefined : emailHtml,
         message: transporter ? 'Pacote offline enviado por e-mail.' : 'Pacote offline preparado em modo de demonstração; SMTP não configurado.'
       });
@@ -1086,8 +1105,24 @@ const server = http.createServer(async (request, response) => {
         return send(response, 404, { ok: false, message: 'Evento não encontrado.' });
       }
 
+      const purchaseItems = Array.isArray(body.items) && body.items.length
+        ? body.items.map(item => ({
+          quantity: Math.max(0, Math.min(10, Number(item.quantity) || 0)),
+          price: Number(item.price ?? body.preco ?? event.ticket_calculado ?? 0),
+          sector: item.sector || body.setor_nome || null,
+          lotName: item.lotName || item.lote_nome || null,
+          category: item.category || item.categoria_ingresso || null
+        })).filter(item => item.quantity > 0)
+        : [{ quantity, price: Number(body.preco ?? event.ticket_calculado ?? 0), sector: body.setor_nome || null, lotName: body.lote_nome || null, category: body.categoria_ingresso || null }];
+      const totalQuantity = purchaseItems.reduce((sum, item) => sum + item.quantity, 0);
+      if (!totalQuantity || totalQuantity > 10) {
+        await connection.rollback();
+        return send(response, 400, { ok: false, message: 'A quantidade de ingressos deve estar entre 1 e 10.' });
+      }
       const unitPrice = Number(body.preco ?? event.ticket_calculado ?? 0);
-      const total = unitPrice * quantidade;
+      const requestedTotal = Number(body.valor_total);
+      const calculatedTotal = purchaseItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      const total = Number.isFinite(requestedTotal) && requestedTotal >= 0 ? requestedTotal : calculatedTotal || unitPrice * totalQuantity;
       const codigoPedido = makeCode('PED');
       const [orderRows] = await connection.query(
         `INSERT INTO dbo.pedidos (codigo_pedido, comprador_id, valor_total, status)
@@ -1098,19 +1133,19 @@ const server = http.createServer(async (request, response) => {
       const pedidoId = orderRows[0].id;
 
       const tickets = [];
-      for (let index = 0; index < quantidade; index += 1) {
-        const numero = makeCode('TKT');
-        const secretKey = makeTicketSecret();
-        const qrPayload = makeActiveTicketPayload(numero, secretKey);
-        const [ticketRows] = await connection.query(
-          `INSERT INTO dbo.ingressos_emitidos
-           (pedido_id, comprador_id, evento_id, numero_ingresso, codigo_original_bilheteria, qr_code_payload, secret_key, setor_nome, bilheteria_origem, versao_titularidade, status)
-           OUTPUT INSERTED.id
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Troca Ticket', 1, 'ativo')`,
-          [pedidoId, user.id, eventoId, numero, numero, qrPayload, secretKey, body.setor_nome || null]
-        );
-        tickets.push({ id: ticketRows[0].id, numero_ingresso: numero });
-      }
+      for (const item of purchaseItems) for (let index = 0; index < item.quantity; index += 1) {
+          const numero = makeCode('TKT');
+          const secretKey = makeTicketSecret();
+          const qrPayload = makeActiveTicketPayload(numero, secretKey);
+          const [ticketRows] = await connection.query(
+            `INSERT INTO dbo.ingressos_emitidos
+             (pedido_id, comprador_id, evento_id, numero_ingresso, codigo_original_bilheteria, qr_code_payload, secret_key, setor_nome, lote_nome, categoria_ingresso, bilheteria_origem, versao_titularidade, status)
+             OUTPUT INSERTED.id
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Troca Ticket', 1, 'ativo')`,
+            [pedidoId, user.id, eventoId, numero, numero, qrPayload, secretKey, item.sector, item.lotName, item.category]
+          );
+          tickets.push({ id: ticketRows[0].id, numero_ingresso: numero });
+        }
 
       await connection.commit();
       return send(response, 201, { ok: true, pedido_id: pedidoId, codigo_pedido: codigoPedido, tickets });
@@ -1249,7 +1284,7 @@ const server = http.createServer(async (request, response) => {
     try {
       const [rows] = await db.query('SELECT * FROM eventos ORDER BY id DESC');
       const [sectorRows] = await db.query('SELECT id, evento_id, nome, capacidade FROM dbo.evento_setores ORDER BY id');
-      const [lotRows] = await db.query('SELECT evento_id, setor_nome FROM dbo.evento_lotes WHERE setor_nome IS NOT NULL ORDER BY id');
+      const [lotRows] = await db.query('SELECT * FROM dbo.evento_lotes ORDER BY id');
       const events = rows.map(r => ({
         id: r.id,
         name: String(r.nome || '').replace(/edi\?\?o/gi, 'edição'),
@@ -1261,6 +1296,22 @@ const server = http.createServer(async (request, response) => {
         price: Number(r.ticket_calculado || 0),
         capacity: Number(r.publico_maximo || 0),
         imagem: r.imagem || null,
+        lots: lotRows.filter(lot => Number(lot.evento_id) === Number(r.id)).map(lot => ({
+          id: lot.id,
+          sector: lot.setor_nome || 'Setor geral',
+          name: lot.nome || 'Lote atual',
+          ticketType: lot.tipo_ingresso || 'Inteira',
+          price: Number(lot.preco_inteira ?? lot.preco ?? r.ticket_calculado ?? 0),
+          halfPrice: Number(lot.preco_meia || 0),
+          fullAvailable: Number(lot.quantidade_inteira ?? lot.quantidade ?? 0),
+          available: Number(lot.quantidade_total ?? lot.quantidade ?? 0),
+          halfAvailable: Number(lot.quantidade_meia || 0),
+          startDate: lot.data_inicio ? new Date(lot.data_inicio).toISOString() : null,
+          endDate: lot.data_fim ? new Date(lot.data_fim).toISOString() : null,
+          switchDate: lot.data_virada ? new Date(lot.data_virada).toISOString() : null,
+          modalities: (() => { try { return lot.modalidades_json ? JSON.parse(lot.modalidades_json) : []; } catch { return []; } })(),
+          rule: lot.regra || 'Esgotamento'
+        })),
         destaque: Boolean(r.destaque),
         status: r.status || 'publicado',
         sectors: [...new Map([
@@ -1698,7 +1749,15 @@ const server = http.createServer(async (request, response) => {
       const eventId = Number(url.pathname.split('/').pop());
       const [rows] = await db.query('SELECT * FROM eventos WHERE id = ? LIMIT 1', [eventId]);
       if (!rows.length) return send(response, 404, { ok: false, message: 'Evento não encontrado.' });
-      
+      const [sectorRows] = await db.query('SELECT id, evento_id, nome, capacidade FROM dbo.evento_setores WHERE evento_id = ? ORDER BY id', [eventId]);
+      const [lotRows] = await db.query('SELECT * FROM dbo.evento_lotes WHERE evento_id = ? ORDER BY id', [eventId]);
+      const resolveLotSectorName = (lot, lotIndex) => {
+        if (lot.setor_nome) return lot.setor_nome;
+        const capacityMatch = sectorRows.find(sector => Number(sector.capacidade || 0) === Number(lot.setor_capacidade || -1));
+        if (capacityMatch) return capacityMatch.nome;
+        if (sectorRows.length === lotRows.length) return sectorRows[lotIndex]?.nome || 'Setor';
+        return sectorRows[0]?.nome || 'Setor';
+      };
       const r = rows[0];
       const event = {
         id: r.id,
@@ -1707,8 +1766,25 @@ const server = http.createServer(async (request, response) => {
         location: r.local || '',
         date: r.data_evento ? new Date(r.data_evento).toISOString() : '',
         endDate: r.data_fim ? new Date(r.data_fim).toISOString() : null,
+        classification: r.classificacao_etaria || 'Livre',
         price: Number(r.ticket_calculado || 0),
         imagem: r.imagem || null,
+        sectors: sectorRows.map(sector => ({ id: sector.id, name: sector.nome, capacity: Number(sector.capacidade || 0) })),
+        lots: lotRows.map((lot, lotIndex) => ({
+          id: lot.id,
+          sector: resolveLotSectorName(lot, lotIndex),
+          name: lot.nome || 'Lote atual',
+          ticketType: lot.tipo_ingresso || 'Inteira',
+          price: Number(lot.preco_inteira ?? lot.preco ?? r.ticket_calculado ?? 0),
+          halfPrice: Number(lot.preco_meia || 0),
+          fullAvailable: Number(lot.quantidade_inteira ?? lot.quantidade ?? 0),
+          available: Number(lot.quantidade_total ?? lot.quantidade ?? 0),
+          halfAvailable: Number(lot.quantidade_meia || 0),
+          startDate: lot.data_inicio ? new Date(lot.data_inicio).toISOString() : null,
+          endDate: lot.data_fim ? new Date(lot.data_fim).toISOString() : null,
+          switchDate: lot.data_virada ? new Date(lot.data_virada).toISOString() : null,
+          modalities: (() => { try { return lot.modalidades_json ? JSON.parse(lot.modalidades_json) : []; } catch { return []; } })()
+        })),
         destaque: Boolean(r.destaque),
         status: r.status || 'publicado'
       };
@@ -1879,6 +1955,46 @@ const server = http.createServer(async (request, response) => {
     }
   }
 
+  if (request.method === 'DELETE' && /^\/api\/admin\/users\/\d+$/.test(url.pathname)) {
+    try {
+      const userId = Number(url.pathname.split('/').pop());
+      const body = await parseBody(request);
+      const adminEmail = normalizeEmail(body.admin_email);
+      const adminPassword = String(body.admin_password || '');
+      if (!adminEmail || !adminPassword) {
+        return send(response, 400, { ok: false, message: 'E-mail e senha do administrador são obrigatórios.' });
+      }
+
+      const [[admin]] = await db.query('SELECT id, nome, tipo, senha_hash FROM dbo.usuarios WHERE email = ?', [adminEmail]);
+      if (!admin || String(admin.tipo).toLowerCase() !== 'admin' || !(await bcrypt.compare(adminPassword, admin.senha_hash))) {
+        return send(response, 403, { ok: false, message: 'Senha do administrador inválida.' });
+      }
+      if (admin.id === userId) {
+        return send(response, 400, { ok: false, message: 'A conta do administrador logado não pode ser excluída por este painel.' });
+      }
+
+      const [[affectedUser]] = await db.query('SELECT id, nome, email, tipo, status FROM dbo.usuarios WHERE id = ?', [userId]);
+      if (!affectedUser) return send(response, 404, { ok: false, message: 'Usuário não encontrado.' });
+      if (String(affectedUser.tipo).toLowerCase() === 'admin') {
+        return send(response, 403, { ok: false, message: 'Contas de administrador não podem ser excluídas por este fluxo.' });
+      }
+
+      const releasedEmail = `excluida-${userId}-${Date.now()}@invalid.trocaticket.local`;
+      await db.query(
+        `UPDATE dbo.usuarios
+         SET status = 'excluida', email = ?, cpf = NULL, telefone = NULL,
+             email_verificado = 0, codigo_verificacao = NULL
+         WHERE id = ?`,
+        [releasedEmail, userId]
+      );
+      await audit('exclusao_usuario', `Conta de ${affectedUser.nome || affectedUser.email} excluída pelo painel administrativo; dados de acesso liberados para novo cadastro.`, 'usuario', userId, { id: admin.id, nome: admin.nome, tipo: 'admin' });
+      return send(response, 200, { ok: true, message: 'Conta excluída. O e-mail, CPF e telefone já podem ser usados em um novo cadastro.', user_id: userId });
+    } catch (error) {
+      console.error('[admin] Erro ao excluir usuário:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível excluir a conta.' });
+    }
+  }
+
   if (request.method === 'GET' && url.pathname === '/api/admin/tickets') {
     try {
       const operator = await getTicketOperator(request);
@@ -1896,8 +2012,14 @@ const server = http.createServer(async (request, response) => {
           i.bilheteria_id AS integratorId,
           i.bilheteria_origem AS provider,
           i.setor_nome AS sector,
+          i.lote_nome AS lotName,
+          i.categoria_ingresso AS ticketCategory,
           i.utilizado_em AS checkinAt,
           i.motivo_checkin AS checkinReason,
+          i.checkin_operador AS checkinOperator,
+          'não identificado' AS lotCategory,
+          p.criado_em AS purchaseDate,
+          CASE WHEN i.bilheteria_id IS NULL THEN 'Emissão própria' ELSE 'Emissão por bilheteria parceira' END AS emissionMethod,
           CASE
             WHEN i.status = 'ativo' AND e.data_evento < SYSUTCDATETIME() THEN 'expirado'
             WHEN i.status = 'valido' THEN 'ativo'
@@ -2003,10 +2125,10 @@ const server = http.createServer(async (request, response) => {
       }
       const [updated] = await connection.query(`
         UPDATE dbo.ingressos_emitidos
-        SET status = 'utilizado', utilizado_em = SYSUTCDATETIME(), motivo_checkin = 'Leitura por QR Code'
+        SET status = 'utilizado', utilizado_em = SYSUTCDATETIME(), motivo_checkin = 'Leitura por QR Code', checkin_operador = ?
         OUTPUT INSERTED.utilizado_em
         WHERE id = ? AND status IN ('ativo', 'valido')
-      `, [ticket.id]);
+      `, [operator.nome || operator.email, ticket.id]);
       if (!updated.length) {
         await connection.rollback();
         return send(response, 409, { ok: false, kind: 'error', message: 'Ingresso já utilizado por outra catraca.' });
@@ -2045,10 +2167,10 @@ const server = http.createServer(async (request, response) => {
       }
       const [updated] = await connection.query(`
         UPDATE dbo.ingressos_emitidos
-        SET status = 'utilizado', utilizado_em = SYSUTCDATETIME(), motivo_checkin = ?
+        SET status = 'utilizado', utilizado_em = SYSUTCDATETIME(), motivo_checkin = ?, checkin_operador = ?
         OUTPUT INSERTED.utilizado_em
         WHERE id = ? AND status IN ('ativo', 'valido')
-      `, [reason.slice(0, 240), ticketId]);
+      `, [reason.slice(0, 240), operator.nome || operator.email, ticketId]);
       if (!updated.length) {
         await connection.rollback();
         return send(response, 409, { ok: false, message: 'Ingresso já utilizado por outra catraca.' });
@@ -2120,7 +2242,7 @@ const server = http.createServer(async (request, response) => {
       `, [ticket.pedido_id, recipient.id, ticket.evento_id, ticket.bilheteria_id || null, ticket.bilheteria_origem || 'Troca Ticket', ticket.setor_nome || null, newNumber, ticket.codigo_original_bilheteria || newNumber, newPayload, newSecret, nextVersion]);
       await connection.commit();
       const matrixSync = ticket.bilheteria_origem && ticket.bilheteria_origem !== 'Troca Ticket' ? 'not_configured' : 'not_applicable';
-      await audit('transferencia_ingresso_painel', `${body.motivo || 'Transferência'}: titularidade alterada para ${recipient.nome}.`, 'ingresso', newNumber, operator);
+      await audit('transferencia_ingresso_painel', `${body.motivo || 'Transferência'}: titular anterior ${ticket.titular_anterior}; novo titular ${recipient.nome}; hash anterior invalidado e novo hash criado.`, 'ingresso', newNumber, operator);
       return send(response, 200, { ok: true, message: 'Transferência concluída. Hash antigo revogado e nova chave criada.', matrixSync, ticket: { id: newTicketRows[0].id, numero_ingresso: newNumber, titular: recipient.nome, cpf: recipient.cpf, setor: ticket.setor_nome, evento_id: ticket.evento_id, bilheteria_origem: ticket.bilheteria_origem || 'Troca Ticket' } });
     } catch (error) {
       try { await connection.rollback(); } catch {}
@@ -2166,9 +2288,16 @@ const server = http.createServer(async (request, response) => {
       const type = url.searchParams.get('type') || '';
       const limit = Math.min(Number(url.searchParams.get('limit') || 50), 200);
       const [logs] = await db.query(`
-        SELECT TOP (${limit}) id, ator_id AS actorId, ator_nome AS actorName, ator_tipo AS actorType,
-          acao AS action, descricao AS description, item_tipo AS itemType, item_id AS itemId, criado_em AS timestamp
-        FROM dbo.auditoria_admin
+        SELECT TOP (${limit}) a.id, a.ator_id AS actorId, a.ator_nome AS actorName, a.ator_tipo AS actorType,
+          a.acao AS action, a.descricao AS description, a.item_tipo AS itemType, a.item_id AS itemId, a.criado_em AS timestamp,
+          current_holder.nome AS currentHolder
+        FROM dbo.auditoria_admin a
+        OUTER APPLY (
+          SELECT TOP (1) u.nome
+          FROM dbo.ingressos_emitidos i
+          JOIN dbo.usuarios u ON u.id = i.comprador_id
+          WHERE a.item_tipo = 'ingresso' AND i.numero_ingresso = a.item_id
+        ) current_holder
         WHERE (? = '' OR ator_nome LIKE '%' + ? + '%')
           AND (? = '' OR ator_tipo = ?)
         ORDER BY criado_em DESC`, [actor, actor, type, type]);

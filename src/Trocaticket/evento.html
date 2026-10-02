@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="evento.css">
+  <script src="evento.js" defer></script>
+  <title>Detalhes do evento | TrocaTicket</title>
+</head>
+<body class="event-page">
+  <main class="event-detail-page" aria-live="polite">
+    <section class="event-hero" aria-label="Capa do evento">
+      <img id="event-cover" class="event-cover" src="imagens/logo troca ticket.png" alt="">
+      <div class="event-hero-shade"></div>
+      <a class="event-back" href="index.html#eventos" aria-label="Voltar para eventos">&#8592;</a>
+      <div class="event-quick-actions">
+        <button type="button" class="event-icon-button" id="event-share" aria-label="Compartilhar evento" title="Compartilhar evento">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M5 13v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6"/></svg>
+        </button>
+        <button type="button" class="event-icon-button" id="event-favorite" aria-label="Adicionar aos favoritos" aria-pressed="false" title="Favorito">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 8.8c0 5.3-8.8 10.4-8.8 10.4S3.2 14.1 3.2 8.8A4.8 4.8 0 0 1 12 6.1a4.8 4.8 0 0 1 8.8 2.7Z"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <section class="event-content">
+      <section class="event-info-card" aria-label="Informações práticas">
+        <div class="event-card-title">
+          <p class="event-kicker" id="event-kicker">CARREGANDO EVENTO</p>
+          <h1 id="event-name">Carregando...</h1>
+          <p class="event-lineup" id="event-lineup"></p>
+        </div>
+        <img class="venue-logo" src="imagens/logo troca ticket.png" alt="Logo do estabelecimento">
+        <div class="event-info-main">
+          <div class="event-info-row"><span class="event-info-icon">&#128197;</span><span id="event-date">Data a confirmar</span></div>
+          <div class="event-info-row"><span class="event-info-icon">&#128336;</span><span id="event-time">Abertura da casa a confirmar</span></div>
+          <button type="button" class="calendar-link" id="event-calendar">Adicionar ao calendário <span aria-hidden="true">+</span></button>
+        </div>
+        <div class="venue-details"><strong id="event-venue">Local a confirmar</strong><span id="event-address">Endereço a confirmar</span></div>
+      </section>
+
+      <section class="description-section">
+        <p class="section-label">Descrição do evento</p>
+        <div class="event-description" id="event-description">Carregando descrição...</div>
+      </section>
+
+    </section>
+
+    <div class="purchase-bar">
+      <button type="button" class="purchase-button" id="btn-confirm-purchase" disabled>COMPRAR</button>
+    </div>
+  </main>
+</body>
+</html>

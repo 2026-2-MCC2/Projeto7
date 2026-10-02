@@ -16,6 +16,7 @@ const state = {
     scanBusy: false,
     overlayTimer: null,
     toastTimer: null,
+    contingencyLookupTimer: null,
     sessionCount: 0,
     audit: []
 };
@@ -65,6 +66,10 @@ function formatCpf(value) {
     const digits = String(value || '').replace(/\D/g, '');
     return digits.length === 11 ? `${digits.slice(0, 3)}.***.**${digits.slice(7, 9)}-${digits.slice(9)}` : value || 'Não informado';
 }
+function formatFullCpf(value) {
+    const digits = String(value || '').replace(/\D/g, '');
+    return digits.length === 11 ? `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}` : value || 'Não informado';
+}
 function statusClass(status) {
     if (status === 'disponível') return 'available';
     if (status === 'utilizado') return 'used';
@@ -84,6 +89,15 @@ function normalizeProvider(ticket) {
     if (/\b(T360|TICKET360)[-_]/.test(codes)) return 'Ticket360';
     return ticket.integratorId ? `Parceira #${ticket.integratorId}` : 'Troca Ticket';
 }
+function normalizeCategory(value) {
+    const text = String(value || '').trim();
+    return text.replace(/meia[- ]entrada/gi, 'Meia Entrada') || 'Não identificado';
+}
+function normalizeLotName(value) {
+    const text = String(value || '').trim();
+    const number = text.match(/(?:lote\s*)?(\d+)\s*(?:º|°|o)?\s*lote?/i)?.[1];
+    return number ? `${number}º lote` : text || 'Não identificado';
+}
 function normalizeTicket(ticket) {
     const rawStatus = String(ticket.status || '').toLowerCase();
     const status = ['ativo', 'valido', 'disponível', 'disponivel'].includes(rawStatus) ? 'disponível'
@@ -94,15 +108,27 @@ function normalizeTicket(ticket) {
         id: String(ticket.id),
         numero_ingresso: ticket.numero_ingresso || String(ticket.id),
         externalCode: ticket.externalCode || ticket.codigo_original_bilheteria || ticket.numero_ingresso,
+        orderCode: ticket.orderCode || ticket.codigo_pedido || 'Não identificado',
         holder: ticket.ownerName || ticket.titular || 'Titular não informado',
         cpf: ticket.ownerCpf || ticket.cpf || '',
         eventId: ticket.eventId ?? ticket.evento_id,
         eventName: ticket.eventName || ticket.evento || 'Evento não informado',
         sector: ticket.sector || ticket.setor || 'Setor não informado',
+        lotName: normalizeLotName(ticket.lotName || ticket.lote || ticket.lote_nome),
+        ticketCategory: normalizeCategory(ticket.ticketCategory || ticket.modalidade || ticket.modalidade_ingresso || ticket.tipo_ingresso),
+        purchaseDate: ticket.purchaseDate || ticket.criado_em || null,
         provider: normalizeProvider(ticket),
         status,
-        checkinAt: ticket.checkinAt || ticket.utilizado_em || null
+        checkinAt: ticket.checkinAt || ticket.utilizado_em || null,
+        checkinOperator: ticket.checkinOperator || ticket.operador || (status === 'utilizado' ? state.operator?.nome || state.operator?.name || '' : ''),
+        emissionMethod: ticket.emissionMethod || (ticket.integratorId ? 'Emissão por bilheteria parceira' : 'Emissão própria')
     };
+}
+function formatLotCategory(ticket) {
+    const lot = String(ticket.lotName || ticket.lote || ticket.lote_nome || ticket.lot || '').trim();
+    const modality = String(ticket.ticketType || ticket.modalidade || ticket.modalidade_ingresso || ticket.tipo_ingresso || '').trim();
+    if (!lot && !modality) return 'não identificado';
+    return `${lot || 'não identificado'} - ${modality || 'não identificado'}`;
 }
 
 function findDemoTicketMatches(value) {
@@ -144,6 +170,7 @@ function renderGateSummary() {
 function renderDemoTicketOptions() {
     const input = byId('demo-ticket-search');
     const options = byId('demo-ticket-options');
+    if (!input || !options) return;
     const selectedTicket = state.tickets.find(ticket => ticket.id === state.selectedDemoTicketId);
     if (selectedTicket && !state.demoOptionsOpen) {
         options.hidden = true;
@@ -166,7 +193,15 @@ async function loadPlatformData({ preserveSelection = true } = {}) {
     const previousProviderEvent = byId('provider-event').value;
     const eventData = await apiRequest('/api/events');
     let ticketData = { tickets: [] };
-    if (canOperate()) ticketData = await apiRequest('/api/admin/tickets');
+    let ticketLoadError = null;
+    if (canOperate()) {
+        try {
+            ticketData = await apiRequest('/api/admin/tickets');
+        } catch (error) {
+            ticketLoadError = error;
+            console.warn('[bilheteria] Não foi possível carregar ingressos protegidos:', error.message);
+        }
+    }
     state.events = (eventData.events || []).map(event => ({ ...event, id: String(event.id), sectors: event.sectors || [] }));
     state.tickets = (ticketData.tickets || []).map(normalizeTicket);
     renderEvents();
@@ -175,6 +210,7 @@ async function loadPlatformData({ preserveSelection = true } = {}) {
     byId('provider-event').value = previousProviderEvent === '*' || getEvent(previousProviderEvent) ? previousProviderEvent : '*';
     renderDemoTicketOptions();
     renderProviderTable();
+    if (ticketLoadError) showToast(`Ingressos indisponíveis: ${ticketLoadError.message}`);
 }
 function updateClock() {
     byId('current-time').textContent = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium', timeStyle: 'medium' }).format(new Date());
@@ -253,7 +289,8 @@ function showFeedback(result) {
     state.overlayTimer = window.setTimeout(() => {
         overlay.hidden = true;
         state.scanBusy = false;
-        if (result.kind === 'success') byId('token-input').focus({ preventScroll: true });
+        const tokenInput = byId('token-input');
+        if (result.kind === 'success' && tokenInput) tokenInput.focus({ preventScroll: true });
     }, 2000);
 }
 async function processPayload(payload) {
@@ -265,8 +302,10 @@ async function processPayload(payload) {
     const result = await validatePayload(payload);
     showFeedback(result);
     if (result.kind === 'success') {
-        byId('token-input').value = '';
-        byId('manual-token-details').open = true;
+        const tokenInput = byId('token-input');
+        if (tokenInput) tokenInput.value = '';
+        const manualTokenDetails = byId('manual-token-details');
+        if (manualTokenDetails) manualTokenDetails.open = true;
         loadPlatformData().catch(error => console.error('[bilheteria] Atualização após check-in falhou:', error));
         loadAudit();
     }
@@ -382,26 +421,53 @@ async function stopScanner() {
     byId('toggle-scanner').classList.remove('is-running');
 }
 
-function renderSearchResults(query = '') {
-    const normalized = query.replace(/\D/g, '');
-    const raw = query.trim().toLowerCase();
-    const shouldShowResults = Boolean(raw || state.supportStatusFilter !== '*');
-    const results = shouldShowResults ? state.tickets.filter(ticket => {
-        const statusMatches = state.supportStatusFilter === '*' || ticket.status === state.supportStatusFilter;
-        const queryMatches = !raw || ticket.numero_ingresso.toLowerCase().includes(raw) || ticket.id.toLowerCase().includes(raw)
-            || String(ticket.holder).toLowerCase().includes(raw)
-            || (normalized.length >= 2 && String(ticket.cpf).replace(/\D/g, '').includes(normalized));
-        return statusMatches && queryMatches;
-    }).slice(0, 50) : [];
-    byId('search-results').innerHTML = results.length ? results.map(ticket => `<button class="search-result ${ticket.id === state.selectedTicketId ? 'is-selected' : ''}" type="button" data-ticket-id="${escapeHTML(ticket.id)}"><span><strong>${escapeHTML(ticket.numero_ingresso)} · ${escapeHTML(ticket.holder)}</strong><small>${escapeHTML(ticket.sector)} · ${escapeHTML(ticket.eventName)}</small></span><span class="table-status ${statusClass(ticket.status)}">${escapeHTML(statusLabel(ticket.status))}</span></button>`).join('') : shouldShowResults ? '<p class="field-hint">Nenhum ingresso encontrado para esta busca e filtro.</p>' : '';
-    if (results.length === 1 && !state.selectedTicketId) selectSupportTicket(results[0].id);
+function renderContingencyTicket(ticket) {
+    const container = byId('contingency-ticket-detail');
+    if (!container) return;
+    state.selectedTicketId = ticket ? String(ticket.id) : null;
+    if (!ticket) {
+        container.innerHTML = '<div class="empty-state"><span aria-hidden="true">▤</span><strong>Nenhum ingresso consultado</strong><p>Digite, cole ou selecione um ingresso para consultar os dados em tempo real.</p></div>';
+        return;
+    }
+    const manualForm = ticket.status === 'disponível' ? `<form class="manual-approval" id="manual-approval"><label for="manual-reason">Motivo da liberação<select id="manual-reason" required><option value="Tela do telemóvel danificada">Tela do telemóvel danificada</option><option value="Problema de leitura na catraca">Problema de leitura na catraca</option><option value="Celular descarregado - documento físico conferido">Celular descarregado - documento físico conferido</option></select></label><button class="button button-primary" type="submit">Aprovar check-in manual</button><p class="manual-approval-note">A liberação será gravada atomicamente, com o operador responsável e na trilha de auditoria.</p></form>` : `<p class="security-note">${ticket.status === 'utilizado' ? `Ingresso consumido em ${escapeHTML(formatDate(ticket.checkinAt))}.` : 'Este ingresso não está disponível para check-in.'}</p>`;
+    container.innerHTML = `<h3>Detalhes do ingresso</h3><dl class="ticket-data"><div><dt>Titular atual</dt><dd>${escapeHTML(ticket.holder)}</dd></div><div><dt>CPF</dt><dd>${escapeHTML(formatFullCpf(ticket.cpf))}</dd></div><div><dt>Código do bilhete</dt><dd>${escapeHTML(ticket.numero_ingresso)}</dd></div><div><dt>Setor</dt><dd>${escapeHTML(ticket.sector)}</dd></div><div><dt>Evento</dt><dd>${escapeHTML(ticket.eventName)}</dd></div><div><dt>Status atual</dt><dd><span class="table-status ${statusClass(ticket.status)}">${escapeHTML(statusLabel(ticket.status))}</span></dd></div></dl>${manualForm}`;
 }
-function selectSupportTicket(ticketId) {
-    state.selectedTicketId = String(ticketId);
-    const ticket = getTicket(ticketId);
-    if (!ticket) return;
-    byId('ticket-detail').innerHTML = `<h3>Dados do ingresso</h3><dl class="ticket-data"><div><dt>Titular</dt><dd>${escapeHTML(ticket.holder)}</dd></div><div><dt>CPF</dt><dd>${escapeHTML(formatCpf(ticket.cpf))}</dd></div><div><dt>Código</dt><dd>${escapeHTML(ticket.numero_ingresso)}</dd></div><div><dt>Setor</dt><dd>${escapeHTML(ticket.sector)}</dd></div><div><dt>Evento</dt><dd>${escapeHTML(ticket.eventName)}</dd></div><div><dt>Bilheteria de origem</dt><dd>${escapeHTML(ticket.provider)}</dd></div><div><dt>Status atual</dt><dd><span class="table-status ${statusClass(ticket.status)}">${escapeHTML(statusLabel(ticket.status))}</span></dd></div><div><dt>Check-in anterior</dt><dd>${escapeHTML(formatDate(ticket.checkinAt))}</dd></div></dl>${ticket.status === 'disponível' ? `<form class="manual-approval" id="manual-approval"><label for="manual-reason">Motivo da liberação</label><select id="manual-reason" required><option value="Tela do aparelho danificada">Tela do aparelho danificada</option><option value="Celular descarregado - documento físico conferido">Celular descarregado - documento físico conferido</option><option value="Brilho insuficiente / erro de leitura">Brilho insuficiente / erro de leitura</option></select><button class="button button-primary" type="submit">Aprovar check-in manual</button><p class="manual-approval-note">A liberação será gravada no banco e na auditoria da plataforma.</p></form>` : `<p class="security-note">${ticket.status === 'utilizado' ? `Ingresso consumido em ${escapeHTML(formatDate(ticket.checkinAt))}.` : 'Este ingresso não está disponível para check-in.'}</p>`}`;
+
+function findContingencyMatches(value) {
+    const query = String(value || '').trim().toLowerCase();
+    if (!query) return [];
+    const digits = query.replace(/\D/g, '');
+    return state.tickets.filter(ticket => String(ticket.numero_ingresso).toLowerCase().includes(query)
+        || String(ticket.id).toLowerCase().includes(query)
+        || String(ticket.holder).toLowerCase().includes(query)
+        || (digits.length >= 3 && String(ticket.cpf || '').replace(/\D/g, '').includes(digits)))
+        .slice(0, 20);
 }
+
+function renderContingencyOptions() {
+    const input = byId('contingency-search');
+    const options = byId('contingency-options');
+    if (!input || !options) return;
+    const matches = findContingencyMatches(input.value);
+    options.innerHTML = matches.length
+        ? matches.map(ticket => `<button class="combobox-option" type="button" role="option" aria-selected="false" data-contingency-ticket-id="${escapeHTML(ticket.id)}"><strong>${escapeHTML(ticket.holder)}</strong><small>CPF ${escapeHTML(formatCpf(ticket.cpf))} · ${escapeHTML(ticket.numero_ingresso)} · ${escapeHTML(ticket.eventName)} · ${escapeHTML(statusLabel(ticket.status))}</small></button>`).join('')
+        : input.value.trim() ? '<p class="combobox-empty">Nenhum ingresso corresponde ao CPF ou código informado.</p>' : '';
+    options.hidden = !input.value.trim() || !matches.length;
+    input.setAttribute('aria-expanded', String(Boolean(input.value.trim()) && matches.length > 0));
+}
+
+function lookupContingencyTicket(value) {
+    const query = String(value || '').trim();
+    if (!query) {
+        renderContingencyTicket(null);
+        renderContingencyOptions();
+        return;
+    }
+    const matches = findContingencyMatches(query);
+    renderContingencyTicket(matches.length === 1 ? matches[0] : null);
+    renderContingencyOptions();
+}
+
 async function approveManualCheckin(event) {
     if (event.target.id !== 'manual-approval') return;
     event.preventDefault();
@@ -411,30 +477,67 @@ async function approveManualCheckin(event) {
         const result = await apiRequest(`/api/bilheteria/tickets/${encodeURIComponent(ticket.id)}/checkin-manual`, { method: 'POST', body: JSON.stringify({ motivo: byId('manual-reason').value }) });
         await loadPlatformData();
         await loadAudit();
-        selectSupportTicket(ticket.id);
+        renderContingencyTicket(getTicket(ticket.id));
         showToast(result.message);
     } catch (error) { showToast(error.message); }
 }
 
+function populateProviderFilters(tickets) {
+    const options = (id, values, emptyLabel) => {
+        const select = byId(id);
+        if (!select) return;
+        const selected = select.value || '*';
+        const unique = [...new Set(values.filter(value => value && !/^(?:setor\s+)?não\s+(?:informado|identificado)$/i.test(String(value).trim()) && !/lote\s+legal/i.test(String(value))))].sort((first, second) => String(first).localeCompare(String(second), 'pt-BR'));
+        select.innerHTML = `<option value="*">${emptyLabel}</option>` + unique.map(value => `<option value="${escapeHTML(value)}">${escapeHTML(value)}</option>`).join('');
+        select.value = unique.includes(selected) ? selected : '*';
+    };
+    const selectedEvent = byId('provider-filter-event')?.value || '*';
+    const configuredEvents = (state.events || []).filter(event => selectedEvent === '*' || event.name === selectedEvent);
+    const scopedTickets = selectedEvent === '*' ? tickets : tickets.filter(ticket => ticket.eventName === selectedEvent);
+    const configuredSectors = configuredEvents.flatMap(event => (event.sectors || []).map(sector => sector.name || sector.nome));
+    const configuredLots = configuredEvents.flatMap(event => (event.lots || []).map(lot => normalizeLotName(lot.name || lot.nome)));
+    const configuredCategories = configuredEvents.flatMap(event => (event.lots || []).flatMap(lot => [lot.ticketType, Number(lot.halfPrice) > 0 || Number(lot.halfAvailable) > 0 ? 'Meia Entrada' : '', ...(Array.isArray(lot.modalities) ? lot.modalities.map(modality => normalizeCategory(modality.nome || modality.name)) : [])]));
+    options('provider-filter-event', [...tickets.map(ticket => ticket.eventName), ...(state.events || []).map(event => event.name)], 'Todos os eventos');
+    options('provider-filter-sector', [...scopedTickets.map(ticket => ticket.sector), ...configuredSectors], 'Todos os setores');
+    options('provider-filter-lot', [...scopedTickets.map(ticket => ticket.lotName), ...configuredLots], 'Todos os lotes');
+    options('provider-filter-category', [...scopedTickets.map(ticket => ticket.ticketCategory), ...configuredCategories.map(normalizeCategory)], 'Todas as categorias');
+    options('provider-filter-operator', scopedTickets.map(ticket => ticket.checkinOperator || 'Não informado'), 'Todos os porteiros');
+    options('provider-filter-reason', scopedTickets.map(ticket => ticket.checkinReason || 'Não informado'), 'Todas as causas');
+}
+
 function renderProviderTable() {
-    const selectedEvent = byId('provider-event').value || '*';
+    const selectedEvent = byId('provider-filter-event').value || '*';
+    const selectedSector = byId('provider-filter-sector').value || '*';
+    const selectedLot = byId('provider-filter-lot').value || '*';
+    const selectedCategory = byId('provider-filter-category').value || '*';
     const selectedStatus = byId('provider-status-filter').value || '*';
     const selectedOrigin = byId('provider-origin-filter').value || '*';
+    const selectedOperator = byId('provider-filter-operator').value || '*';
+    const selectedReason = byId('provider-filter-reason').value || '*';
+    const globalQuery = String(byId('provider-global-search')?.value || '').trim().toLowerCase();
     const providerTickets = state.tickets.filter(ticket => ticket.provider === state.provider);
-    const visibleTickets = providerTickets.filter(ticket => (selectedEvent === '*' || String(ticket.eventId) === selectedEvent)
+    populateProviderFilters(providerTickets);
+    const visibleTickets = providerTickets.filter(ticket => (selectedEvent === '*' || ticket.eventName === selectedEvent)
+        && (selectedSector === '*' || ticket.sector === selectedSector)
+        && (selectedLot === '*' || ticket.lotName === selectedLot)
+        && (selectedCategory === '*' || ticket.ticketCategory === selectedCategory)
         && (selectedStatus === '*' || ticket.status === selectedStatus)
-        && (selectedOrigin === '*' || (selectedOrigin === 'own' ? ticket.provider === 'Troca Ticket' : ticket.provider !== 'Troca Ticket')));
-    byId('provider-caption').textContent = `${visibleTickets.length} de ${providerTickets.length} · ${state.provider} · ${selectedEvent === '*' ? 'todos os eventos' : getEvent(selectedEvent)?.name || ''}`;
+        && (selectedOrigin === '*' || (selectedOrigin === 'own' ? ticket.provider === 'Troca Ticket' : ticket.provider !== 'Troca Ticket'))
+        && (selectedOperator === '*' || (ticket.checkinOperator || 'Não informado') === selectedOperator)
+        && (selectedReason === '*' || (ticket.checkinReason || 'Não informado') === selectedReason)
+        && (!globalQuery || Object.values(ticket).join(' ').toLowerCase().includes(globalQuery)));
+    byId('provider-caption').textContent = `${visibleTickets.length} de ${providerTickets.length} · ${state.provider} · ${selectedEvent === '*' ? 'todos os eventos' : selectedEvent}`;
     byId('metric-ingested').textContent = String(providerTickets.length);
     byId('metric-checkins').textContent = String(providerTickets.filter(ticket => ticket.status === 'utilizado').length);
     byId('metric-transferred').textContent = String(providerTickets.filter(ticket => Number(ticket.versao_titularidade || 1) > 1).length);
-    byId('provider-ticket-rows').innerHTML = visibleTickets.length ? visibleTickets.map(ticket => `<tr><td>${escapeHTML(ticket.eventName)}</td><td>${escapeHTML(ticket.externalCode)}</td><td>${escapeHTML(ticket.numero_ingresso)}</td><td>${escapeHTML(ticket.holder)}</td><td>${escapeHTML(formatCpf(ticket.cpf))}</td><td>${escapeHTML(ticket.sector)}</td><td>${escapeHTML(ticket.provider)}</td><td><span class="table-status ${statusClass(ticket.status)}">${escapeHTML(statusLabel(ticket.status))}</span></td><td><button class="button button-small button-secondary" type="button" data-show-payload="${escapeHTML(ticket.id)}" ${ticket.status !== 'disponível' || !canOperate() ? 'disabled' : ''}>Ver hash ativo / payload QR</button><output class="active-payload" data-payload-for="${escapeHTML(ticket.id)}" aria-live="polite"></output></td></tr>`).join('') : `<tr><td class="table-empty" colspan="9">${canOperate() ? 'Nenhum ingresso real corresponde aos filtros selecionados.' : 'Entre com uma conta da equipe para acessar ingressos e dados pessoais.'}</td></tr>`;
+    byId('provider-ticket-rows').innerHTML = visibleTickets.length ? visibleTickets.map(ticket => `<tr><td>${escapeHTML(ticket.eventName)}</td><td>${escapeHTML(ticket.externalCode)}</td><td>${escapeHTML(ticket.orderCode)}</td><td>${escapeHTML(ticket.numero_ingresso)}</td><td>${escapeHTML(ticket.holder)}</td><td>${escapeHTML(formatCpf(ticket.cpf))}</td><td>${escapeHTML(ticket.sector)}</td><td>${escapeHTML(ticket.lotName)}</td><td>${escapeHTML(ticket.ticketCategory)}</td><td>${escapeHTML(formatDate(ticket.purchaseDate))}</td><td>${escapeHTML(ticket.provider)}</td><td><span class="table-status ${statusClass(ticket.status)}">${escapeHTML(statusLabel(ticket.status))}</span></td><td>${escapeHTML(formatDate(ticket.checkinAt))}</td><td>${escapeHTML(ticket.checkinOperator || 'Não informado')}</td><td>${escapeHTML(ticket.checkinReason || 'Não informado')}</td></tr>`).join('') : `<tr><td class="table-empty" colspan="15">${canOperate() ? 'Nenhum ingresso corresponde aos filtros selecionados.' : 'Entre com uma conta da equipe para acessar ingressos e dados pessoais.'}</td></tr>`;
     const batchStatus = byId('batch-status');
     if (batchStatus) {
         batchStatus.textContent = `Banco atualizado · ${new Date().toLocaleTimeString('pt-BR')}`;
         batchStatus.className = 'status-chip status-success';
     }
 }
+
 async function refreshProviderData() {
     try {
         await loadPlatformData();
@@ -453,29 +556,12 @@ function renderAudit() {
         return text.includes(query) || [...relatedTicketIds].some(ticketId => text.includes(ticketId));
     });
     byId('audit-rows').innerHTML = logs.length ? logs.map(entry => {
-        const transfer = /transferencia_ingresso_painel/i.test(entry.action || '');
-        return `<tr><td><span class="cell-main">${escapeHTML(entry.itemId || 'Ingresso')}</span><span class="cell-sub">${escapeHTML(entry.description || entry.action || '')}</span></td><td>Consultar ingresso</td><td>${escapeHTML(formatDate(entry.timestamp))}</td><td>${transfer ? '<span class="table-status revoked">Hash anterior revogado</span>' : '—'}</td><td>${transfer ? '<span class="table-status used">Matriz não configurada</span>' : 'Não aplicável'}</td></tr>`;
-    }).join('') : `<tr><td class="table-empty" colspan="5">${query ? 'Nenhum log corresponde ao ID ou CPF pesquisado.' : 'Nenhuma movimentação de bilheteria encontrada na auditoria.'}</td></tr>`;
-}
-async function transferTicket(event) {
-    event.preventDefault();
-    const message = byId('transfer-message');
-    message.textContent = '';
-    try {
-        const result = await apiRequest('/api/bilheteria/transferencias', {
-            method: 'POST',
-            body: JSON.stringify({ ticket_id: byId('transfer-ticket-id').value.trim(), motivo: byId('transfer-reason').value, novo_titular_nome: byId('new-holder-name').value.trim(), novo_titular_contato: byId('new-holder-contact').value.trim() })
-        });
-        await loadPlatformData();
-        await loadAudit();
-        const matrixMessage = result.matrixSync === 'not_configured' ? ' A API da bilheteria matriz ainda não está configurada.' : '';
-        message.textContent = `${result.message} Novo código: ${result.ticket.numero_ingresso}.${matrixMessage}`;
-        message.style.color = 'var(--green)';
-        showToast('Transferência gravada e hash anterior revogado.');
-    } catch (error) {
-        message.textContent = error.message;
-        message.style.color = 'var(--red)';
-    }
+        const transfer = /transferencia/i.test(`${entry.action || ''} ${entry.description || ''}`);
+        const stateLabel = transfer ? 'Concluída' : /aceit|conclu/i.test(entry.description || '') ? 'Concluída' : /revog|cancel/i.test(entry.description || '') ? 'Revogada' : 'Registro operacional';
+        const originHolder = entry.originHolder || entry.description?.match(/titular anterior ([^;]+)/i)?.[1] || 'Consultar auditoria';
+        const recipientHolder = entry.recipientHolder || entry.currentHolder || entry.description?.match(/novo titular ([^;]+)/i)?.[1] || 'Consultar auditoria';
+        return `<tr><td>${escapeHTML(entry.itemId || 'Ingresso')}</td><td>${escapeHTML(originHolder)}</td><td>${escapeHTML(recipientHolder)}</td><td><span class="table-status ${stateLabel === 'Concluída' ? 'available' : stateLabel === 'Revogada' ? 'revoked' : 'used'}">${stateLabel}</span></td><td>${transfer ? '<span class="security-note">Hash anterior invalidado; novo hash gerado atomicamente.</span>' : '—'}</td><td>${escapeHTML(formatDate(entry.timestamp))}</td></tr>`;
+    }).join('') : `<tr><td class="table-empty" colspan="6">${query ? 'Nenhum log corresponde ao ID ou CPF pesquisado.' : 'Nenhuma movimentação de bilheteria encontrada na auditoria.'}</td></tr>`;
 }
 async function showActivePayload(event) {
     const button = event.target.closest('[data-show-payload]');
@@ -494,7 +580,15 @@ function bindEvents() {
         $$('.tab-button').forEach(tab => { const active = tab === button; tab.classList.toggle('is-active', active); tab.setAttribute('aria-selected', String(active)); });
         $$('[data-panel]').forEach(panel => { panel.hidden = panel.dataset.panel !== button.dataset.tab; panel.classList.toggle('is-active', !panel.hidden); });
     }));
-    byId('gate-event').addEventListener('change', () => { state.selectedDemoTicketId = null; state.demoOptionsOpen = false; byId('demo-ticket-search').value = ''; renderGateSectors(); renderDemoTicketOptions(); updateScannerAvailability(); });
+    byId('gate-event').addEventListener('change', () => {
+        state.selectedDemoTicketId = null;
+        state.demoOptionsOpen = false;
+        const demoTicketSearch = byId('demo-ticket-search');
+        if (demoTicketSearch) demoTicketSearch.value = '';
+        renderGateSectors();
+        renderDemoTicketOptions();
+        updateScannerAvailability();
+    });
     byId('gate-sector').addEventListener('change', renderGateSummary);
     byId('toggle-scanner').addEventListener('click', () => state.scannerRunning ? stopScanner() : startScanner());
     byId('camera-select').addEventListener('change', event => switchScannerCamera(event.target.value));
@@ -503,76 +597,55 @@ function bindEvents() {
         showToast(cameras.length ? `${cameras.length} câmera(s) encontrada(s).` : 'Nenhuma câmera encontrada. Confira as permissões do navegador.');
     });
     byId('torch-toggle').addEventListener('click', toggleTorch);
-    byId('token-form').addEventListener('submit', event => { event.preventDefault(); processPayload(byId('token-input').value); });
-    byId('demo-ticket-search').addEventListener('focus', () => {
-        if (state.selectedDemoTicketId) return;
-        state.demoOptionsOpen = true;
-        renderDemoTicketOptions();
-    });
-    byId('demo-ticket-search').addEventListener('input', event => {
-        state.selectedDemoTicketId = null;
-        state.demoOptionsOpen = true;
-        renderDemoTicketOptions();
-    });
-    byId('demo-ticket-search').addEventListener('keydown', event => {
-        if (event.key === 'Escape') { state.demoOptionsOpen = false; renderDemoTicketOptions(); }
-        if (event.key === 'Enter') {
-            const firstOption = byId('demo-ticket-options').querySelector('[data-demo-ticket-id]');
-            if (firstOption) { event.preventDefault(); firstOption.click(); }
-        }
-    });
-    byId('demo-ticket-options').addEventListener('click', event => {
-        const option = event.target.closest('[data-demo-ticket-id]');
-        if (!option) return;
-        const ticket = getTicket(option.dataset.demoTicketId);
-        if (!ticket) return;
-        state.selectedDemoTicketId = ticket.id;
-        state.demoOptionsOpen = false;
-        if (ticket.eventId && String(ticket.eventId) !== String(byId('gate-event').value)) {
-            byId('gate-event').value = String(ticket.eventId);
-            renderGateSectors();
-            updateScannerAvailability();
-        }
-        byId('demo-ticket-search').value = `${ticket.holder} · CPF ${formatCpf(ticket.cpf)} · ${ticket.numero_ingresso}`;
-        renderDemoTicketOptions();
-        byId('generate-token').disabled = !canOperate() || ticket.status !== 'disponível';
-        if (ticket.status === 'disponível') byId('generate-token').focus();
-    });
-    byId('generate-token').addEventListener('click', async () => {
-        const ticket = getTicket(state.selectedDemoTicketId);
-        if (!ticket || ticket.status !== 'disponível') return showToast('Selecione um ingresso disponível para gerar o payload atual.');
-        try { byId('token-input').value = (await requestActivePayload(ticket)).payload; }
-        catch (error) { showToast(error.message); }
-    });
-    byId('ticket-search').addEventListener('input', event => {
-        state.selectedTicketId = null;
-        renderSearchResults(event.target.value);
-        if (!event.target.value.trim()) byId('ticket-detail').innerHTML = '<div class="empty-state"><span aria-hidden="true">▤</span><strong>Nenhum ingresso selecionado</strong><p>Busque por documento ou código para consultar os dados.</p></div>';
-    });
-    byId('search-results').addEventListener('click', event => { const button = event.target.closest('[data-ticket-id]'); if (button) selectSupportTicket(button.dataset.ticketId); });
-    byId('ticket-detail').addEventListener('submit', approveManualCheckin);
-    $$('.filter-chip[data-support-status]').forEach(button => button.addEventListener('click', () => {
-        state.supportStatusFilter = button.dataset.supportStatus;
-        $$('.filter-chip[data-support-status]').forEach(filter => {
-            const active = filter === button;
-            filter.classList.toggle('is-active', active);
-            filter.setAttribute('aria-pressed', String(active));
+    const contingencySearch = byId('contingency-search');
+    const contingencyOptions = byId('contingency-options');
+    if (contingencySearch) {
+        contingencySearch.addEventListener('focus', () => renderContingencyOptions());
+        contingencySearch.addEventListener('input', event => {
+            window.clearTimeout(state.contingencyLookupTimer);
+            state.contingencyLookupTimer = window.setTimeout(() => lookupContingencyTicket(event.target.value), 250);
         });
-        renderSearchResults(byId('ticket-search').value);
-    }));
+        contingencySearch.addEventListener('keydown', event => {
+            if (event.key === 'Escape') {
+                const options = byId('contingency-options');
+                if (options) options.hidden = true;
+                contingencySearch.setAttribute('aria-expanded', 'false');
+            }
+            if (event.key === 'Enter') {
+                const firstOption = byId('contingency-options')?.querySelector('[data-contingency-ticket-id]');
+                if (firstOption) { event.preventDefault(); firstOption.click(); }
+            }
+        });
+    }
+    if (contingencyOptions) {
+        contingencyOptions.addEventListener('click', event => {
+            const option = event.target.closest('[data-contingency-ticket-id]');
+            if (!option) return;
+            const ticket = getTicket(option.dataset.contingencyTicketId);
+            if (!ticket) return;
+            const searchInput = byId('contingency-search');
+            if (searchInput) {
+                searchInput.value = `${ticket.holder} · CPF ${formatCpf(ticket.cpf)} · ${ticket.numero_ingresso}`;
+                searchInput.setAttribute('aria-expanded', 'false');
+            }
+            renderContingencyTicket(ticket);
+            renderContingencyOptions();
+        });
+    }
+    const contingencyTicketDetail = byId('contingency-ticket-detail');
+    if (contingencyTicketDetail) contingencyTicketDetail.addEventListener('submit', approveManualCheckin);
     $$('.integrator-pill').forEach(button => button.addEventListener('click', () => {
         state.provider = button.dataset.provider;
         $$('.integrator-pill').forEach(pill => pill.classList.toggle('is-active', pill === button));
         renderProviderTable();
     }));
-    byId('provider-event').addEventListener('change', renderProviderTable);
+    ['provider-filter-event', 'provider-filter-sector', 'provider-filter-lot', 'provider-filter-category', 'provider-filter-operator', 'provider-filter-reason'].forEach(id => byId(id).addEventListener('change', renderProviderTable));
     byId('provider-status-filter').addEventListener('change', renderProviderTable);
     byId('provider-origin-filter').addEventListener('change', renderProviderTable);
+    byId('provider-global-search').addEventListener('input', renderProviderTable);
     byId('sync-provider').addEventListener('click', refreshProviderData);
-    byId('sync-provider-table').addEventListener('click', refreshProviderData);
     byId('provider-ticket-rows').addEventListener('click', showActivePayload);
     byId('audit-search').addEventListener('input', renderAudit);
-    byId('transfer-form').addEventListener('submit', transferTicket);
 }
 
 async function initialize() {
@@ -581,10 +654,8 @@ async function initialize() {
     byId('operator-name').textContent = hasOperatorAccess ? (state.operator.nome || state.operator.name || 'Equipe de Portaria') : 'Acesso restrito';
     byId('operator-status').textContent = hasOperatorAccess ? `Perfil ${state.operator.tipo}` : 'Entre com uma conta da equipe';
     byId('toggle-scanner').disabled = !byId('gate-event').value;
-    byId('token-input').disabled = !hasOperatorAccess;
-    byId('token-form').querySelector('button[type="submit"]').disabled = !hasOperatorAccess;
-    byId('generate-token').disabled = !hasOperatorAccess;
-    byId('transfer-form').querySelector('button[type="submit"]').disabled = !hasOperatorAccess;
+    const contingencySearch = byId('contingency-search');
+    if (contingencySearch) contingencySearch.disabled = !hasOperatorAccess;
     updateClock();
     window.setInterval(updateClock, 1000);
     bindEvents();
@@ -595,8 +666,8 @@ async function initialize() {
         console.error('[bilheteria] Erro ao carregar dados da plataforma:', error);
         byId('gate-event').innerHTML = makeOption('', 'Não foi possível carregar eventos');
         byId('gate-sector').innerHTML = makeOption('*', 'Todas as Áreas / Portaria Geral');
-        byId('provider-ticket-rows').innerHTML = `<tr><td class="table-empty" colspan="9">${escapeHTML(error.message)}</td></tr>`;
-        showToast('Falha ao conectar com o banco Troca Ticket.');
+        byId('provider-ticket-rows').innerHTML = `<tr><td class="table-empty" colspan="13">${escapeHTML(error.message)}</td></tr>`;
+        showToast(`Não foi possível carregar o painel: ${error.message || 'erro desconhecido'}`);
     }
 }
 

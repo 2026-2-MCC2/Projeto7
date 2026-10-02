@@ -117,6 +117,32 @@ document.addEventListener('DOMContentLoaded', () => {
     return parsed.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).toUpperCase();
   }
 
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, character => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    }[character]));
+  }
+
+  function formatEventDateTime(dateStr) {
+    const parsed = new Date(dateStr);
+    if (Number.isNaN(parsed.getTime())) return { date: 'Data a confirmar', time: 'Horário a confirmar' };
+    return {
+      date: parsed.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' }),
+      time: parsed.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    };
+  }
+
+  function formatDescription(value, event) {
+    const description = String(value || '').trim() || `Uma experiência especial no ${event.name || 'evento'}. Ingressos digitais, acesso seguro e titularidade protegida pela TrocaTicket.`;
+    return escapeHtml(description)
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\r?\n/g, '<br>');
+  }
+
   function renderCarousel() {
     if (!carouselContainer || !carouselEvents.length) return;
 
@@ -291,43 +317,125 @@ document.addEventListener('DOMContentLoaded', () => {
   const eventDetail = document.getElementById('event-detail');
 
   function openEventModal(ev) {
+    if (!ev || !ev.id) return;
+    window.location.href = `evento.html?id=${encodeURIComponent(ev.id)}`;
+    return;
+
+    /*
+     * Mantido abaixo temporariamente para preservar o markup antigo durante a transição.
+     * A página de detalhes agora é renderizada por evento.html.
+     */
     if (!eventModal || !eventDetail) return;
     const eventSectors = Array.isArray(ev.sectors) ? ev.sectors : [];
+    const eventDateTime = formatEventDateTime(ev.date);
+    const eventImage = escapeHtml(resolveEventImage(ev));
+    const eventName = escapeHtml(ev.name || 'Evento');
+    const eventLocation = escapeHtml(ev.location || 'Local a confirmar');
+    const eventArtist = escapeHtml(ev.artista || 'Line-up a confirmar');
+    const isFavorite = localStorage.getItem(`trocaticket-favorite-${ev.id}`) === 'true';
     const sectorOptions = eventSectors.length
-      ? eventSectors.map(sector => `<option value="${String(sector.name || sector.nome || '').replace(/[&<>"']/g, '')}">${String(sector.name || sector.nome || '')}</option>`).join('')
+      ? eventSectors.map(sector => {
+        const sectorName = String(sector.name || sector.nome || '');
+        return `<option value="${escapeHtml(sectorName)}">${escapeHtml(sectorName)}</option>`;
+      }).join('')
       : '<option value="">Setores ainda não cadastrados</option>';
 
     eventDetail.innerHTML = `
-      <div style="padding: 28px; text-align: left;">
-        <img src="${resolveEventImage(ev)}" alt="${ev.name}" style="width: 100%; max-height: 260px; object-fit: cover; border-radius: 10px; margin-bottom: 16px;">
-        <p class="eyebrow" style="margin-bottom: 6px;">${formatShortDate(ev.date)} · ${ev.location || 'Local a definir'}</p>
-        <h2 style="font-size: 26px; margin: 0 0 6px 0; color: #141a2c;">${ev.name}</h2>
-        ${ev.artista ? `<h4 style="margin: 0 0 12px 0; color: #5956e9;">Atração: ${ev.artista}</h4>` : ''}
-        <p style="color: #6c7280; font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
-          Ingresso 100% digital com reemissão nominal única e garantia antifraude TrocaTicket.
-        </p>
-        <label for="purchase-sector" style="display: grid; gap: 8px; margin-bottom: 18px; color: #6c7280; font-size: 13px;">
-          Setor do ingresso
-          <select id="purchase-sector" ${eventSectors.length ? 'required' : 'disabled'} style="height: 44px; border: 1px solid #cbd0da; border-radius: 5px; padding: 0 12px; background: #fff; color: #141a2c;">
-            ${sectorOptions}
-          </select>
-        </label>
-        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e5e7eb; padding-top: 16px; margin-bottom: 16px;">
-          <span style="font-size: 14px; color: #6c7280;">Valor unitário</span>
-          <strong style="font-size: 24px; color: #141a2c;">R$ ${Number(ev.price || 0).toFixed(2).replace('.', ',')}</strong>
+      <div class="event-detail-shell">
+        <section class="event-detail-hero">
+          <img class="event-detail-cover" src="${eventImage}" alt="Capa do evento ${eventName}">
+          <div class="event-detail-hero-shade"></div>
+          <div class="event-detail-quick-actions">
+            <button type="button" class="event-icon-button" id="event-share" aria-label="Partilhar evento" title="Partilhar evento">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M5 13v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6"/></svg>
+            </button>
+            <button type="button" class="event-icon-button ${isFavorite ? 'is-favorite' : ''}" id="event-favorite" aria-label="${isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}" aria-pressed="${isFavorite}" title="Favorito">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 8.8c0 5.3-8.8 10.4-8.8 10.4S3.2 14.1 3.2 8.8A4.8 4.8 0 0 1 12 6.1a4.8 4.8 0 0 1 8.8 2.7Z"/></svg>
+            </button>
+          </div>
+          <button type="button" class="event-detail-back" data-close aria-label="Fechar detalhes">&#8592;</button>
+        </section>
+        <div class="event-detail-body">
+          <p class="event-detail-kicker">${formatShortDate(ev.date)} · ${eventLocation}</p>
+          <h2 class="event-detail-title">${eventName}</h2>
+          <p class="event-detail-lineup">${eventArtist}</p>
+
+          <section class="event-info-card" aria-label="Informações do evento">
+            <img class="event-venue-logo" src="imagens/logo troca ticket.png" alt="Logo do estabelecimento">
+            <div class="event-info-main">
+              <div class="event-info-row"><span class="event-info-icon">&#128197;</span><span>${escapeHtml(eventDateTime.date)}</span></div>
+              <div class="event-info-row"><span class="event-info-icon">&#128336;</span><span>Abertura da casa às ${escapeHtml(eventDateTime.time)}</span></div>
+              <button type="button" class="event-calendar-link" id="event-calendar">Adicionar ao calendário <span aria-hidden="true">+</span></button>
+            </div>
+            <div class="event-venue-details"><strong>${eventLocation}</strong><span>${eventLocation}</span></div>
+          </section>
+
+          <section class="event-description-section">
+            <p class="event-section-label">Descrição do evento</p>
+            <div class="event-description">${formatDescription(ev.descricao || ev.description, ev)}</div>
+          </section>
+
+          <section class="event-sector-section">
+            <label for="purchase-sector">Setor do ingresso</label>
+            <select id="purchase-sector" ${eventSectors.length ? 'required' : 'disabled'}>
+              ${sectorOptions}
+            </select>
+          </section>
         </div>
-        <button type="button" class="button button-primary button-full" id="btn-confirm-purchase" style="height: 50px; font-size: 14px;">
-          Comprar Ingresso ↗
-        </button>
+        <div class="event-purchase-bar">
+          <div><span>Valor unitário</span><strong>R$ ${Number(ev.price || 0).toFixed(2).replace('.', ',')}</strong></div>
+          <button type="button" class="event-purchase-button" id="btn-confirm-purchase">COMPRAR <span aria-hidden="true">&#8599;</span></button>
+        </div>
       </div>
     `;
 
     eventModal.classList.add('open');
 
+    document.querySelector('.event-detail-back')?.addEventListener('click', () => {
+      eventModal.classList.remove('open');
+    });
+
     const purchaseBtn = document.getElementById('btn-confirm-purchase');
     if (purchaseBtn) {
       purchaseBtn.addEventListener('click', () => handlePurchase(ev, document.getElementById('purchase-sector')?.value || null));
     }
+
+    document.getElementById('event-favorite')?.addEventListener('click', event => {
+      const nextState = event.currentTarget.getAttribute('aria-pressed') !== 'true';
+      localStorage.setItem(`trocaticket-favorite-${ev.id}`, String(nextState));
+      event.currentTarget.setAttribute('aria-pressed', String(nextState));
+      event.currentTarget.setAttribute('aria-label', nextState ? 'Remover dos favoritos' : 'Adicionar aos favoritos');
+      event.currentTarget.classList.toggle('is-favorite', nextState);
+    });
+
+    document.getElementById('event-share')?.addEventListener('click', async () => {
+      const shareData = { title: ev.name || 'Evento TrocaTicket', text: `${ev.name || 'Evento'} · ${ev.location || 'Local a confirmar'}`, url: window.location.href };
+      try {
+        if (navigator.share) await navigator.share(shareData);
+        else if (navigator.clipboard) await navigator.clipboard.writeText(window.location.href);
+        else throw new Error('Compartilhamento indisponível');
+        alert(navigator.share ? 'Evento partilhado.' : 'Link do evento copiado.');
+      } catch (error) {
+        if (error.name !== 'AbortError') alert('Não foi possível partilhar este evento.');
+      }
+    });
+
+    document.getElementById('event-calendar')?.addEventListener('click', () => {
+      const start = new Date(ev.date);
+      const end = new Date(ev.endDate || start.getTime() + 3 * 60 * 60 * 1000);
+      const toCalendarDate = value => value.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+      const calendar = [
+        'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//TrocaTicket//Eventos//PT-BR', 'BEGIN:VEVENT',
+        `DTSTART:${toCalendarDate(start)}`, `DTEND:${toCalendarDate(end)}`, `SUMMARY:${ev.name || 'Evento TrocaTicket'}`,
+        `LOCATION:${ev.location || 'Local a confirmar'}`, 'END:VEVENT', 'END:VCALENDAR'
+      ].join('\r\n');
+      const calendarUrl = URL.createObjectURL(new Blob([calendar], { type: 'text/calendar;charset=utf-8' }));
+      const link = document.createElement('a');
+      link.href = calendarUrl;
+      link.download = `${String(ev.name || 'evento').toLowerCase().replace(/[^a-z0-9]+/gi, '-')}.ics`;
+      link.click();
+      URL.revokeObjectURL(calendarUrl);
+    });
   }
 
   async function handlePurchase(ev, sectorName) {
