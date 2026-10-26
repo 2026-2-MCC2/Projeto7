@@ -919,32 +919,77 @@ const server = http.createServer(async (request, response) => {
   }
 
   // ===== MEUS INGRESSOS =====
-  if (request.method === 'GET' && url.pathname === '/api/usuario/meus-ingressos') {
+  if (request.method === 'GET' && /^\/api\/usuario\/meus-ingressos(?:\/\d+)?$/.test(url.pathname)) {
     try {
       const session = readSessionToken(request);
       const requestedEmail = normalizeEmail(url.searchParams.get('email'));
       if (!session || session.email !== requestedEmail) return send(response, 403, { ok: false, message: 'Sessão inválida. Entre novamente para acessar seus ingressos.' });
       await ensureTicketSecuritySchema();
+      const ticketId = url.pathname.match(/\/(\d+)$/)?.[1];
+      const includeQr = url.searchParams.get('includeQr') === 'true';
+      if (ticketId) {
+        const [tickets] = await db.query(`
+          SELECT TOP (1)
+            i.id, i.numero_ingresso, i.qr_code_payload, i.setor_nome AS setor,
+            i.bilheteria_origem, i.status, i.utilizado_em AS checkinAt,
+            COALESCE(i.versao_titularidade, 1) AS versao_titularidade,
+            p.codigo_pedido, e.nome AS evento, e.nome AS eventName, e.artista,
+            e.[local] AS location, e.imagem, CONVERT(varchar(19), e.data_evento, 126) AS date,
+            u.nome AS titular, u.cpf,
+            tp.id AS transferencia_pendente_id,
+            COALESCE(NULLIF(TRIM(u2.nome), ''), u2.email) AS destinatario_pendente_nome
+          FROM dbo.ingressos_emitidos i
+          JOIN dbo.usuarios u ON u.id = i.comprador_id
+          JOIN dbo.eventos e ON e.id = i.evento_id
+          LEFT JOIN dbo.pedidos p ON p.id = i.pedido_id
+          LEFT JOIN dbo.transferencias_pendentes tp ON tp.ingresso_id = i.id AND tp.status = 'pendente'
+          LEFT JOIN dbo.usuarios u2 ON u2.id = tp.destinatario_id
+          WHERE i.id = ? AND u.email = ? AND i.status NOT IN ('cancelado', 'bloqueado')
+        `, [Number(ticketId), requestedEmail]);
+        if (!tickets.length) return send(response, 404, { ok: false, message: 'Ingresso não encontrado.' });
+        const ticket = tickets[0];
+        if (includeQr && ['ativo', 'valido'].includes(String(ticket.status).toLowerCase())) {
+          const ticketSecret = await getTicketSecret(ticket.id);
+          const timeStep = Math.floor(Date.now() / 1000 / 60);
+          const payload = makeActiveTicketPayload(ticket.numero_ingresso, ticketSecret.secret_key, timeStep);
+          ticket.qr_code_payload = payload;
+          ticket.qr_code_image = await QRCode.toDataURL(payload, { width: 240, margin: 1, errorCorrectionLevel: 'M' });
+          ticket.qr_time_step = timeStep;
+        } else {
+          ticket.qr_code_payload = null;
+          ticket.qr_code_image = null;
+          ticket.qr_time_step = null;
+        }
+        return send(response, 200, { ok: true, ticket });
+      }
+
+      const requestedLimit = Number(url.searchParams.get('limit') || 20);
+      const limit = Number.isInteger(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 50) : 20;
+      let cursor = null;
+      const cursorValue = url.searchParams.get('cursor');
+      if (cursorValue) {
+        try {
+          const parsed = JSON.parse(Buffer.from(cursorValue, 'base64url').toString('utf8'));
+          if (parsed && parsed.emittedAt && Number.isInteger(parsed.id)) cursor = parsed;
+        } catch {
+          return send(response, 400, { ok: false, message: 'Cursor de paginação inválido.' });
+        }
+      }
+      const cursorClause = cursor ? 'AND (i.emitido_em < ? OR (i.emitido_em = ? AND i.id < ?))' : '';
+      const queryParams = cursor
+        ? [limit, requestedEmail, cursor.emittedAt, cursor.emittedAt, cursor.id]
+        : [limit, requestedEmail];
       const [tickets] = await db.query(`
         SELECT 
-          i.id, 
-          i.numero_ingresso, 
-          i.qr_code_payload, 
-          i.setor_nome AS setor,
-          i.bilheteria_origem AS bilheteria_origem,
-          i.status, 
-          i.utilizado_em AS checkinAt,
+          TOP (?)
+          i.id, i.numero_ingresso, i.setor_nome AS setor, i.bilheteria_origem,
+          i.status, i.utilizado_em AS checkinAt,
           COALESCE(i.versao_titularidade, 1) AS versao_titularidade,
-          p.codigo_pedido, 
-          e.nome AS evento, 
-          e.nome AS eventName, 
-          e.artista AS artista,
-          e.[local] AS location,
-          e.imagem AS imagem,
+          p.codigo_pedido, e.nome AS evento, e.nome AS eventName, e.artista,
+          e.[local] AS location, e.imagem,
           CONVERT(varchar(19), e.data_evento, 126) AS date,
-          u.nome AS titular, 
-          u.cpf,
-          tp.id AS transferencia_pendente_id,
+          CONVERT(varchar(19), i.emitido_em, 126) AS emittedAt,
+          u.nome AS titular, u.cpf, tp.id AS transferencia_pendente_id,
           COALESCE(NULLIF(TRIM(u2.nome), ''), u2.email) AS destinatario_pendente_nome
         FROM dbo.ingressos_emitidos i
         JOIN dbo.usuarios u ON u.id = i.comprador_id
@@ -952,24 +997,14 @@ const server = http.createServer(async (request, response) => {
         LEFT JOIN dbo.pedidos p ON p.id = i.pedido_id
         LEFT JOIN dbo.transferencias_pendentes tp ON tp.ingresso_id = i.id AND tp.status = 'pendente'
         LEFT JOIN dbo.usuarios u2 ON u2.id = tp.destinatario_id
-          WHERE u.email = ? AND i.status NOT IN ('cancelado', 'bloqueado')
-        ORDER BY i.emitido_em DESC
-      `, [requestedEmail]);
-      const ticketsWithActiveQr = await Promise.all(tickets.map(async ticket => {
-        if (!['ativo', 'valido'].includes(String(ticket.status).toLowerCase())) {
-          return { ...ticket, qr_code_payload: null, qr_time_step: null };
-        }
-        const ticketSecret = await getTicketSecret(ticket.id);
-        const timeStep = Math.floor(Date.now() / 1000 / 60);
-        const payload = makeActiveTicketPayload(ticket.numero_ingresso, ticketSecret.secret_key, timeStep);
-        return {
-          ...ticket,
-          qr_code_payload: payload,
-          qr_code_image: await QRCode.toDataURL(payload, { width: 240, margin: 1, errorCorrectionLevel: 'M' }),
-          qr_time_step: timeStep
-        };
-      }));
-      return send(response, 200, { ok: true, tickets: ticketsWithActiveQr });
+        WHERE u.email = ? AND i.status NOT IN ('cancelado', 'bloqueado') ${cursorClause}
+        ORDER BY i.emitido_em DESC, i.id DESC
+      `, queryParams);
+      const last = tickets[tickets.length - 1];
+      const nextCursor = tickets.length === limit && last && last.emittedAt
+        ? Buffer.from(JSON.stringify({ emittedAt: last.emittedAt, id: Number(last.id) })).toString('base64url')
+        : null;
+      return send(response, 200, { ok: true, tickets, nextCursor, hasMore: Boolean(nextCursor) });
     } catch (error) { 
       console.error('[usuario] Erro nos ingressos:', error.message); 
       return send(response, 500, { ok: false, message: 'Erro ao carregar ingressos.' }); 
@@ -2417,6 +2452,41 @@ const server = http.createServer(async (request, response) => {
   }
 
   // ===== ARQUIVOS ESTÁTICOS =====
+  const legacyPageRedirects = {
+    '/evento.html': '/events/evento.html',
+    '/login.html': '/auth/login.html',
+    '/cadastro.html': '/auth/cadastro.html',
+    '/cadastro-pj.html': '/auth/cadastro-pj.html',
+    '/ajuda.html': '/info/ajuda.html',
+    '/eventos.html': '/events/eventos.html',
+    '/ingressos.html': '/events/ingressos.html',
+    '/checkout.html': '/events/checkout.html',
+    '/meus-ingressos.html': '/account/meus-ingressos.html',
+    '/ingresso.html': '/account/ingresso.html',
+    '/perfil.html': '/account/perfil.html',
+    '/editar-perfil.html': '/account/editar-perfil.html',
+    '/editar-telefone.html': '/account/editar-telefone.html',
+    '/cartoes.html': '/account/cartoes.html',
+    '/revenda.html': '/account/revenda.html',
+    '/admin.html': '/admin/admin.html',
+    '/bilheteria.html': '/operations/bilheteria.html',
+    '/organizador.html': '/operations/organizador.html'
+  };
+  const isReactRoute = url.pathname === '/' || url.pathname === '/app' || url.pathname === '/app/'
+    || ['/events', '/orders', '/login'].includes(url.pathname)
+    || /^\/ticket\/\d+$/.test(url.pathname);
+  if (request.method === 'GET' && isReactRoute) {
+    const appFilePath = path.join(root, 'public', 'app', 'index.html');
+    if (fs.existsSync(appFilePath)) {
+      response.writeHead(200, { 'Content-Type': mimeTypes['.html'] });
+      return fs.createReadStream(appFilePath).pipe(response);
+    }
+  }
+  if (request.method === 'GET' && legacyPageRedirects[url.pathname]) {
+    response.writeHead(302, { Location: `${legacyPageRedirects[url.pathname]}${url.search}` });
+    return response.end();
+  }
+
   let requestedPath;
   try {
     requestedPath = decodeURIComponent(url.pathname);
@@ -2424,7 +2494,9 @@ const server = http.createServer(async (request, response) => {
     return response.writeHead(400).end('Caminho inválido');
   }
 
-  const filePath = path.join(root, requestedPath === '/' ? 'index.html' : requestedPath.replace(/^\/+/, ''));
+  const filePath = requestedPath.startsWith('/app/')
+    ? path.join(root, 'public', requestedPath.replace(/^\/+/, ''))
+    : path.join(root, requestedPath === '/' ? 'index.html' : requestedPath.replace(/^\/+/, ''));
   if (!filePath.startsWith(root) || !fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
     return response.writeHead(404).end('Não encontrado');
   }

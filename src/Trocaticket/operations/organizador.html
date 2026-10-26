@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="admin.css">
-    <link rel="stylesheet" href="organizador.css">
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="../admin.css">
+    <link rel="stylesheet" href="../organizador.css">
     <title>Painel do Organizador | TrocaTicket</title>
 </head>
 <body class="organizer-body">
     <div class="organizer-shell">
         <aside class="organizer-sidebar">
             <div class="brand-block">
-                <a class="brand" href="index.html" aria-label="TrocaTicket home">
-                    <img class="brand-logo" src="imagens/logo troca ticket.png" alt="TrocaTicket logo">
+                <a class="brand" href="../index.html" aria-label="TrocaTicket home">
+                    <img class="brand-logo" src="../imagens/logo troca ticket.png" alt="TrocaTicket logo">
                     <span>Troca<span class="brand-accent">Ticket</span></span>
                 </a>
             </div>
@@ -468,7 +468,7 @@
             const user = JSON.parse(localStorage.getItem('trocaticket-user') || localStorage.getItem('usuario') || 'null');
 
             if (!user || !user.email) {
-                window.location.href = 'login.html';
+                window.location.href = '../auth/login.html';
                 return;
             }
 

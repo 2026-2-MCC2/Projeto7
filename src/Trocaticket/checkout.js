@@ -10,12 +10,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   let countdownTimer = null;
 
   function resolveImage(event) {
-    if (event.imagem && String(event.imagem).trim()) return event.imagem;
+    if (event.imagem && String(event.imagem).trim()) {
+      const image = String(event.imagem).trim();
+      if (/^(data:|blob:|https?:\/\/|\/)/i.test(image)) return image;
+      return `/${image.replace(/^\.?\//, '')}`;
+    }
     const name = String(event.name || '').toLowerCase();
-    if (name.includes('sea') || name.includes('club')) return 'imagens/sea club.jpeg';
-    if (name.includes('arena')) return 'imagens/arena+.jpeg';
-    if (name.includes('trap') || name.includes('sanca')) return 'imagens/trap in sanca.jpeg';
-    return 'imagens/logo troca ticket.png';
+    if (name.includes('sea') || name.includes('club')) return '/imagens/sea club.jpeg';
+    if (name.includes('arena')) return '/imagens/arena+.jpeg';
+    if (name.includes('trap') || name.includes('sanca')) return '/imagens/trap in sanca.jpeg';
+    return '/imagens/logo troca ticket.png';
   }
 
   function money(value) { return `R$ ${Number(value || 0).toFixed(2).replace('.', ',')}`; }

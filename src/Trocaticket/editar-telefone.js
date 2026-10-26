@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (!user || !user.email) {
-    window.location.href = 'login.html';
+    window.location.href = '../auth/login.html';
     return;
   }
 
@@ -148,7 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
         message.textContent = data.message || 'Telefone confirmado com sucesso!';
         
         setTimeout(() => {
-          window.location.href = 'perfil.html';
+          window.location.href = '../account/perfil.html';
         }, 700);
       } catch (error) {
         console.error('[editar-telefone] Erro ao confirmar código:', error);

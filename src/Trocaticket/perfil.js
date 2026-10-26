@@ -28,7 +28,7 @@ function applyAvatar(url) {
 }
 
 if (!current || !current.email) {
-  window.location.href = 'login.html';
+  window.location.href = '../auth/login.html';
 } else {
   // Carrega dados e foto gravada no MySQL
   fetch(`/api/usuario/meu-perfil?email=${encodeURIComponent(current.email)}`)

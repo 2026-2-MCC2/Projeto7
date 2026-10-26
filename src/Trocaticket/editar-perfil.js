@@ -17,7 +17,7 @@ function applyAvatar(url) {
 
 // Validação de autenticação e busca de dados
 if (!user || !user.email) {
-  window.location.href = 'login.html';
+  window.location.href = '../auth/login.html';
 } else {
   fetch(`/api/usuario/meu-perfil?email=${encodeURIComponent(user.email)}`)
     .then(response => response.json())
@@ -113,7 +113,7 @@ form.addEventListener('submit', async event => {
     message.className = 'success';
     message.textContent = 'Dados atualizados com sucesso.';
     setTimeout(() => {
-      window.location.href = 'perfil.html';
+      window.location.href = '../account/perfil.html';
     }, 700);
   } catch (error) {
     console.error('[editar-perfil] Erro ao salvar:', error);

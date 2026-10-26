@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="ingresso.css">
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="../ingresso.css">
     <title>Ingresso Digital | TrocaTicket</title>
 </head>
 <body class="ticket-page-body">
     <header class="site-header">
-        <a class="brand" href="index.html">
-            <img class="brand-logo" src="imagens/logo troca ticket.png" alt="TrocaTicket">
+        <a class="brand" href="../index.html">
+            <img class="brand-logo" src="../imagens/logo troca ticket.png" alt="TrocaTicket">
             <span>Troca<span class="brand-accent">Ticket</span></span>
         </a>
         <a href="meus-ingressos.html" class="btn-return-menu">Voltar</a>
@@ -21,7 +21,7 @@
             
             <!-- Capa do Evento no Topo -->
             <div class="ticket-header-cover">
-                <img id="ticket-cover-img" src="imagens/logo troca ticket.png" alt="Capa do Evento">
+                <img id="ticket-cover-img" src="../imagens/logo troca ticket.png" alt="Capa do Evento">
                 <div class="cover-gradient-overlay"></div>
             </div>
 
@@ -57,7 +57,7 @@
                 </div>
 
                 <div class="ticket-digital-actions">
-                    <div class="ticket-digital-actions" id="ticket-digital-actions">
+                    <div id="ticket-digital-actions">
                     <button type="button" class="btn-digital-action btn-offline" id="btn-offline-ticket">
                         <span class="digital-action-icon" aria-hidden="true">&#8681;</span>
                         <span class="digital-action-label">Baixar para Acesso Offline (Enviar por E-mail)</span>
@@ -87,13 +87,12 @@
                     <span id="ticket-order-label">PEDIDO: #000000</span>
                 </div>
 
-                <!-- Carrossel Manual -->
-                <div class="ticket-carousel-nav" id="carousel-nav-container" style="display: none;">
-                    <button type="button" class="carousel-nav-btn" id="btn-prev-ticket" aria-label="Anterior">‹</button>
-                    <span class="carousel-counter-info" id="carousel-counter-label">INGRESSO(S) 1 / 1</span>
-                    <button type="button" class="carousel-nav-btn" id="btn-next-ticket" aria-label="Próximo">›</button>
-                </div>
             </div>
+        </div>
+        <div class="ticket-carousel-nav" id="carousel-nav-container" style="display: none;">
+            <button type="button" class="carousel-nav-btn" id="btn-prev-ticket" aria-label="Ingresso anterior">‹</button>
+            <span class="carousel-counter-info" id="carousel-counter-label">INGRESSO(S) 1 / 1</span>
+            <button type="button" class="carousel-nav-btn" id="btn-next-ticket" aria-label="Próximo ingresso">›</button>
         </div>
     </main>
 
@@ -111,6 +110,6 @@
         </div>
     </div>
 
-    <script src="ingresso.js"></script>
+    <script src="../ingresso.js"></script>
 </body>
 </html>

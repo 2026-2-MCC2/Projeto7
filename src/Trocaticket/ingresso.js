@@ -1,10 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
   const user = JSON.parse(localStorage.getItem('trocaticket-user') || localStorage.getItem('usuario') || 'null');
-  const returnPath = `ingresso.html${window.location.search}`;
+  const returnPath = `../account/ingresso.html${window.location.search}`;
+  const sessionHeaders = user?.session_token ? { Authorization: `Bearer ${user.session_token}` } : {};
   function redirectToLogin() {
     localStorage.removeItem('trocaticket-user');
     localStorage.removeItem('usuario');
-    window.location.replace(`login.html?redirect=${encodeURIComponent(returnPath)}`);
+    window.location.replace(`../auth/login.html?redirect=${encodeURIComponent(returnPath)}`);
   }
   if (!user || !user.email) {
     redirectToLogin();
@@ -13,9 +14,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const urlParams = new URLSearchParams(window.location.search);
   const targetEventName = urlParams.get('evento') || '';
+  const targetTicketId = urlParams.get('id');
+  if (!targetTicketId || !/^\d+$/.test(targetTicketId)) {
+    window.location.replace('../account/meus-ingressos.html');
+    return;
+  }
 
   let groupTickets = [];
   let currentIndex = 0;
+  const ticketDetails = new Map();
+  let navigationRequest = 0;
   let qrRefreshTimer = null;
   let toastTimer = null;
 
@@ -34,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${user.session_token || ''}`
+        ...sessionHeaders
       },
       body: JSON.stringify({ ingresso_id: ticket.id })
     });
@@ -107,16 +115,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function resolveEventImage(ticket) {
     if (ticket.imagem && typeof ticket.imagem === 'string' && ticket.imagem.trim()) {
-      return ticket.imagem.trim();
+      const image = ticket.imagem.trim(); if (/^(data:|blob:|https?:\/\/|\/)/i.test(image)) return image; return `../${image.replace(/^\.?\//, '')}`;
     }
     const name = String(ticket.eventName || ticket.evento || '').toLowerCase();
-    if (name.includes('arena')) return 'imagens/arena+.jpeg';
-    if (name.includes('sea') || name.includes('club')) return 'imagens/sea club.jpeg';
-    if (name.includes('esperia') || name.includes('mirante')) return 'imagens/mirante esperia.jpeg';
-    if (name.includes('sanca') || name.includes('trap')) return 'imagens/trap in sanca.jpeg';
-    if (name.includes('terra')) return 'imagens/terra sp.jpeg';
-    if (name.includes('chefe')) return 'imagens/festa do chefe.jpeg';
-    return 'imagens/logo troca ticket.png';
+    if (name.includes('arena')) return '/imagens/arena+.jpeg';
+    if (name.includes('sea') || name.includes('club')) return '/imagens/sea club.jpeg';
+    if (name.includes('esperia') || name.includes('mirante')) return '/imagens/mirante esperia.jpeg';
+    if (name.includes('sanca') || name.includes('trap')) return '/imagens/trap in sanca.jpeg';
+    if (name.includes('terra')) return '/imagens/terra sp.jpeg';
+    if (name.includes('chefe')) return '/imagens/festa do chefe.jpeg';
+    return '/imagens/logo troca ticket.png';
   }
 
   async function drawTicketQr(ticket) {
@@ -161,8 +169,8 @@ document.addEventListener('DOMContentLoaded', () => {
   async function refreshActiveQr() {
     const currentTicket = groupTickets[currentIndex];
     if (!currentTicket || document.hidden) return;
-    const response = await fetch(`/api/usuario/meus-ingressos?email=${encodeURIComponent(user.email)}`, {
-      headers: { Authorization: `Bearer ${user.session_token || ''}` }
+    const response = await fetch(`/api/usuario/meus-ingressos/${encodeURIComponent(currentTicket.id)}?email=${encodeURIComponent(user.email)}&includeQr=true`, {
+      headers: sessionHeaders
     });
     const data = await response.json();
     if (response.status === 401 || response.status === 403) {
@@ -171,8 +179,9 @@ document.addEventListener('DOMContentLoaded', () => {
       redirectToLogin();
       return;
     }
+
     if (!response.ok || !data.ok) throw new Error(data.message || `HTTP ${response.status}`);
-    const latestTicket = (data.tickets || []).find(ticket => String(ticket.id) === String(currentTicket.id));
+    const latestTicket = data.ticket;
     if (!latestTicket) {
       currentTicket.qr_code_payload = null;
       currentTicket.qr_code_image = null;
@@ -187,6 +196,28 @@ document.addEventListener('DOMContentLoaded', () => {
     currentTicket.qr_code_payload = latestTicket.qr_code_payload;
     currentTicket.qr_code_image = latestTicket.qr_code_image;
     await renderTicket();
+  }
+
+  async function loadTicketDetail(ticket) {
+    if (!ticket || ticket.qr_code_image || isTicketUsed(ticket)) return ticket;
+    if (!ticketDetails.has(ticket.id)) {
+      ticketDetails.set(ticket.id, fetch(`/api/usuario/meus-ingressos/${encodeURIComponent(ticket.id)}?email=${encodeURIComponent(user.email)}&includeQr=true`, {
+        headers: sessionHeaders
+      }).then(async response => {
+        const data = await response.json();
+        if (response.status === 401 || response.status === 403) {
+          redirectToLogin();
+          throw new Error('Sua sessão expirou. Entre novamente.');
+        }
+        if (!response.ok || !data.ok || !data.ticket) throw new Error(data.message || 'Não foi possível carregar o QR Code.');
+        Object.assign(ticket, data.ticket);
+        return ticket;
+      }).catch(error => {
+        ticketDetails.delete(ticket.id);
+        throw error;
+      }));
+    }
+    return ticketDetails.get(ticket.id);
   }
 
   async function renderTicket() {
@@ -289,17 +320,23 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Carrossel
-  document.getElementById('btn-prev-ticket').addEventListener('click', () => {
+  async function navigateTicket(step) {
     if (groupTickets.length <= 1) return;
-    currentIndex = (currentIndex - 1 + groupTickets.length) % groupTickets.length;
-    renderTicket();
-  });
+    const requestId = ++navigationRequest;
+    const nextIndex = (currentIndex + step + groupTickets.length) % groupTickets.length;
+    const nextTicket = groupTickets[nextIndex];
+    try {
+      await loadTicketDetail(nextTicket);
+      if (requestId !== navigationRequest) return;
+      currentIndex = nextIndex;
+      await renderTicket();
+    } catch (error) {
+      showActionToast(error.message || 'Não foi possível carregar o QR Code.', true);
+    }
+  }
 
-  document.getElementById('btn-next-ticket').addEventListener('click', () => {
-    if (groupTickets.length <= 1) return;
-    currentIndex = (currentIndex + 1) % groupTickets.length;
-    renderTicket();
-  });
+  document.getElementById('btn-prev-ticket').addEventListener('click', () => navigateTicket(-1));
+  document.getElementById('btn-next-ticket').addEventListener('click', () => navigateTicket(1));
 
   document.getElementById('btn-offline-ticket').addEventListener('click', async event => {
     const button = event.currentTarget;
@@ -430,32 +467,64 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Carga inicial
-  fetch(`/api/usuario/meus-ingressos?email=${encodeURIComponent(user.email)}`, {
-    headers: { Authorization: `Bearer ${user.session_token || ''}` }
-  })
-    .then(async response => {
+  async function loadAllTickets() {
+    const tickets = [];
+    let cursor = '';
+    do {
+      const params = new URLSearchParams({
+        email: user.email,
+        limit: '50'
+      });
+      if (cursor) params.set('cursor', cursor);
+      const response = await fetch(`/api/usuario/meus-ingressos?${params}`, {
+        headers: sessionHeaders
+      });
+      if (!response.ok) return { response, tickets };
       const data = await response.json();
-      if (response.status === 401 || response.status === 403) {
+      if (!data.ok) return { response, tickets };
+      tickets.push(...(data.tickets || []));
+      cursor = data.nextCursor || '';
+    } while (cursor);
+    return { response: { status: 200 }, tickets };
+  }
+
+  // Carrega o ingresso selecionado com QR e todos os ingressos do mesmo evento
+  // sem gerar QR para os demais itens do grupo.
+  Promise.all([
+    fetch(`/api/usuario/meus-ingressos/${encodeURIComponent(targetTicketId)}?email=${encodeURIComponent(user.email)}&includeQr=true`, {
+      headers: sessionHeaders
+    }),
+    loadAllTickets()
+  ])
+    .then(async ([detailResponse, listResponse]) => {
+      const detailData = await detailResponse.json();
+      const listData = listResponse.tickets ? { ok: true, tickets: listResponse.tickets } : await listResponse.json();
+      if ([detailResponse, listResponse].some(response => response.status === 401 || response.status === 403)) {
         redirectToLogin();
         return null;
       }
-      return data;
+      if (!detailResponse.ok || !detailData.ok || !detailData.ticket) {
+        window.location.href = '../account/meus-ingressos.html';
+        return null;
+      }
+      return { detail: detailData.ticket, list: listData.ok ? (listData.tickets || []) : [] };
     })
     .then(data => {
       if (!data) return;
-      if (!data.ok || !data.tickets || !data.tickets.length) {
-        window.location.href = 'meus-ingressos.html';
-        return;
-      }
-
-      const filtered = targetEventName
-        ? data.tickets.filter(t => (t.eventName || t.evento || '').toLowerCase() === targetEventName.toLowerCase())
-        : data.tickets;
-
-      groupTickets = filtered.length ? filtered : data.tickets;
-      currentIndex = 0;
+      const eventName = data.detail.eventName || data.detail.evento || '';
+      const relatedTickets = data.list.filter(ticket =>
+        String(ticket.eventName || ticket.evento || '').toLowerCase() === String(eventName).toLowerCase()
+      );
+      const selectedIndex = relatedTickets.findIndex(ticket => String(ticket.id) === String(data.detail.id));
+      groupTickets = relatedTickets.length ? relatedTickets : [data.detail];
+      if (selectedIndex >= 0) groupTickets[selectedIndex] = data.detail;
+      else groupTickets[0] = data.detail;
+      ticketDetails.set(data.detail.id, Promise.resolve(data.detail));
+      currentIndex = selectedIndex >= 0 ? selectedIndex : 0;
       renderTicket();
+      groupTickets.forEach(ticket => {
+        if (String(ticket.id) !== String(data.detail.id)) loadTicketDetail(ticket).catch(() => undefined);
+      });
       scheduleQrRefresh();
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden) refreshActiveQr().catch(error => console.warn('[ingresso] Falha ao atualizar QR:', error.message));

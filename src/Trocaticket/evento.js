@@ -22,15 +22,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function resolveEventImage(event) {
-    if (event.imagem && String(event.imagem).trim()) return String(event.imagem).trim();
+    if (event.imagem && String(event.imagem).trim()) {
+      const image = String(event.imagem).trim();
+      if (/^(data:|blob:|https?:\/\/|\/)/i.test(image)) return image;
+      return `/${image.replace(/^\.?\//, '')}`;
+    }
     const eventName = String(event.name || '').toLowerCase();
-    if (eventName.includes('arena')) return 'imagens/arena+.jpeg';
-    if (eventName.includes('sea') || eventName.includes('club')) return 'imagens/sea club.jpeg';
-    if (eventName.includes('esperia') || eventName.includes('mirante')) return 'imagens/mirante esperia.jpeg';
-    if (eventName.includes('sanca') || eventName.includes('trap')) return 'imagens/trap in sanca.jpeg';
-    if (eventName.includes('terra')) return 'imagens/terra sp.jpeg';
-    if (eventName.includes('chefe')) return 'imagens/festa do chefe.jpeg';
-    return 'imagens/logo troca ticket.png';
+    if (eventName.includes('arena')) return '/imagens/arena+.jpeg';
+    if (eventName.includes('sea') || eventName.includes('club')) return '/imagens/sea club.jpeg';
+    if (eventName.includes('esperia') || eventName.includes('mirante')) return '/imagens/mirante esperia.jpeg';
+    if (eventName.includes('sanca') || eventName.includes('trap')) return '/imagens/trap in sanca.jpeg';
+    if (eventName.includes('terra')) return '/imagens/terra sp.jpeg';
+    if (eventName.includes('chefe')) return '/imagens/festa do chefe.jpeg';
+    return '/imagens/logo troca ticket.png';
   }
 
   function getDateTime(value) {
@@ -64,6 +68,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const location = event.location || 'Local a confirmar';
     currentEvent = event;
     elements.cover.src = resolveEventImage(event);
+    elements.cover.onerror = () => {
+      elements.cover.onerror = null;
+      elements.cover.src = '/imagens/logo troca ticket.png';
+    };
     elements.cover.alt = `Capa do evento ${event.name || 'Evento'}`;
     elements.kicker.textContent = `${getShortDate(event.date)} · ${location}`;
     elements.name.textContent = event.artista ? `${event.name || 'Evento'} - ${event.artista}` : (event.name || 'Evento');
