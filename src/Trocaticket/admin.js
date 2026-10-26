@@ -15,7 +15,7 @@ class AdminAccessControl {
     
     if (!user || !user.email) {
       console.warn('[admin] Nenhum usuário autenticado detectado. Redirecionando para login.');
-      window.location.href = 'login.html';
+      window.location.href = '../auth/login.html';
       return;
     }
 
@@ -834,7 +834,9 @@ class AdminPanel {
   async loadTicketsData() {
     try {
       const actor = JSON.parse(localStorage.getItem('trocaticket-user') || localStorage.getItem('usuario') || 'null');
-      const response = await fetch('/api/admin/tickets', { headers: { Authorization: `Bearer ${actor?.session_token || ''}` } });
+      const response = await fetch('/api/admin/tickets', {
+        headers: actor?.session_token ? { Authorization: `Bearer ${actor.session_token}` } : {}
+      });
       const data = await response.json();
       this.renderTicketsTable(data.tickets || []);
     } catch (error) {

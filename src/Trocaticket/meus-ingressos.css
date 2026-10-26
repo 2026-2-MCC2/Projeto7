@@ -298,3 +298,38 @@ body.page-body {
   font-size: 0.82rem;
   color: #fff;
 }
+.orders-skeleton {
+  display: grid;
+  gap: 14px;
+}
+
+.orders-skeleton span {
+  display: block;
+  height: 96px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, rgba(255,255,255,.06) 25%, rgba(255,255,255,.13) 37%, rgba(255,255,255,.06) 63%);
+  background-size: 400% 100%;
+  animation: orders-skeleton-shimmer 1.4s ease infinite;
+}
+
+.load-more-orders {
+  display: block;
+  width: 100%;
+  margin: 18px 0 4px;
+  padding: 12px 16px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 10px;
+  background: rgba(255,255,255,.06);
+  color: inherit;
+  cursor: pointer;
+}
+
+.load-more-orders:disabled {
+  cursor: wait;
+  opacity: .65;
+}
+
+@keyframes orders-skeleton-shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}

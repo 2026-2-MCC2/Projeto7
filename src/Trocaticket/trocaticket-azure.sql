@@ -300,6 +300,22 @@ IF OBJECT_ID(N'dbo.eventos', N'U') IS NOT NULL
     ALTER TABLE dbo.eventos ALTER COLUMN imagem varchar(max) NULL;
 GO
 
+IF OBJECT_ID(N'dbo.eventos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.eventos', N'descricao') IS NULL
+    ALTER TABLE dbo.eventos ADD descricao varchar(max) NULL;
+IF OBJECT_ID(N'dbo.eventos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.eventos', N'nome_local') IS NULL
+    ALTER TABLE dbo.eventos ADD nome_local varchar(200) NULL;
+IF OBJECT_ID(N'dbo.eventos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.eventos', N'banner_mobile') IS NULL
+    ALTER TABLE dbo.eventos ADD banner_mobile varchar(max) NULL;
+IF OBJECT_ID(N'dbo.eventos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.eventos', N'banner_desktop') IS NULL
+    ALTER TABLE dbo.eventos ADD banner_desktop varchar(max) NULL;
+IF OBJECT_ID(N'dbo.eventos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.eventos', N'camarotes_quantidade') IS NULL
+    ALTER TABLE dbo.eventos ADD camarotes_quantidade int NULL;
+IF OBJECT_ID(N'dbo.eventos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.eventos', N'camarote_capacidade') IS NULL
+    ALTER TABLE dbo.eventos ADD camarote_capacidade int NULL;
+IF OBJECT_ID(N'dbo.eventos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.eventos', N'camarote_preco') IS NULL
+    ALTER TABLE dbo.eventos ADD camarote_preco decimal(10,2) NULL;
+GO
+
 -- Users consumed by the TrocaTicket authentication and admin panel.
 IF OBJECT_ID(N'dbo.usuarios', N'U') IS NULL
 BEGIN
@@ -747,6 +763,16 @@ BEGIN
         ALTER TABLE dbo.ingressos_emitidos DROP CONSTRAINT df_ingressos_status;
     ALTER TABLE dbo.ingressos_emitidos ADD CONSTRAINT df_ingressos_status DEFAULT 'ativo' FOR status;
 END;
+GO
+
+IF OBJECT_ID(N'dbo.ingressos_emitidos', N'U') IS NOT NULL
+   AND COL_LENGTH(N'dbo.ingressos_emitidos', N'convidado_nome') IS NULL
+    ALTER TABLE dbo.ingressos_emitidos ADD convidado_nome varchar(120) NULL;
+GO
+
+IF OBJECT_ID(N'dbo.ingressos_emitidos', N'U') IS NOT NULL
+   AND COL_LENGTH(N'dbo.ingressos_emitidos', N'camarote_numero') IS NULL
+    ALTER TABLE dbo.ingressos_emitidos ADD camarote_numero int NULL;
 GO
 
 IF OBJECT_ID(N'dbo.ingressos_emitidos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.ingressos_emitidos', N'secret_key') IS NULL

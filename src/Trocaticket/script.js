@@ -4,6 +4,12 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('error', (event) => {
+    const image = event.target;
+    if (!(image instanceof HTMLImageElement) || image.dataset.assetFallback === 'true') return;
+    image.dataset.assetFallback = 'true';
+    image.src = '/imagens/logo troca ticket.png';
+  }, true);
   // ===== SESSÃO E LOGOUT =====
   function getSessionUser() {
     try {
@@ -44,12 +50,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const accountLink = document.getElementById('account-link');
   if (accountLink) {
     if (currentUser && currentUser.email) {
-      accountLink.href = 'perfil.html';
+      accountLink.href = 'account/perfil.html';
       const accountSpan = accountLink.querySelector('span');
       if (accountSpan) accountSpan.textContent = 'Minha Conta';
       if (logoutLink) logoutLink.style.display = 'flex';
     } else {
-      accountLink.href = 'login.html';
+      accountLink.href = 'auth/login.html';
       const accountSpan = accountLink.querySelector('span');
       if (accountSpan) accountSpan.textContent = 'Entrar / Cadastrar';
       if (logoutLink) logoutLink.style.display = 'none';
@@ -101,13 +107,13 @@ document.addEventListener('DOMContentLoaded', () => {
       return ev.imagem.trim();
     }
     const name = String(ev.name || ev.nome || '').toLowerCase();
-    if (name.includes('arena')) return 'imagens/arena+.jpeg';
-    if (name.includes('sea') || name.includes('club')) return 'imagens/sea club.jpeg';
-    if (name.includes('esperia') || name.includes('mirante')) return 'imagens/mirante esperia.jpeg';
-    if (name.includes('sanca') || name.includes('trap')) return 'imagens/trap in sanca.jpeg';
-    if (name.includes('terra')) return 'imagens/terra sp.jpeg';
-    if (name.includes('chefe')) return 'imagens/festa do chefe.jpeg';
-    return 'imagens/logo troca ticket.png';
+    if (name.includes('arena')) return '/imagens/arena+.jpeg';
+    if (name.includes('sea') || name.includes('club')) return '/imagens/sea club.jpeg';
+    if (name.includes('esperia') || name.includes('mirante')) return '/imagens/mirante esperia.jpeg';
+    if (name.includes('sanca') || name.includes('trap')) return '/imagens/trap in sanca.jpeg';
+    if (name.includes('terra')) return '/imagens/terra sp.jpeg';
+    if (name.includes('chefe')) return '/imagens/festa do chefe.jpeg';
+    return '/imagens/logo troca ticket.png';
   }
 
   function formatShortDate(dateStr) {
@@ -318,7 +324,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function openEventModal(ev) {
     if (!ev || !ev.id) return;
-    window.location.href = `evento.html?id=${encodeURIComponent(ev.id)}`;
+    window.location.href = `events/evento.html?id=${encodeURIComponent(ev.id)}`;
     return;
 
     /*
@@ -442,7 +448,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const user = getSessionUser();
     if (!user || !user.email) {
       alert('You need to be logged in to make a purchase.');
-      window.location.href = 'login.html';
+      window.location.href = 'auth/login.html';
       return;
     }
 
@@ -467,7 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!res.ok || !data.ok) throw new Error(data.message || 'Falha ao processar a compra.');
 
       alert('Compra realizada com sucesso!');
-      window.location.href = `ingresso.html?evento=${encodeURIComponent(ev.name)}`;
+      window.location.href = `account/ingresso.html?evento=${encodeURIComponent(ev.name)}`;
     } catch (err) {
       alert(err.message);
     }

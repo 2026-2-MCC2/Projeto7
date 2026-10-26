@@ -34,7 +34,7 @@ if (menuHeaderSair) {
   });
 }
 
-if (!user) window.location.href = 'login.html';
+if (!user) window.location.href = '../auth/login.html';
 
 function showTab(name) {
   document.querySelectorAll('.cards-tab').forEach(tab => {
