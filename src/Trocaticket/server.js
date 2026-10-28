@@ -415,6 +415,144 @@ function safeHashEqual(expected, received) {
 }
 
 let ticketSecuritySchemaPromise;
+let supplierSchemaPromise;
+function ensureSupplierSchema() {
+  if (!supplierSchemaPromise) {
+    supplierSchemaPromise = (async () => {
+      await db.query(`
+        IF OBJECT_ID(N'dbo.fornecedor_empresas', N'U') IS NULL
+        BEGIN
+          CREATE TABLE dbo.fornecedor_empresas (
+            id int IDENTITY(1,1) NOT NULL CONSTRAINT pk_fornecedor_empresas PRIMARY KEY,
+            usuario_id int NOT NULL,
+            razao_social varchar(180) NOT NULL,
+            cnpj varchar(30) NOT NULL,
+            categoria varchar(120) NOT NULL,
+            contato varchar(160) NOT NULL,
+            email_comercial varchar(180) NOT NULL,
+            telefone varchar(40) NOT NULL,
+            descricao varchar(max) NOT NULL,
+            status varchar(30) NOT NULL CONSTRAINT df_fornecedor_empresas_status DEFAULT 'pendente',
+            criado_em datetime2(0) NOT NULL CONSTRAINT df_fornecedor_empresas_criado DEFAULT SYSUTCDATETIME(),
+            atualizado_em datetime2(0) NOT NULL CONSTRAINT df_fornecedor_empresas_atualizado DEFAULT SYSUTCDATETIME(),
+            CONSTRAINT uq_fornecedor_empresas_usuario UNIQUE (usuario_id),
+            CONSTRAINT uq_fornecedor_empresas_cnpj UNIQUE (cnpj)
+          );
+        END;
+        IF COL_LENGTH('dbo.evento_propostas_fornecedor', 'fornecedor_usuario_id') IS NULL
+          ALTER TABLE dbo.evento_propostas_fornecedor ADD fornecedor_usuario_id int NULL;
+        IF COL_LENGTH('dbo.evento_mensagens_chat', 'anexo_url') IS NULL
+          ALTER TABLE dbo.evento_mensagens_chat ADD anexo_url varchar(500) NULL;
+        IF COL_LENGTH('dbo.evento_mensagens_chat', 'anexo_nome') IS NULL
+          ALTER TABLE dbo.evento_mensagens_chat ADD anexo_nome varchar(255) NULL;
+        IF COL_LENGTH('dbo.evento_mensagens_chat', 'anexo_tipo') IS NULL
+          ALTER TABLE dbo.evento_mensagens_chat ADD anexo_tipo varchar(120) NULL;
+        IF OBJECT_ID(N'dbo.fornecedor_documentos', N'U') IS NULL
+        BEGIN
+          CREATE TABLE dbo.fornecedor_documentos (
+            id int IDENTITY(1,1) NOT NULL CONSTRAINT pk_fornecedor_documentos PRIMARY KEY,
+            fornecedor_usuario_id int NOT NULL,
+            nome varchar(180) NOT NULL,
+            nome_arquivo varchar(255) NOT NULL,
+            caminho varchar(500) NOT NULL,
+            status varchar(30) NOT NULL CONSTRAINT df_fornecedor_documentos_status DEFAULT 'pendente',
+            criado_em datetime2(0) NOT NULL CONSTRAINT df_fornecedor_documentos_criado DEFAULT SYSUTCDATETIME(),
+            atualizado_em datetime2(0) NOT NULL CONSTRAINT df_fornecedor_documentos_atualizado DEFAULT SYSUTCDATETIME(),
+            CONSTRAINT uq_fornecedor_documentos_tipo UNIQUE (fornecedor_usuario_id, nome)
+          );
+        END;
+        IF COL_LENGTH('dbo.fornecedor_documentos', 'motivo_recusa') IS NULL
+          ALTER TABLE dbo.fornecedor_documentos ADD motivo_recusa varchar(1000) NULL;
+        IF OBJECT_ID(N'dbo.fornecedor_colaboradores', N'U') IS NULL
+        BEGIN
+          CREATE TABLE dbo.fornecedor_colaboradores (
+            id int IDENTITY(1,1) NOT NULL CONSTRAINT pk_fornecedor_colaboradores PRIMARY KEY,
+            empresa_id int NOT NULL,
+            usuario_id int NOT NULL,
+            papel varchar(30) NOT NULL CONSTRAINT df_fornecedor_colaboradores_papel DEFAULT 'colaborador',
+            criado_em datetime2(0) NOT NULL CONSTRAINT df_fornecedor_colaboradores_criado DEFAULT SYSUTCDATETIME(),
+            CONSTRAINT uq_fornecedor_colaboradores_usuario UNIQUE (empresa_id, usuario_id)
+          );
+        END;
+      `);
+    })().catch(error => {
+      supplierSchemaPromise = null;
+      throw error;
+    });
+  }
+
+  return supplierSchemaPromise;
+}
+
+async function saveChatAttachment(attachment) {
+    if (!attachment || !attachment.data) return null;
+    const dataUrl = String(attachment.data);
+    const match = dataUrl.match(/^data:([a-z0-9.+-]+\/[a-z0-9.+-]+);base64,(.+)$/i);
+    if (!match) throw new Error('Arquivo inválido.');
+    const mimeType = match[1].toLowerCase();
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf', 'text/plain'];
+    if (!allowedTypes.includes(mimeType)) throw new Error('Formato não permitido. Use imagem, PDF ou TXT.');
+    const fileData = Buffer.from(match[2], 'base64');
+    if (fileData.length > 50 * 1024 * 1024) throw new Error('O arquivo deve ter até 50 MB.');
+    const extension = mimeType.split('/')[1].replace('jpeg', 'jpg');
+    const safeName = String(attachment.name || `anexo.${extension}`).replace(/[^a-z0-9._-]/gi, '_').slice(0, 120);
+    const storedName = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}-${safeName}`;
+    const attachmentDir = path.join(root, 'public', 'uploads', 'chat-attachments');
+    fs.mkdirSync(attachmentDir, { recursive: true });
+    fs.writeFileSync(path.join(attachmentDir, storedName), fileData);
+    return { url: `/uploads/chat-attachments/${storedName}`, name: safeName, type: mimeType };
+}
+
+async function getSupplierUser(request) {
+  const session = readSessionToken(request);
+  if (!session) return null;
+  const [rows] = await db.query('SELECT id, nome, email, tipo, status, senha_hash FROM dbo.usuarios WHERE id = ? AND email = ?', [session.sub, session.email]);
+  return rows.find(user => ['fornecedor', 'admin', 'comum', 'comprador', 'cliente', ''].includes(String(user.tipo || '').toLowerCase()) && !['bloqueado', 'suspensa', 'excluida'].includes(String(user.status || '').toLowerCase())) || null;
+}
+
+async function getSupplierCompanyForUser(user) {
+  const [[ownedCompany]] = await db.query(`
+    SELECT TOP 1 id, usuario_id AS owner_id, razao_social, cnpj, categoria,
+      contato, email_comercial, telefone, descricao, status
+    FROM dbo.fornecedor_empresas
+    WHERE usuario_id = ?
+  `, [user.id]);
+  if (ownedCompany) return ownedCompany;
+  const [[company]] = await db.query(`
+    SELECT TOP 1 fe.id, fe.usuario_id AS owner_id, fe.razao_social, fe.cnpj, fe.categoria,
+      fe.contato, fe.email_comercial, fe.telefone, fe.descricao, fe.status
+    FROM dbo.fornecedor_empresas fe
+    LEFT JOIN dbo.fornecedor_colaboradores fc ON fc.empresa_id = fe.id AND fc.usuario_id = ?
+    WHERE fe.usuario_id = ? OR fc.usuario_id = ?
+  `, [user.id, user.id, user.id]);
+  return company || null;
+}
+
+async function getSupplierHomologation(ownerId) {
+  if (!ownerId) return false;
+  const [[company]] = await db.query('SELECT status FROM dbo.fornecedor_empresas WHERE usuario_id = ?', [ownerId]);
+  if (String(company?.status || '').toLowerCase() !== 'homologado') return false;
+  const [[summary]] = await db.query(`
+    SELECT COUNT(*) AS total,
+      SUM(CASE WHEN LOWER(status) IN ('validado', 'aprovado', 'homologado') THEN 1 ELSE 0 END) AS approved
+    FROM dbo.fornecedor_documentos
+    WHERE fornecedor_usuario_id = ?
+  `, [ownerId]);
+  return Number(summary?.total || 0) > 0 && Number(summary?.approved || 0) === Number(summary?.total || 0);
+}
+
+async function getSupplierDocumentationStatus(ownerId) {
+  if (!ownerId) return 'em análise';
+  const [documents] = await db.query(
+    'SELECT status FROM dbo.fornecedor_documentos WHERE fornecedor_usuario_id = ?',
+    [ownerId]
+  );
+  if (!documents.length) return 'em análise';
+  if (documents.some(document => String(document.status || '').toLowerCase() === 'recusado')) return 'recusado';
+  if (documents.every(document => ['aprovado', 'homologado', 'validado'].includes(String(document.status || '').toLowerCase()))) return 'homologado';
+  return 'em análise';
+}
+
 function ensureTicketSecuritySchema() {
   if (!ticketSecuritySchemaPromise) {
     ticketSecuritySchemaPromise = (async () => {
