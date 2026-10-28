@@ -613,7 +613,7 @@ function parseBody(request) {
     let body = '';
     request.on('data', chunk => {
       body += chunk;
-      if (body.length > 15 * 1024 * 1024) reject(new Error('Payload muito grande (máximo 15MB)'));
+      if (body.length > 75 * 1024 * 1024) reject(new Error('Payload muito grande (máximo 75 MB)'));
     });
     request.on('end', () => {
       try {
@@ -1413,10 +1413,34 @@ const server = http.createServer(async (request, response) => {
           tasks,
           demands
         }
+
       });
     } catch (error) {
       console.error('[organizador] dashboard:', error.message);
       return send(response, 500, { ok: false, message: error.message });
+    }
+  }
+
+  if (request.method === 'GET' && url.pathname === '/api/organizador/chat') {
+    try {
+      const [rows] = await db.query(`
+        SELECT
+          d.id AS demanda_id,
+          d.titulo,
+          d.evento_id,
+          e.nome AS evento_nome,
+          p.id AS proposta_id,
+          p.empresa,
+          p.status AS proposta_status
+        FROM dbo.evento_demandas d
+        JOIN dbo.evento_propostas_fornecedor p ON p.demanda_id = d.id
+        JOIN dbo.eventos e ON e.id = d.evento_id
+        ORDER BY d.id DESC, p.id DESC
+      `);
+      return send(response, 200, { ok: true, conversations: rows });
+    } catch (error) {
+      console.error('[organizador] carregar conversas:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível carregar as conversas.' });
     }
   }
 
@@ -1587,10 +1611,405 @@ const server = http.createServer(async (request, response) => {
     }
   }
 
+  if (request.method === 'GET' && url.pathname === '/api/fornecedor/perfil') {
+    try {
+      await ensureSupplierSchema();
+      const user = await getSupplierUser(request);
+      if (!user) return send(response, 403, { ok: false, message: 'Acesso restrito a fornecedores.' });
+      const company = await getSupplierCompanyForUser(user);
+      return send(response, 200, { ok: true, company, user: { id: user.id, nome: user.nome, email: user.email, tipo: user.tipo } });
+    } catch (error) {
+      console.error('[fornecedor] perfil:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível carregar o cadastro da empresa.' });
+    }
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/fornecedor/perfil') {
+    try {
+      await ensureSupplierSchema();
+      const user = await getSupplierUser(request);
+      if (!user) return send(response, 403, { ok: false, message: 'Acesso restrito a fornecedores.' });
+      const existingCompany = await getSupplierCompanyForUser(user);
+      if (existingCompany && existingCompany.owner_id !== user.id) {
+        return send(response, 403, { ok: false, message: 'Somente o proprietário pode editar os dados da empresa.' });
+      }
+      const body = await parseBody(request);
+      const values = [String(body.razao_social || '').trim(), String(body.cnpj || '').trim(), String(body.categoria || '').trim(), String(body.contato || '').trim(), String(body.email_comercial || '').trim(), String(body.telefone || '').trim(), String(body.descricao || '').trim()];
+      if (values.some(value => !value)) return send(response, 400, { ok: false, message: 'Preencha todos os dados obrigatórios da empresa.' });
+      const [updatedRows, updateResult] = await db.query(`
+        UPDATE dbo.fornecedor_empresas
+        SET razao_social = ?, cnpj = ?, categoria = ?, contato = ?, email_comercial = ?, telefone = ?, descricao = ?, atualizado_em = SYSUTCDATETIME()
+        WHERE usuario_id = ?
+      `, [...values, user.id]);
+      if (!updateResult.affectedRows) {
+        await db.query(`
+          INSERT INTO dbo.fornecedor_empresas
+            (usuario_id, razao_social, cnpj, categoria, contato, email_comercial, telefone, descricao)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `, [user.id, ...values]);
+      }
+      if (String(user.tipo || '').toLowerCase() !== 'admin') {
+        await db.query('UPDATE dbo.usuarios SET tipo = ? WHERE id = ?', ['fornecedor', user.id]);
+      }
+      const [rows] = await db.query('SELECT * FROM dbo.fornecedor_empresas WHERE usuario_id = ?', [user.id]);
+      return send(response, 200, { ok: true, company: rows[0] });
+    } catch (error) {
+      console.error('[fornecedor] salvar perfil:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível salvar o cadastro da empresa.' });
+    }
+  }
+
+  if (request.method === 'GET' && url.pathname === '/api/fornecedor/colaboradores') {
+    try {
+      await ensureSupplierSchema();
+      const user = await getSupplierUser(request);
+      if (!user) return send(response, 403, { ok: false, message: 'Acesso restrito a fornecedores.' });
+      const company = await getSupplierCompanyForUser(user);
+      if (!company) return send(response, 200, { ok: true, company: null, collaborators: [] });
+      const [rows] = await db.query(`
+        SELECT u.id, u.nome, u.email, u.tipo, fc.papel, fc.criado_em
+        FROM dbo.fornecedor_colaboradores fc
+        JOIN dbo.usuarios u ON u.id = fc.usuario_id
+        WHERE fc.empresa_id = ?
+        ORDER BY u.nome
+      `, [company.id]);
+      return send(response, 200, {
+        ok: true,
+        company: { id: company.id, name: company.razao_social, owner_id: company.owner_id },
+        collaborators: rows
+      });
+    } catch (error) {
+      console.error('[fornecedor] colaboradores:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível carregar os colaboradores.' });
+    }
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/fornecedor/colaboradores') {
+    try {
+      await ensureSupplierSchema();
+      const user = await getSupplierUser(request);
+      if (!user) return send(response, 403, { ok: false, message: 'Acesso restrito a fornecedores.' });
+      const [[company]] = await db.query('SELECT id FROM dbo.fornecedor_empresas WHERE usuario_id = ?', [user.id]);
+      if (!company) return send(response, 409, { ok: false, message: 'Cadastre sua empresa antes de adicionar colaboradores.' });
+      const body = await parseBody(request);
+      const email = normalizeEmail(body.email);
+      if (!email || !/^\S+@\S+\.\S+$/.test(email)) return send(response, 400, { ok: false, message: 'Informe um e-mail válido.' });
+      const [[member]] = await db.query(
+        `SELECT id, nome, email, tipo, status FROM dbo.usuarios
+         WHERE email = ? AND LOWER(tipo) IN ('admin', 'fornecedor')`,
+        [email]
+      );
+      if (!member) return send(response, 404, { ok: false, message: 'O e-mail precisa pertencer a um usuário admin ou fornecedor cadastrado.' });
+      if (member.id === user.id) return send(response, 400, { ok: false, message: 'O proprietário já faz parte da empresa.' });
+      if (['bloqueado', 'suspensa', 'excluida'].includes(String(member.status || '').toLowerCase())) {
+        return send(response, 400, { ok: false, message: 'Este usuário está bloqueado ou inativo.' });
+      }
+      const [[existing]] = await db.query('SELECT id FROM dbo.fornecedor_colaboradores WHERE empresa_id = ? AND usuario_id = ?', [company.id, member.id]);
+      if (existing) return send(response, 409, { ok: false, message: 'Este usuário já é colaborador da empresa.' });
+      await db.query('INSERT INTO dbo.fornecedor_colaboradores (empresa_id, usuario_id) VALUES (?, ?)', [company.id, member.id]);
+      return send(response, 201, { ok: true, collaborator: member });
+    } catch (error) {
+      console.error('[fornecedor] adicionar colaborador:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível adicionar o colaborador.' });
+    }
+  }
+
+  if (request.method === 'DELETE' && /^\/api\/fornecedor\/colaboradores\/\d+$/.test(url.pathname)) {
+    try {
+      await ensureSupplierSchema();
+      const user = await getSupplierUser(request);
+      if (!user) return send(response, 403, { ok: false, message: 'Acesso restrito a fornecedores.' });
+      const [[company]] = await db.query('SELECT id FROM dbo.fornecedor_empresas WHERE usuario_id = ?', [user.id]);
+      const collaboratorId = Number(url.pathname.split('/').pop());
+      if (!company || !collaboratorId) return send(response, 404, { ok: false, message: 'Colaborador não encontrado.' });
+      await db.query('DELETE FROM dbo.fornecedor_colaboradores WHERE id = ? AND empresa_id = ?', [collaboratorId, company.id]);
+      return send(response, 200, { ok: true });
+    } catch (error) {
+      console.error('[fornecedor] remover colaborador:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível remover o colaborador.' });
+    }
+  }
+
+  if (request.method === 'GET' && url.pathname === '/api/fornecedor/oportunidades') {
+    try {
+      await ensureSupplierSchema();
+      const user = await getSupplierUser(request);
+      if (!user) return send(response, 403, { ok: false, message: 'Acesso restrito a fornecedores.' });
+      const company = await getSupplierCompanyForUser(user);
+      const homologated = await getSupplierHomologation(company?.owner_id || user.id);
+      const [rows] = await db.query(`
+        SELECT d.id, d.evento_id, d.titulo, d.servico, d.escopo, d.prazo, d.valor_estimado, d.status, e.nome AS evento_nome,
+          (SELECT COUNT(*) FROM dbo.evento_propostas_fornecedor p WHERE p.demanda_id = d.id AND p.fornecedor_usuario_id = ?) AS minha_proposta
+        FROM dbo.evento_demandas d JOIN dbo.eventos e ON e.id = d.evento_id
+        WHERE d.status IN ('em cotacao', 'em análise', 'em analise')
+        ORDER BY d.criado_em DESC
+      `, [user.id]);
+      return send(response, 200, {
+        ok: true,
+        opportunities: rows,
+        homologated: Boolean(company && homologated),
+        message: company && homologated ? null : 'As demandas ficam disponíveis para consulta, mas o envio de propostas será liberado após a homologação.'
+      });
+    } catch (error) {
+      console.error('[fornecedor] oportunidades:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível carregar as oportunidades.' });
+    }
+  }
+
+  if (request.method === 'GET' && url.pathname === '/api/fornecedor/propostas') {
+    try {
+      await ensureSupplierSchema();
+      const user = await getSupplierUser(request);
+      if (!user) return send(response, 403, { ok: false, message: 'Acesso restrito a fornecedores.' });
+      const company = await getSupplierCompanyForUser(user);
+      const [rows] = await db.query(`
+        SELECT p.id, p.demanda_id, p.empresa, p.valor, p.escopo, p.prazo, p.status, p.criado_em, d.titulo, d.evento_id, e.nome AS evento_nome
+        FROM dbo.evento_propostas_fornecedor p JOIN dbo.evento_demandas d ON d.id = p.demanda_id
+        JOIN dbo.eventos e ON e.id = d.evento_id
+        WHERE p.fornecedor_usuario_id = ?
+          OR p.fornecedor_usuario_id = ?
+          OR EXISTS (
+            SELECT 1 FROM dbo.fornecedor_colaboradores fc
+            WHERE fc.empresa_id = ? AND fc.usuario_id = p.fornecedor_usuario_id
+          )
+        ORDER BY p.criado_em DESC
+      `, [user.id, company?.owner_id || -1, company?.id || -1]);
+      return send(response, 200, { ok: true, proposals: rows });
+    } catch (error) {
+      console.error('[fornecedor] propostas:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível carregar suas propostas.' });
+    }
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/fornecedor/propostas') {
+    try {
+      await ensureSupplierSchema();
+      const user = await getSupplierUser(request);
+      if (!user) return send(response, 403, { ok: false, message: 'Acesso restrito a fornecedores.' });
+      const company = await getSupplierCompanyForUser(user);
+      const homologated = await getSupplierHomologation(company?.owner_id || user.id);
+      if (!company || !homologated) return send(response, 403, { ok: false, message: 'Aguarde a aprovação de todos os documentos para enviar propostas.' });
+      const body = await parseBody(request);
+      const demandaId = Number(body.demanda_id);
+      const valor = Number(body.valor || 0);
+      const escopo = String(body.escopo || '').trim();
+      const prazo = String(body.prazo || '').trim();
+      if (!demandaId || !valor || !escopo || !prazo) return send(response, 400, { ok: false, message: 'Informe valor, prazo e escopo da proposta.' });
+      const [[demand]] = await db.query('SELECT id FROM dbo.evento_demandas WHERE id = ? AND status IN (?, ?, ?)', [demandaId, 'em cotacao', 'em análise', 'em analise']);
+      if (!demand) return send(response, 404, { ok: false, message: 'Oportunidade indisponível.' });
+      const [[existing]] = await db.query('SELECT id FROM dbo.evento_propostas_fornecedor WHERE demanda_id = ? AND fornecedor_usuario_id = ?', [demandaId, user.id]);
+      if (existing) return send(response, 409, { ok: false, message: 'Você já enviou uma proposta para esta demanda.' });
+      const [result] = await db.query(
+        'INSERT INTO dbo.evento_propostas_fornecedor (demanda_id, fornecedor_usuario_id, empresa, valor, escopo, prazo, status) OUTPUT INSERTED.id VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [demandaId, user.id, company.razao_social, valor, escopo, prazo, 'em analise']
+      );
+      return send(response, 201, { ok: true, proposta_id: result[0]?.id || result.insertId });
+    } catch (error) {
+      console.error('[fornecedor] criar proposta:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível enviar a proposta.' });
+    }
+  }
+
+  if (request.method === 'GET' && url.pathname === '/api/fornecedor/documentos') {
+    try {
+      await ensureSupplierSchema();
+      const user = await getSupplierUser(request);
+      if (!user) return send(response, 403, { ok: false, message: 'Acesso restrito a fornecedores.' });
+      const company = await getSupplierCompanyForUser(user);
+      const ownerId = company?.owner_id || user.id;
+      const [rows] = await db.query('SELECT id, nome, nome_arquivo, status, motivo_recusa, criado_em, atualizado_em FROM dbo.fornecedor_documentos WHERE fornecedor_usuario_id = ? ORDER BY nome', [ownerId]);
+      return send(response, 200, { ok: true, status: await getSupplierDocumentationStatus(ownerId), documents: rows });
+    } catch (error) {
+      console.error('[fornecedor] documentos:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível carregar os documentos.' });
+    }
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/fornecedor/documentos') {
+    try {
+      await ensureSupplierSchema();
+      const user = await getSupplierUser(request);
+      if (!user) return send(response, 403, { ok: false, message: 'Acesso restrito a fornecedores.' });
+      const company = await getSupplierCompanyForUser(user);
+      const ownerId = company?.owner_id || user.id;
+      if (company && company.owner_id !== user.id) return send(response, 403, { ok: false, message: 'Somente o proprietário pode atualizar documentos.' });
+      const body = await parseBody(request);
+      const nome = String(body.nome || '').trim();
+      const nomeArquivo = String(body.nome_arquivo || '').trim();
+      const encodedFile = String(body.conteudo_base64 || '');
+      const match = encodedFile.match(/^data:([a-z0-9.+-]+\/[a-z0-9.+-]+);base64,(.+)$/i);
+      if (!nome || !nomeArquivo || !match) return send(response, 400, { ok: false, message: 'Arquivo de documento inválido.' });
+      const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg'];
+      if (!allowedTypes.includes(match[1].toLowerCase())) return send(response, 400, { ok: false, message: 'Envie um PDF, PNG ou JPG.' });
+      const fileData = Buffer.from(match[2], 'base64');
+      if (!fileData.length || fileData.length > 10 * 1024 * 1024) return send(response, 400, { ok: false, message: 'O documento deve ter até 10 MB.' });
+      const safeName = nomeArquivo.replace(/[^a-z0-9._-]/gi, '_');
+      const documentDir = path.join(root, 'public', 'uploads', 'supplier-documents');
+      if (!fs.existsSync(documentDir)) fs.mkdirSync(documentDir, { recursive: true });
+      const storedName = `${ownerId}-${crypto.randomUUID()}-${safeName}`;
+      fs.writeFileSync(path.join(documentDir, storedName), fileData);
+      await db.query(`
+        MERGE dbo.fornecedor_documentos AS target
+        USING (SELECT ? AS fornecedor_usuario_id, ? AS nome) AS source
+        ON target.fornecedor_usuario_id = source.fornecedor_usuario_id AND target.nome = source.nome
+        WHEN MATCHED THEN UPDATE SET nome_arquivo = ?, caminho = ?, status = 'em analise', motivo_recusa = NULL, atualizado_em = SYSUTCDATETIME()
+        WHEN NOT MATCHED THEN INSERT (fornecedor_usuario_id, nome, nome_arquivo, caminho, status) VALUES (?, ?, ?, ?, 'em analise');
+      `, [ownerId, nome, safeName, `/uploads/supplier-documents/${storedName}`, ownerId, nome, safeName, `/uploads/supplier-documents/${storedName}`]);
+      return send(response, 201, { ok: true, message: 'Documento enviado para validação.' });
+    } catch (error) {
+      console.error('[fornecedor] upload documento:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível salvar o documento.' });
+    }
+  }
+
+  if (request.method === 'GET' && url.pathname === '/api/organizador/fornecedor-documentos') {
+    try {
+      await ensureSupplierSchema();
+      const operator = await getTicketOperator(request);
+      if (!operator) return send(response, 403, { ok: false, message: 'Acesso restrito a administradores e organizadores.' });
+      const [rows] = await db.query(`
+        SELECT fd.id, fd.fornecedor_usuario_id, fd.nome, fd.nome_arquivo, fd.caminho, fd.status, fd.motivo_recusa,
+          fd.criado_em, fd.atualizado_em, fe.id AS empresa_id, fe.razao_social, fe.status AS empresa_status, u.nome AS fornecedor_nome, u.email
+        FROM dbo.fornecedor_documentos fd
+        LEFT JOIN dbo.fornecedor_empresas fe ON fe.usuario_id = fd.fornecedor_usuario_id
+        LEFT JOIN dbo.usuarios u ON u.id = fd.fornecedor_usuario_id
+        ORDER BY fd.atualizado_em DESC, fe.razao_social, fd.nome
+      `);
+      const documents = await Promise.all(rows.map(async row => ({
+        ...row,
+        file_url: row.caminho,
+        documentacao_status: await getSupplierDocumentationStatus(row.fornecedor_usuario_id)
+      })));
+      return send(response, 200, { ok: true, documents });
+    } catch (error) {
+      console.error('[organizador] documentos de fornecedores:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível carregar os documentos dos fornecedores.' });
+    }
+  }
+
+  if (request.method === 'PATCH' && /^\/api\/organizador\/fornecedor-documentos\/\d+$/.test(url.pathname)) {
+    try {
+      await ensureSupplierSchema();
+      const operator = await getTicketOperator(request);
+      if (!operator) return send(response, 403, { ok: false, message: 'Acesso restrito a administradores e organizadores.' });
+      const documentId = Number(url.pathname.split('/').pop());
+      const body = await parseBody(request);
+      const session = readSessionToken(request);
+      const password = String(body.password || '');
+      const [[approver]] = await db.query('SELECT id, senha_hash, tipo FROM dbo.usuarios WHERE id = ? AND email = ?', [session?.sub, session?.email]);
+      if (!session || !approver || !['admin', 'organizador'].includes(String(approver.tipo).toLowerCase()) || !(await bcrypt.compare(password, approver.senha_hash))) {
+        return send(response, 403, { ok: false, message: 'Confirme sua senha de login para revisar o documento.' });
+      }
+      const status = String(body.status || '').trim().toLowerCase();
+      const motivoRecusa = String(body.motivo_recusa || '').trim();
+      if (!['aprovado', 'recusado'].includes(status)) return send(response, 400, { ok: false, message: 'Status inválido. Use aprovado ou recusado.' });
+      if (status === 'recusado' && !motivoRecusa) return send(response, 400, { ok: false, message: 'Informe o motivo da recusa.' });
+      const [result] = await db.query(
+        'UPDATE dbo.fornecedor_documentos SET status = ?, motivo_recusa = ?, atualizado_em = SYSUTCDATETIME() WHERE id = ?',
+        [status, status === 'recusado' ? motivoRecusa : null, documentId]
+      );
+      if (!result.affectedRows) return send(response, 404, { ok: false, message: 'Documento não encontrado.' });
+      return send(response, 200, { ok: true, message: status === 'aprovado' ? 'Documento aprovado.' : 'Documento recusado.', status });
+    } catch (error) {
+      console.error('[organizador] revisar documento de fornecedor:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível atualizar o documento.' });
+    }
+  }
+
+  if (request.method === 'PATCH' && /^\/api\/organizador\/fornecedor-empresas\/\d+\/homologacao$/.test(url.pathname)) {
+      try {
+        await ensureSupplierSchema();
+        const operator = await getTicketOperator(request);
+        if (!operator) return send(response, 403, { ok: false, message: 'Acesso restrito a administradores e organizadores.' });
+        const companyId = Number(url.pathname.split('/')[4]);
+        const body = await parseBody(request);
+        const password = String(body.password || '');
+        const [[approver]] = await db.query('SELECT senha_hash FROM dbo.usuarios WHERE id = ?', [operator.id]);
+        if (!password || !approver || !(await bcrypt.compare(password, approver.senha_hash))) {
+          return send(response, 403, { ok: false, message: 'Confirme sua senha de login para homologar a empresa.' });
+        }
+        const status = String(body.status || '').toLowerCase();
+        if (!['homologado', 'em análise', 'recusado'].includes(status)) return send(response, 400, { ok: false, message: 'Status de homologação inválido.' });
+        const [result] = await db.query('UPDATE dbo.fornecedor_empresas SET status = ?, atualizado_em = SYSUTCDATETIME() WHERE id = ?', [status, companyId]);
+        if (!result.affectedRows) return send(response, 404, { ok: false, message: 'Empresa não encontrada.' });
+        return send(response, 200, { ok: true, status });
+      } catch (error) {
+        console.error('[organizador] homologação de fornecedor:', error.message);
+        return send(response, 500, { ok: false, message: 'Não foi possível atualizar a homologação.' });
+    }
+  }
+
+  if (request.method === 'GET' && /^\/api\/fornecedor\/demandas\/\d+\/mensagens$/.test(url.pathname)) {
+    try {
+      await ensureSupplierSchema();
+      const user = await getSupplierUser(request);
+      if (!user) return send(response, 403, { ok: false, message: 'Acesso restrito a fornecedores.' });
+      const demandId = Number(url.pathname.match(/^\/api\/fornecedor\/demandas\/(\d+)\/mensagens$/)?.[1]);
+      const [rows] = await db.query(`
+        SELECT m.id, m.remetente, m.texto, m.anexo_url, m.anexo_nome, m.anexo_tipo, m.enviado_em
+        FROM dbo.evento_mensagens_chat m
+        WHERE m.demanda_id = ? AND (
+          m.remetente = 'organizador' OR EXISTS (
+            SELECT 1 FROM dbo.evento_propostas_fornecedor p WHERE p.demanda_id = m.demanda_id AND p.fornecedor_usuario_id = ?
+          )
+        ) ORDER BY m.enviado_em
+      `, [demandId, user.id]);
+      return send(response, 200, { ok: true, messages: rows });
+    } catch (error) {
+      console.error('[fornecedor] mensagens:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível carregar o chat.' });
+    }
+  }
+
+  if (request.method === 'POST' && /^\/api\/fornecedor\/demandas\/\d+\/mensagens$/.test(url.pathname)) {
+    try {
+      await ensureSupplierSchema();
+      const user = await getSupplierUser(request);
+      if (!user) return send(response, 403, { ok: false, message: 'Acesso restrito a fornecedores.' });
+      const demandId = Number(url.pathname.match(/^\/api\/fornecedor\/demandas\/(\d+)\/mensagens$/)?.[1]);
+      const body = await parseBody(request);
+      const texto = String(body.texto || '').trim();
+      const attachment = await saveChatAttachment(body.anexo);
+      const [[company]] = await db.query('SELECT razao_social FROM dbo.fornecedor_empresas WHERE usuario_id = ?', [user.id]);
+      const [[proposal]] = await db.query(
+        `SELECT TOP 1 id, fornecedor_usuario_id
+         FROM dbo.evento_propostas_fornecedor
+         WHERE demanda_id = ? AND (
+           fornecedor_usuario_id = ?
+           OR (fornecedor_usuario_id IS NULL AND empresa = ?)
+         )
+         ORDER BY id DESC`,
+        [demandId, user.id, company?.razao_social || '']
+      );
+      if (!proposal || (!texto && !attachment)) return send(response, 400, { ok: false, message: 'Escreva uma mensagem ou selecione um anexo.' });
+      if (!proposal.fornecedor_usuario_id) {
+        await db.query('UPDATE dbo.evento_propostas_fornecedor SET fornecedor_usuario_id = ? WHERE id = ?', [user.id, proposal.id]);
+      }
+      const [result] = await db.query(
+        'INSERT INTO dbo.evento_mensagens_chat (demanda_id, remetente, texto, anexo_url, anexo_nome, anexo_tipo) OUTPUT INSERTED.id VALUES (?, ?, ?, ?, ?, ?)',
+        [demandId, 'fornecedor', texto, attachment?.url || null, attachment?.name || null, attachment?.type || null]
+      );
+      return send(response, 201, { ok: true, mensagem_id: result[0]?.id || result.insertId });
+    } catch (error) {
+      console.error('[fornecedor] enviar mensagem:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível enviar a mensagem.' });
+    }
+  }
+
   if (request.method === 'POST' && /^\/api\/organizador\/propostas\/.+\/aprovar$/.test(url.pathname)) {
-    const connection = await db.getConnection();
+    let connection;
     try {
       const proposalId = Number(url.pathname.split('/')[3]);
+      if (!proposalId) return send(response, 400, { ok: false, message: 'Identificador de proposta inválido.' });
+      const approvalBody = await parseBody(request);
+      const session = readSessionToken(request);
+      const approvalEmail = normalizeEmail(approvalBody.email || session?.email);
+      const approvalPassword = String(approvalBody.password || '');
+      const [[approver]] = await db.query('SELECT id, nome, tipo, senha_hash FROM dbo.usuarios WHERE email = ?', [approvalEmail]);
+      if (!session || !approver || !['admin', 'organizador'].includes(String(approver.tipo).toLowerCase()) || !(await bcrypt.compare(approvalPassword, approver.senha_hash))) {
+        return send(response, 403, { ok: false, message: 'Confirme sua senha de login para aceitar esta proposta.' });
+      }
+      connection = await db.getConnection();
       await connection.beginTransaction();
 
       const [[proposal]] = await connection.query(
@@ -1629,6 +2048,7 @@ const server = http.createServer(async (request, response) => {
       }
 
       await connection.commit();
+      await audit('aprovar_proposta_fornecedor', `Proposta ${proposalId} aceita para a demanda ${proposal.demanda_id}.`, 'proposta_fornecedor', proposalId, approver);
       return send(response, 200, {
         ok: true,
         message: 'Proposta aprovada com sucesso. O custo foi atualizado automaticamente.'
@@ -1642,17 +2062,35 @@ const server = http.createServer(async (request, response) => {
     }
   }
 
+  if (request.method === 'GET' && /^\/api\/organizador\/demandas\/\d+\/mensagens$/.test(url.pathname)) {
+    try {
+      await ensureSupplierSchema();
+      const demandId = Number(url.pathname.match(/^\/api\/organizador\/demandas\/(\d+)\/mensagens$/)?.[1]);
+      if (!demandId) return send(response, 400, { ok: false, message: 'Demanda inválida.' });
+      const [rows] = await db.query(
+        'SELECT id, remetente, texto, anexo_url, anexo_nome, anexo_tipo, enviado_em FROM dbo.evento_mensagens_chat WHERE demanda_id = ? ORDER BY enviado_em',
+        [demandId]
+      );
+      return send(response, 200, { ok: true, messages: rows });
+    } catch (error) {
+      console.error('[organizador] carregar mensagens:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível carregar as mensagens.' });
+    }
+  }
+
   if (request.method === 'POST' && /^\/api\/organizador\/demandas\/.+\/mensagens$/.test(url.pathname)) {
     try {
-      const demandId = Number(url.pathname.split('/')[3]);
+      await ensureSupplierSchema();
+      const demandId = Number(url.pathname.match(/^\/api\/organizador\/demandas\/(\d+)\/mensagens$/)?.[1]);
       const body = await parseBody(request);
       const texto = String(body.texto || '').trim();
-      if (!demandId || !texto) {
-        return send(response, 400, { ok: false, message: 'Mensagem inválida.' });
+      const attachment = await saveChatAttachment(body.anexo);
+      if (!demandId || (!texto && !attachment)) {
+        return send(response, 400, { ok: false, message: 'Escreva uma mensagem ou selecione um anexo.' });
       }
       const [result] = await db.query(
-        'INSERT INTO dbo.evento_mensagens_chat (demanda_id, remetente, texto) OUTPUT INSERTED.id VALUES (?, ?, ?)',
-        [demandId, String(body.remetente || 'organizador'), texto]
+        'INSERT INTO dbo.evento_mensagens_chat (demanda_id, remetente, texto, anexo_url, anexo_nome, anexo_tipo) OUTPUT INSERTED.id VALUES (?, ?, ?, ?, ?, ?)',
+        [demandId, 'organizador', texto, attachment?.url || null, attachment?.name || null, attachment?.type || null]
       );
       return send(response, 201, { ok: true, mensagem_id: result[0]?.id || result.insertId });
     } catch (error) {
@@ -2470,9 +2908,12 @@ const server = http.createServer(async (request, response) => {
     '/revenda.html': '/account/revenda.html',
     '/admin.html': '/admin/admin.html',
     '/bilheteria.html': '/operations/bilheteria.html',
-    '/organizador.html': '/operations/organizador.html'
+    '/organizador.html': '/operations/organizador.html',
+    '/fornecedor.html': '/operations/fornecedor.html',
+    '/chat.html': '/operations/chat.html',
+    '/chat-fornecedor.html': '/operations/chat-fornecedor.html'
   };
-  const isReactRoute = url.pathname === '/' || url.pathname === '/app' || url.pathname === '/app/'
+  const isReactRoute = url.pathname === '/app' || url.pathname === '/app/'
     || ['/events', '/orders', '/login'].includes(url.pathname)
     || /^\/ticket\/\d+$/.test(url.pathname);
   if (request.method === 'GET' && isReactRoute) {
@@ -2496,13 +2937,26 @@ const server = http.createServer(async (request, response) => {
 
   const filePath = requestedPath.startsWith('/app/')
     ? path.join(root, 'public', requestedPath.replace(/^\/+/, ''))
-    : path.join(root, requestedPath === '/' ? 'index.html' : requestedPath.replace(/^\/+/, ''));
-  if (!filePath.startsWith(root) || !fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+    : requestedPath.startsWith('/uploads/')
+      ? path.join(root, 'public', requestedPath.replace(/^\/+/, ''))
+      : path.join(root, requestedPath === '/' ? 'index.html' : requestedPath.replace(/^\/+/, ''));
+  const normalizedRoot = path.resolve(root) + path.sep;
+  const normalizedFilePath = path.resolve(filePath);
+  if (!normalizedFilePath.startsWith(normalizedRoot) || !fs.existsSync(normalizedFilePath) || fs.statSync(normalizedFilePath).isDirectory()) {
     return response.writeHead(404).end('Não encontrado');
   }
 
-  response.writeHead(200, { 'Content-Type': mimeTypes[path.extname(filePath).toLowerCase()] || 'application/octet-system' });
-  fs.createReadStream(filePath).pipe(response);
+  response.writeHead(200, { 'Content-Type': mimeTypes[path.extname(normalizedFilePath).toLowerCase()] || 'application/octet-system' });
+  fs.createReadStream(normalizedFilePath).pipe(response);
+});
+
+server.on('error', error => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`A porta ${port} já está em uso. Feche o servidor existente ou use outra porta com PORT=3010.`);
+    process.exitCode = 1;
+    return;
+  }
+  throw error;
 });
 
 server.listen(port, () => console.log(`TrocaTicket rodando em http://localhost:${port}`));

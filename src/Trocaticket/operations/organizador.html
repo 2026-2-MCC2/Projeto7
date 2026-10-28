@@ -23,6 +23,7 @@
                 <button class="nav-btn" type="button" data-panel="events">Eventos</button>
                 <button class="nav-btn" type="button" data-panel="finance">Viabilidade</button>
                 <button class="nav-btn" type="button" data-panel="providers">Fornecedores</button>
+                <a class="nav-btn nav-link-btn" href="../chat.html">Central de chat</a>
                 <button class="nav-btn" type="button" data-panel="checklist">Checklist</button>
             </nav>
 
@@ -347,9 +348,34 @@
                 <section id="panel-providers" class="organizer-panel">
                     <div class="header-row">
                         <div>
-                            <p class="section-kicker">B2B</p>
-                            <h2>Mural de fornecedores</h2>
+                            <p class="section-kicker">Operação e compliance</p>
+                            <h2>Gestão de fornecedores</h2>
+                            <p class="panel-description">Supervisione propostas, negociações e documentos obrigatórios em um único painel.</p>
                         </div>
+                        <button type="button" class="btn-primary" id="btn-provider-dossier">Baixar dossiê</button>
+                    </div>
+
+                    <div class="provider-kpi-grid">
+                        <article class="provider-kpi">
+                            <span>Propostas recebidas</span>
+                            <strong id="provider-proposals-count">0</strong>
+                            <small>Demandas em andamento</small>
+                        </article>
+                        <article class="provider-kpi">
+                            <span>Em homologação</span>
+                            <strong id="provider-review-count">0</strong>
+                            <small id="provider-pending-documents">Documentos pendentes</small>
+                        </article>
+                        <article class="provider-kpi">
+                            <span>Fornecedores aprovados</span>
+                            <strong id="provider-approved-count">0</strong>
+                            <small>Prontos para contratar</small>
+                        </article>
+                        <article class="provider-kpi">
+                            <span>Valor em negociação</span>
+                            <strong id="provider-negotiation-value">R$ 0,00</strong>
+                            <small>Propostas ativas</small>
+                        </article>
                     </div>
 
                     <div class="provider-layout">
@@ -364,6 +390,15 @@
                             </div>
                             <div id="proposal-table-wrap" class="table-wrap"></div>
                         </div>
+                    </div>
+                    <div class="glass-panel supplier-review-panel" id="supplier-review-panel">
+                        <div class="card-header-row">
+                            <div><p class="section-kicker">Homologação</p><h3>Documentação dos fornecedores</h3></div>
+                            <div class="supplier-review-header-actions" id="supplier-review-header-actions">
+                                <span class="badge badge-blue" id="supplier-review-status">Em análise</span>
+                            </div>
+                        </div>
+                        <div id="supplier-review-list" class="supplier-review-list"></div>
                     </div>
                 </section>
 
@@ -482,14 +517,19 @@
                 costItems: [],
                 demands: [],
                 documents: [],
+                supplierDocuments: [],
+                supplierDocumentsError: '',
                 tasks: [],
                 activeDemandId: null,
                 activeChatDemandId: null
             };
 
             async function fetchJson(url, options = {}) {
+                const sessionUser = JSON.parse(localStorage.getItem('trocaticket-user') || localStorage.getItem('usuario') || 'null');
+                const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+                if (sessionUser?.session_token) headers.Authorization = `Bearer ${sessionUser.session_token}`;
                 const response = await fetch(url, {
-                    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+                    headers,
                     ...options
                 });
                 const data = await response.json().catch(() => ({}));
@@ -570,7 +610,7 @@
                     value: Number(rawDemand.valor_estimado || rawDemand.value || 0),
                     status: rawDemand.status || 'em cotacao',
                     proposals: Array.isArray(rawDemand.proposals) ? rawDemand.proposals.map((proposal) => ({
-                        id: Number(proposal.id || Date.now() + Math.random()),
+                        id: Number(proposal.id || proposal.proposta_id || proposal.proposal_id || 0),
                         company: proposal.empresa || proposal.company || 'Fornecedor',
                         value: Number(proposal.valor || proposal.value || 0),
                         scope: proposal.escopo || proposal.scope || '',
@@ -670,6 +710,14 @@
                 organizerState.demands = (dashboard.demands || []).map(normalizeDemand);
                 organizerState.documents = (dashboard.documents || []).map(normalizeDocument);
                 organizerState.tasks = (dashboard.tasks || []).map(normalizeTask);
+                try {
+                    organizerState.supplierDocuments = (await fetchJson('/api/organizador/fornecedor-documentos')).documents || [];
+                    organizerState.supplierDocumentsError = '';
+                } catch (error) {
+                    console.warn('Não foi possível carregar a documentação dos fornecedores:', error.message);
+                    organizerState.supplierDocuments = [];
+                    organizerState.supplierDocumentsError = error.message;
+                }
                 if (!organizerState.demands.some((demand) => demand.id === organizerState.activeDemandId)) {
                     organizerState.activeDemandId = organizerState.demands[0]?.id || null;
                 }
@@ -682,6 +730,12 @@
 
             function formatCurrency(value) {
                 return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
+            }
+
+            function escapeHtml(value) {
+                return String(value || '').replace(/[&<>"']/g, character => ({
+                    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+                }[character]));
             }
 
             function parseDecimal(value, fallback = 0) {
@@ -1202,6 +1256,15 @@
             }
 
             function renderDemandList() {
+                const pendingDocuments = organizerState.documents.filter(document => document.status !== 'regularizado').length;
+                const approvedProposals = organizerState.demands.reduce((total, demand) => total + demand.proposals.filter(proposal => ['aprovado', 'contratado', 'homologado'].includes(proposal.status)).length, 0);
+                const negotiationValue = organizerState.demands.reduce((total, demand) => total + demand.proposals.reduce((proposalTotal, proposal) => proposalTotal + Number(proposal.value || 0), 0), 0);
+                document.getElementById('provider-proposals-count').textContent = organizerState.demands.length;
+                document.getElementById('provider-review-count').textContent = organizerState.demands.filter(demand => !['aprovado', 'homologado', 'contratado'].includes(demand.status)).length;
+                document.getElementById('provider-approved-count').textContent = approvedProposals;
+                document.getElementById('provider-pending-documents').textContent = `${pendingDocuments} documento${pendingDocuments === 1 ? '' : 's'} pendente${pendingDocuments === 1 ? '' : 's'}`;
+                document.getElementById('provider-negotiation-value').textContent = formatCurrency(negotiationValue);
+
                 const demandList = document.getElementById('demand-list');
                 demandList.innerHTML = organizerState.demands.map(demand => `
                     <button type="button" class="demand-item ${demand.id === organizerState.activeDemandId ? 'selected' : ''}" data-demand-id="${demand.id}">
@@ -1251,6 +1314,39 @@
                         </tbody>
                     </table>
                 `;
+            }
+
+            function renderSupplierReview() {
+                const list = document.getElementById('supplier-review-list');
+                const status = document.getElementById('supplier-review-status');
+                const documents = organizerState.supplierDocuments;
+                if (organizerState.supplierDocumentsError) {
+                    list.innerHTML = `<p class="form-message supplier-review-error">${escapeHtml(organizerState.supplierDocumentsError)}</p>`;
+                    status.textContent = 'Indisponível';
+                    status.className = 'badge badge-red';
+                    return;
+                }
+                if (!documents.length) {
+                    document.getElementById('supplier-review-header-actions').innerHTML = '<span class="badge badge-blue" id="supplier-review-status">Em análise</span>';
+                }
+                const statuses = documents.map(document => document.documentacao_status);
+                const overallStatus = statuses.includes('recusado') ? 'recusado' : statuses.length && statuses.every(item => item === 'homologado') ? 'homologado' : 'em análise';
+                status.textContent = overallStatus === 'homologado' ? 'Homologado' : overallStatus === 'recusado' ? 'Recusado' : 'Em análise';
+                status.className = `badge ${overallStatus === 'homologado' ? 'badge-green' : overallStatus === 'recusado' ? 'badge-red' : 'badge-blue'}`;
+                const headerActions = document.getElementById('supplier-review-header-actions');
+                const firstCompany = documents[0];
+                if (firstCompany?.empresa_id) {
+                    const companyStatus = String(firstCompany.empresa_status || 'em análise').toLowerCase();
+                    headerActions.innerHTML = `<span class="badge ${companyStatus === 'homologado' ? 'badge-green' : companyStatus === 'recusado' ? 'badge-red' : 'badge-blue'}" id="supplier-review-status">${companyStatus === 'homologado' ? 'Homologado' : companyStatus === 'recusado' ? 'Recusado' : 'Em análise'}</span><button type="button" class="btn-primary small" data-homologate-company="${firstCompany.empresa_id}" data-homologation-status="homologado">${companyStatus === 'homologado' ? 'Homologado' : 'Homologar definitivamente'}</button><button type="button" class="btn-secondary small danger" data-homologate-company="${firstCompany.empresa_id}" data-homologation-status="recusado">Recusar homologação</button>`;
+                }
+                list.innerHTML = documents.length ? documents.map(document => {
+                    const documentStatus = String(document.status || '').toLowerCase();
+                    const label = documentStatus === 'aprovado' ? 'Aprovado' : documentStatus === 'recusado' ? 'Recusado' : 'Em análise';
+                    const statusClass = label === 'Aprovado' ? 'aprovado' : label === 'Recusado' ? 'recusada' : 'em análise';
+                    const fileUrl = document.file_url || document.caminho;
+                    const fileLink = fileUrl ? `<a class="btn-secondary small" href="${escapeHtml(fileUrl)}" target="_blank" rel="noopener noreferrer">Abrir arquivo</a>` : '<small>Arquivo indisponível</small>';
+                    return `<article class="supplier-review-item"><div><strong>${escapeHtml(document.razao_social || 'Empresa não identificada')}</strong><small>${escapeHtml(document.nome)} · ${escapeHtml(document.nome_arquivo)} · ${escapeHtml(document.email)}</small>${documentStatus === 'recusado' && document.motivo_recusa ? `<small class="supplier-document-reason">Motivo: ${escapeHtml(document.motivo_recusa)}</small>` : ''}</div><div class="supplier-review-actions"><span class="status-badge ${statusClass}">${label}</span>${fileLink}<button type="button" class="btn-secondary small" data-review-document="${document.id}" data-review-status="aprovado">Aprovar</button><button type="button" class="btn-secondary small danger" data-review-document="${document.id}" data-review-status="recusado">Recusar</button></div></article>`;
+                }).join('') : '<p class="empty-state">Nenhum documento de fornecedor aguardando revisão.</p>';
             }
 
             function renderDocuments() {
@@ -1408,6 +1504,7 @@
                 renderOverview();
                 renderFinanceTable();
                 renderDemandList();
+                renderSupplierReview();
                 renderDocuments();
                 renderRunOfShow();
             }
@@ -1614,21 +1711,73 @@
                 renderDemandList();
             });
 
+            document.getElementById('supplier-review-panel').addEventListener('click', async (event) => {
+                const button = event.target.closest('[data-review-document]');
+                if (!button) return;
+                const documentId = Number(button.dataset.reviewDocument);
+                const reviewStatus = button.dataset.reviewStatus;
+                const reason = reviewStatus === 'recusado' ? window.prompt('Descreva o motivo da recusa:')?.trim() : '';
+                if (reviewStatus === 'recusado' && !reason) return;
+                const password = window.prompt('Digite sua senha de login para revisar este documento:');
+                if (!password) return;
+                try {
+                    await fetchJson(`/api/organizador/fornecedor-documentos/${documentId}`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ status: reviewStatus, motivo_recusa: reason, password })
+                    });
+                    const reviewed = organizerState.supplierDocuments.find(document => document.id === documentId);
+                    if (reviewed) {
+                        reviewed.status = reviewStatus;
+                        reviewed.motivo_recusa = reason || null;
+                    }
+                    renderSupplierReview();
+                } catch (error) {
+                    alert(error.message || 'Não foi possível revisar o documento.');
+                }
+            });
+
+            document.getElementById('supplier-review-panel').addEventListener('click', async (event) => {
+                const button = event.target.closest('[data-homologate-company]');
+                if (!button) return;
+                const password = window.prompt('Digite sua senha de login para alterar a homologação definitiva:');
+                if (!password) return;
+                try {
+                    await fetchJson(`/api/organizador/fornecedor-empresas/${button.dataset.homologateCompany}/homologacao`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ status: button.dataset.homologationStatus, password })
+                    });
+                    await loadOrganizerDashboard();
+                } catch (error) {
+                    alert(error.message || 'Não foi possível atualizar a homologação.');
+                }
+            });
+
+            document.getElementById('btn-provider-dossier').addEventListener('click', () => {
+                const lines = [
+                    'DOSSIÊ DE FORNECEDORES — TROCATICKET',
+                    `Evento: ${document.getElementById('active-event-name').textContent}`,
+                    `Gerado em: ${new Date().toLocaleString('pt-BR')}`,
+                    '',
+                    ...organizerState.demands.flatMap(demand => [
+                        `${demand.title} | ${demand.service} | ${demand.status}`,
+                        `Escopo: ${demand.scope || 'Não informado'}`,
+                        ...demand.proposals.map(proposal => `- ${proposal.company}: ${formatCurrency(proposal.value)} | ${proposal.status} | Anexos: ${proposal.files.join(', ') || 'Nenhum'}`),
+                        ''
+                    ])
+                ];
+                const url = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' }));
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'dossie-fornecedores-trocaticket.txt';
+                link.click();
+                URL.revokeObjectURL(url);
+            });
+
             document.getElementById('proposal-table-wrap').addEventListener('click', async (event) => {
                 const chatButton = event.target.closest('.chat-btn');
                 if (chatButton) {
                     const demandId = Number(chatButton.dataset.demandId);
-                    const company = chatButton.dataset.company;
-                    organizerState.activeChatDemandId = demandId;
-                    document.getElementById('chat-title').textContent = `Chat com ${company}`;
-                    const demand = organizerState.demands.find(item => item.id === demandId);
-                    const messages = document.getElementById('chat-messages');
-                    messages.innerHTML = (demand?.messages || []).map(message => `
-                        <div class="chat-message ${message.sender === 'organizador' ? 'outgoing' : 'incoming'}">
-                            <p>${message.text}</p>
-                        </div>
-                    `).join('');
-                    document.getElementById('chat-modal').classList.remove('hidden');
+                    window.location.href = `../chat.html?demanda_id=${encodeURIComponent(demandId)}`;
                     return;
                 }
 
@@ -1636,10 +1785,17 @@
                 if (!approveButton) return;
                 const demandId = Number(approveButton.dataset.demandId);
                 const proposalId = Number(approveButton.dataset.proposalId);
+                if (!proposalId) {
+                    alert('Esta proposta não possui um identificador válido. Atualize o painel e tente novamente.');
+                    return;
+                }
+                const password = window.prompt('Digite sua senha de login para aceitar esta proposta:');
+                if (!password) return;
 
                 try {
                     const response = await fetchJson(`/api/organizador/propostas/${proposalId}/aprovar`, {
-                        method: 'POST'
+                        method: 'POST',
+                        body: JSON.stringify({ password })
                     });
                     alert(response.message || 'Proposta aprovada com sucesso!');
                     await loadOrganizerDashboard();

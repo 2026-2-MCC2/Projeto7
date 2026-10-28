@@ -959,11 +959,59 @@ BEGIN
         demanda_id int NOT NULL,
         remetente varchar(30) NOT NULL CONSTRAINT df_evento_msg_remetente DEFAULT 'organizador',
         texto varchar(max) NOT NULL,
+        anexo_url varchar(500) NULL,
+        anexo_nome varchar(255) NULL,
+        anexo_tipo varchar(120) NULL,
         enviado_em datetime2(0) NOT NULL CONSTRAINT df_evento_msg_enviado DEFAULT SYSUTCDATETIME(),
         CONSTRAINT fk_evento_mensagens_demanda FOREIGN KEY (demanda_id) REFERENCES dbo.evento_demandas(id) ON DELETE CASCADE
     );
     CREATE INDEX idx_evento_mensagens_demanda ON dbo.evento_mensagens_chat(demanda_id, enviado_em);
 END;
+GO
+
+IF OBJECT_ID(N'dbo.fornecedor_empresas', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.fornecedor_empresas (
+        id int IDENTITY(1,1) NOT NULL CONSTRAINT pk_fornecedor_empresas PRIMARY KEY,
+        usuario_id int NOT NULL,
+        razao_social varchar(180) NOT NULL,
+        cnpj varchar(30) NOT NULL,
+        categoria varchar(120) NOT NULL,
+        contato varchar(160) NOT NULL,
+        email_comercial varchar(180) NOT NULL,
+        telefone varchar(40) NOT NULL,
+        descricao varchar(max) NOT NULL,
+        status varchar(30) NOT NULL CONSTRAINT df_fornecedor_empresas_status DEFAULT 'pendente',
+        criado_em datetime2(0) NOT NULL CONSTRAINT df_fornecedor_empresas_criado DEFAULT SYSUTCDATETIME(),
+        atualizado_em datetime2(0) NOT NULL CONSTRAINT df_fornecedor_empresas_atualizado DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT uq_fornecedor_empresas_usuario UNIQUE (usuario_id),
+        CONSTRAINT uq_fornecedor_empresas_cnpj UNIQUE (cnpj)
+    );
+END;
+GO
+
+IF OBJECT_ID(N'dbo.evento_propostas_fornecedor', N'U') IS NOT NULL
+   AND COL_LENGTH('dbo.evento_propostas_fornecedor', 'fornecedor_usuario_id') IS NULL
+    ALTER TABLE dbo.evento_propostas_fornecedor ADD fornecedor_usuario_id int NULL;
+GO
+
+IF OBJECT_ID(N'dbo.fornecedor_documentos', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.fornecedor_documentos (
+        id int IDENTITY(1,1) NOT NULL CONSTRAINT pk_fornecedor_documentos PRIMARY KEY,
+        fornecedor_usuario_id int NOT NULL,
+        nome varchar(180) NOT NULL,
+        nome_arquivo varchar(255) NOT NULL,
+        caminho varchar(500) NOT NULL,
+        status varchar(30) NOT NULL CONSTRAINT df_fornecedor_documentos_status DEFAULT 'pendente',
+        criado_em datetime2(0) NOT NULL CONSTRAINT df_fornecedor_documentos_criado DEFAULT SYSUTCDATETIME(),
+        atualizado_em datetime2(0) NOT NULL CONSTRAINT df_fornecedor_documentos_atualizado DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT uq_fornecedor_documentos_tipo UNIQUE (fornecedor_usuario_id, nome)
+    );
+END;
+GO
+IF COL_LENGTH('dbo.fornecedor_documentos', 'motivo_recusa') IS NULL
+    ALTER TABLE dbo.fornecedor_documentos ADD motivo_recusa varchar(1000) NULL;
 GO
 
 IF OBJECT_ID(N'dbo.evento_documentos', N'U') IS NULL
@@ -995,6 +1043,20 @@ BEGIN
         CONSTRAINT fk_evento_tarefas_evento FOREIGN KEY (evento_id) REFERENCES dbo.eventos(id) ON DELETE CASCADE
     );
     CREATE INDEX idx_evento_tarefas_evento ON dbo.evento_tarefas(evento_id, concluida);
+END;
+GO
+
+IF OBJECT_ID(N'dbo.fornecedor_colaboradores', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.fornecedor_colaboradores (
+        id int IDENTITY(1,1) NOT NULL CONSTRAINT pk_fornecedor_colaboradores PRIMARY KEY,
+        empresa_id int NOT NULL,
+        usuario_id int NOT NULL,
+        papel varchar(30) NOT NULL CONSTRAINT df_fornecedor_colaboradores_papel DEFAULT 'colaborador',
+        criado_em datetime2(0) NOT NULL CONSTRAINT df_fornecedor_colaboradores_criado DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT uq_fornecedor_colaboradores_usuario UNIQUE (empresa_id, usuario_id)
+    );
+    CREATE INDEX idx_fornecedor_colaboradores_empresa ON dbo.fornecedor_colaboradores(empresa_id);
 END;
 GO
 

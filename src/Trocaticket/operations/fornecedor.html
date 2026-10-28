@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../organizador.css">
+    <title>Painel do Fornecedor | TrocaTicket</title>
+</head>
+<body class="organizer-body supplier-body">
+    <section id="supplier-onboarding" class="supplier-onboarding" hidden>
+        <div class="supplier-onboarding-card">
+            <p class="eyebrow">Primeiro acesso</p>
+            <h1>Cadastre sua empresa para continuar</h1>
+            <p>O cadastro é obrigatório para visualizar oportunidades e enviar propostas aos organizadores.</p>
+            <button type="button" class="btn-primary" data-open-panel="supplier-company">Iniciar cadastro</button>
+        </div>
+    </section>
+    <div class="organizer-shell">
+        <aside class="organizer-sidebar">
+            <div class="brand-block">
+                <a class="brand" href="../index.html" aria-label="TrocaTicket home">
+                    <img class="brand-logo" src="../imagens/logo troca ticket.png" alt="TrocaTicket">
+                    <span>Troca<span class="brand-accent">Ticket</span></span>
+                </a>
+            </div>
+            <nav class="sidebar-nav" aria-label="Menu do fornecedor">
+                <button class="nav-btn active" type="button" data-panel="supplier-overview">Visão geral</button>
+                <button class="nav-btn" type="button" data-panel="supplier-company">Dados cadastrais</button>
+                <button class="nav-btn" type="button" data-panel="supplier-proposals">Minhas propostas</button>
+                <button class="nav-btn" type="button" data-panel="supplier-documents">Documentos</button>
+                <button class="nav-btn" type="button" id="supplier-sidebar-chat">Chat</button>
+            </nav>
+            <div class="sidebar-card">
+                <span class="eyebrow">Perfil fornecedor</span>
+                <strong id="supplier-sidebar-company">Empresa não cadastrada</strong>
+                <small id="supplier-sidebar-category">Complete seu cadastro para enviar propostas.</small>
+            </div>
+        </aside>
+
+        <main class="organizer-main">
+            <header class="organizer-topbar">
+                <div>
+                    <span class="eyebrow">Área do Fornecedor</span>
+                    <h1 id="supplier-page-title">Central de oportunidades</h1>
+                </div>
+                <div class="topbar-actions">
+                    <span class="user-pill" id="supplier-user-name">Fornecedor</span>
+                    <button type="button" class="btn-logout" id="supplier-logout">Sair</button>
+                </div>
+            </header>
+
+            <div class="panel-stack">
+                <section id="panel-supplier-overview" class="organizer-panel active">
+                    <div class="header-row">
+                        <div><p class="section-kicker">Bem-vindo</p><h2>Seu espaço comercial</h2><p class="panel-description">Encontre demandas compatíveis e acompanhe as propostas enviadas aos organizadores.</p></div>
+                        <button type="button" class="btn-primary" data-open-panel="supplier-overview">Ver cotações</button>
+                    </div>
+                    <div class="supplier-provider-kpis">
+                        <article class="provider-kpi"><span>Oportunidades abertas</span><strong id="supplier-open-count">0</strong><small>Compatíveis com seu perfil</small></article>
+                        <article class="provider-kpi"><span>Propostas enviadas</span><strong id="supplier-proposal-count">0</strong><small id="supplier-proposal-status">Nenhuma proposta enviada</small></article>
+                        <article class="provider-kpi"><span>Em negociação</span><strong id="supplier-negotiation-count">0</strong><small>Aguardando retorno</small></article>
+                    </div>
+                    <p class="form-message supplier-homologation-message" id="supplier-homologation-message"></p>
+                    <div class="supplier-overview-grid">
+                        <article class="glass-panel supplier-opportunities-overview"><div class="card-header-row"><div><p class="section-kicker">Cotações</p><h3>Demandas por evento</h3></div><label class="supplier-filter">Evento<select id="opportunity-event-filter"><option value="">Todos os eventos</option></select></label></div><div id="supplier-featured-opportunities" class="supplier-opportunity-list supplier-opportunity-grid"></div></article>
+                    </div>
+                </section>
+
+                <section id="panel-supplier-company" class="organizer-panel">
+                    <div class="header-row"><div><p class="section-kicker">Cadastro</p><h2 id="supplier-company-title">Minha empresa</h2><p class="panel-description">Essas informações serão apresentadas aos organizadores durante a análise das propostas.</p></div><span class="badge badge-cyan" id="supplier-company-status">Rascunho</span></div>
+                    <details class="supplier-accordion">
+                        <summary>Dados da empresa</summary>
+                        <form id="supplier-company-form" class="glass-form">
+                        <div class="field-row two-columns">
+                            <div class="field-group"><label for="company-name">Razão social / nome empresarial</label><input id="company-name" required placeholder="Ex.: Lume Produções e Estruturas"></div>
+                            <div class="field-group"><label for="company-document">CNPJ</label><input id="company-document" required placeholder="00.000.000/0001-00"></div>
+                        </div>
+                        <div class="field-row two-columns">
+                            <div class="field-group"><label for="company-category">Categoria de atuação</label><select id="company-category" required><option value="">Selecione</option><option>Estrutura e montagem</option><option>Alimentação e bebidas</option><option>Saúde e ambulância</option><option>Segurança</option><option>Transporte e logística</option><option>Marketing e comunicação</option></select></div>
+                            <div class="field-group"><label for="company-contact">Pessoa de contato</label><input id="company-contact" required placeholder="Nome do responsável"></div>
+                        </div>
+                        <div class="field-row two-columns">
+                            <div class="field-group"><label for="company-email">E-mail comercial</label><input id="company-email" type="email" required placeholder="contato@empresa.com"></div>
+                            <div class="field-group"><label for="company-phone">Telefone</label><input id="company-phone" required placeholder="(00) 00000-0000"></div>
+                        </div>
+                        <div class="field-group"><label for="company-description">Apresentação da empresa</label><textarea id="company-description" required placeholder="Conte brevemente sobre sua experiência e diferenciais."></textarea></div>
+                        <div class="form-actions"><button type="submit" class="btn-primary">Salvar cadastro</button><span class="form-message" id="company-form-message"></span></div>
+                        </form>
+                    </details>
+                    <details class="supplier-accordion">
+                        <summary>Resumo de compliance</summary>
+                        <div class="supplier-company-compliance glass-panel">
+                            <div class="card-header-row"><div><p class="section-kicker">Acompanhamento</p><h3>Homologação da empresa</h3></div><span class="badge badge-blue" id="supplier-completion-badge">0%</span></div>
+                            <p class="panel-description">Envie os documentos necessários e acompanhe a análise do administrador.</p>
+                            <div class="supplier-compliance-summary"><strong>Status: <span id="supplier-document-count">Nenhum documento enviado</span></strong><button type="button" class="btn-secondary small" data-open-panel="supplier-documents">Gerenciar documentos</button></div>
+                        </div>
+                    </details>
+                    <details class="supplier-accordion">
+                        <summary>Colaboradores da empresa</summary>
+                        <div class="supplier-company-collaborators glass-panel">
+                        <div class="card-header-row"><div><p class="section-kicker">Gestão de acesso</p><h3>Colaboradores da empresa</h3></div><span class="badge badge-blue" id="supplier-collaborator-count">0</span></div>
+                        <p class="panel-description">Adicione usuários já cadastrados como admin ou fornecedor para que possam atuar nesta empresa.</p>
+                        <form id="supplier-collaborator-form" class="supplier-collaborator-form">
+                            <label class="field-group"><span>E-mail do colaborador</span><input id="supplier-collaborator-email" type="email" required placeholder="colaborador@empresa.com"></label>
+                            <button type="submit" class="btn-primary">Adicionar colaborador</button>
+                        </form>
+                        <p class="form-message" id="supplier-collaborator-message"></p>
+                        <div id="supplier-collaborator-list" class="supplier-collaborator-list"></div>
+                        </div>
+                    </details>
+                </section>
+
+                <section id="panel-supplier-proposals" class="organizer-panel">
+                    <div class="header-row"><div><p class="section-kicker">Acompanhamento</p><h2>Minhas propostas</h2><p class="panel-description">Acompanhe valores, prazos, mensagens e o status de cada negociação.</p></div></div>
+                    <div class="table-wrap"><table><thead><tr><th>Oportunidade</th><th>Valor</th><th>Prazo</th><th>Status</th><th>Ação</th></tr></thead><tbody id="supplier-proposal-table"></tbody></table></div>
+                </section>
+
+                <section id="panel-supplier-documents" class="organizer-panel">
+                    <div class="header-row"><div><p class="section-kicker">Compliance</p><h2>Documentos da empresa</h2><p class="panel-description">Mantenha os documentos atualizados para acelerar a homologação.</p></div><span class="status-badge em análise" id="supplier-documents-status">Em análise</span></div>
+                    <div class="glass-panel supplier-document-actions">
+                        <button type="button" class="btn-primary" id="supplier-add-document">Adicionar documento</button>
+                        <form id="supplier-document-form" class="supplier-document-form" hidden>
+                            <div class="field-row two-columns">
+                                <div class="field-group"><label for="supplier-document-name">Nome do documento</label><input id="supplier-document-name" required placeholder="Ex.: Alvará de funcionamento"></div>
+                                <div class="field-group"><label for="supplier-document-file">Arquivo</label><input id="supplier-document-file" type="file" accept=".pdf,.png,.jpg,.jpeg" required></div>
+                            </div>
+                            <div class="form-actions"><button type="submit" class="btn-primary">Salvar</button><span class="form-message" id="supplier-document-message"></span></div>
+                        </form>
+                    </div>
+                    <div class="supplier-document-grid" id="supplier-document-grid"></div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <div class="modal hidden" id="supplier-proposal-modal" aria-hidden="true">
+        <div class="modal-card">
+            <div class="modal-header"><h3>Enviar proposta</h3><button type="button" class="modal-close" data-close-modal>×</button></div>
+            <p class="modal-context" id="proposal-opportunity-title"></p>
+            <form id="supplier-proposal-form">
+                <div class="field-row two-columns"><div class="field-group"><label for="proposal-value">Valor da proposta (R$)</label><input id="proposal-value" type="number" min="0" step="0.01" required></div><div class="field-group"><label for="proposal-deadline">Prazo de execução</label><input id="proposal-deadline" required placeholder="Ex.: 3 dias de montagem"></div></div>
+                <div class="field-group"><label for="proposal-scope">Mensagem ao organizador</label><textarea id="proposal-scope" required placeholder="Descreva como sua empresa atende ao escopo."></textarea></div>
+                <button type="submit" class="btn-primary full-width">Enviar proposta</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal hidden" id="supplier-chat-modal" aria-hidden="true">
+            <div class="modal-card chat-modal-card">
+                <div class="modal-header"><h3 id="supplier-chat-title">Chat da proposta</h3><button type="button" class="modal-close" data-close-chat>×</button></div>
+                <div id="supplier-chat-messages" class="chat-messages"></div>
+                <form id="supplier-chat-form" class="chat-form"><input id="supplier-chat-input" required placeholder="Escreva uma mensagem..."><button type="submit" class="btn-primary">Enviar</button></form>
+            </div>
+    </div>
+
+    <script>
+        const opportunities = [
+            { id: 1, title: 'Estrutura e montagem do palco', category: 'Estrutura e montagem', event: 'Festival TrocaTicket', deadline: '15/11/2026', budget: 'Até R$ 55.000', description: 'Palco, cobertura, gradis e montagem completa.' },
+            { id: 2, title: 'Operação de alimentação', category: 'Alimentação e bebidas', event: 'Festival TrocaTicket', deadline: '20/11/2026', budget: 'Até R$ 32.000', description: 'Fornecimento e operação de praça de alimentação.' },
+            { id: 3, title: 'Equipe médica e ambulância', category: 'Saúde e ambulância', event: 'Festival TrocaTicket', deadline: '01/12/2026', budget: 'Até R$ 25.000', description: 'Equipe habilitada e ambulância para atendimento no evento.' }
+        ];
+        const state = { company: null, proposals: [], opportunities: [], documents: [], collaborators: [], ownerId: null, homologated: false };
+        const $ = id => document.getElementById(id);
+        const money = value => Number(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        function readStoredUser() {
+            for (const storage of [localStorage, sessionStorage]) {
+                try {
+                    const value = storage.getItem('trocaticket-user') || storage.getItem('usuario');
+                    if (value) return JSON.parse(value);
+                } catch {
+                    storage.removeItem('trocaticket-user');
+                    storage.removeItem('usuario');
+                }
+            }
+            return null;
+        }
+        function authHeaders() { const user = readStoredUser(); return user?.session_token ? { Authorization: `Bearer ${user.session_token}` } : {}; }
+        async function apiRequest(url, options = {}) { const controller = new AbortController(); const timeout = window.setTimeout(() => controller.abort(), 15000); try { const response = await fetch(url, { ...options, signal: options.signal || controller.signal, headers: { 'Content-Type': 'application/json', ...authHeaders(), ...(options.headers || {}) } }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.message || `Não foi possível concluir a operação (HTTP ${response.status}).`); return data; } catch (error) { if (error.name === 'AbortError') throw new Error('O servidor demorou para responder. Tente novamente.'); throw error; } finally { window.clearTimeout(timeout); } }
+        function saveState() { localStorage.setItem('trocaticket-supplier-company', JSON.stringify(state.company)); localStorage.setItem('trocaticket-supplier-proposals', JSON.stringify(state.proposals)); }
+        function openPanel(id) { document.querySelectorAll('.organizer-panel').forEach(panel => panel.classList.toggle('active', panel.id === `panel-${id}`)); document.querySelectorAll('.nav-btn').forEach(button => button.classList.toggle('active', button.dataset.panel === id)); }
+        function render() {
+            const completion = state.company ? 50 : 0;
+            $('supplier-sidebar-company').textContent = state.company?.name || 'Empresa não cadastrada';
+            $('supplier-sidebar-category').textContent = state.company?.category || 'Complete seu cadastro para enviar propostas.';
+            $('supplier-company-title').textContent = state.company?.name || 'Minha empresa';
+            $('supplier-open-count').textContent = state.opportunities.length;
+            $('supplier-proposal-count').textContent = state.proposals.length;
+            $('supplier-negotiation-count').textContent = state.proposals.filter(proposal => proposal.status === 'Em análise').length;
+            const approvedDocuments = state.documents.filter(document => ['validado', 'aprovado', 'homologado'].includes(String(document.status || '').toLowerCase())).length;
+            const documentCompletion = state.documents.length ? Math.round((approvedDocuments / state.documents.length) * 50) : 0;
+            const documentationStatus = state.documentationStatus || (state.homologated ? 'homologado' : 'em análise');
+            const documentationLabel = documentationStatus === 'homologado' ? 'Homologado' : documentationStatus === 'recusado' ? 'Recusado' : 'Em análise';
+            $('supplier-document-count').textContent = documentationLabel;
+            $('supplier-completion-badge').textContent = documentationLabel;
+            $('supplier-documents-status').textContent = documentationLabel;
+            $('supplier-documents-status').className = `status-badge ${documentationStatus === 'homologado' ? 'aprovado' : documentationStatus === 'recusado' ? 'recusada' : 'em análise'}`;
+            $('supplier-proposal-status').textContent = state.proposals.length ? 'Aguardando retorno dos organizadores' : 'Nenhuma proposta enviada';
+            $('supplier-homologation-message').textContent = state.company && !state.homologated ? 'Envie seus documentos e aguarde a homologação do administrador para liberar o envio de propostas.' : '';
+            $('supplier-collaborator-count').textContent = state.collaborators.length;
+            const currentUser = readStoredUser();
+            const isCompanyOwner = state.ownerId === Number(currentUser?.id);
+            $('supplier-collaborator-form').hidden = !isCompanyOwner;
+            $('supplier-collaborator-list').innerHTML = state.collaborators.length ? state.collaborators.map(collaborator => `<div class="supplier-collaborator"><div><strong>${escapeHtml(collaborator.nome)}</strong><small>${escapeHtml(collaborator.email)} · ${escapeHtml(collaborator.tipo)}</small></div>${isCompanyOwner ? `<button type="button" class="btn-secondary small" data-remove-collaborator="${collaborator.id}">Remover</button>` : ''}</div>`).join('') : '<p class="empty-state">Nenhum colaborador adicionado.</p>';
+            const eventFilter = $('opportunity-event-filter');
+            const selectedEvent = eventFilter.value;
+            const eventNames = [...new Set(state.opportunities.map(opportunity => opportunity.event).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+            eventFilter.innerHTML = '<option value="">Todos os eventos</option>' + eventNames.map(eventName => `<option value="${escapeHtml(eventName)}">${escapeHtml(eventName)}</option>`).join('');
+            eventFilter.value = eventNames.includes(selectedEvent) ? selectedEvent : '';
+            const visibleOpportunities = state.opportunities.filter(opportunity => !eventFilter.value || opportunity.event === eventFilter.value);
+            $('supplier-featured-opportunities').innerHTML = visibleOpportunities.length ? visibleOpportunities.map(opportunityCard).join('') : '<p class="empty-state">Nenhuma cotação disponível para este evento.</p>';
+            $('supplier-proposal-table').innerHTML = state.proposals.length ? state.proposals.map(proposal => `<tr><td>${proposal.title}<small>${proposal.event}</small></td><td>${money(proposal.value)}</td><td>${proposal.deadline}</td><td><span class="status-badge em análise">${proposal.status}</span></td><td><button type="button" class="btn-secondary small" data-chat-demand="${proposal.demanda_id}">Chat</button></td></tr>`).join('') : '<tr><td colspan="5" class="empty-state">Você ainda não enviou propostas.</td></tr>';
+            $('supplier-document-grid').innerHTML = state.documents.length ? state.documents.map(document => { const status = String(document.status || '').toLowerCase(); const label = status === 'aprovado' || status === 'validado' || status === 'homologado' ? 'Aprovado' : status === 'recusado' ? 'Recusado' : 'Em análise'; const statusClass = label === 'Aprovado' ? 'aprovado' : label === 'Recusado' ? 'recusada' : 'em análise'; return `<article class="supplier-document"><span class="document-icon">${label === 'Aprovado' ? '✓' : label === 'Recusado' ? '!' : '↑'}</span><div><strong>${escapeHtml(document.nome)}</strong><small>${escapeHtml(document.nome_arquivo)}</small>${label === 'Recusado' && document.motivo_recusa ? `<small class="supplier-document-reason">Motivo: ${escapeHtml(document.motivo_recusa)}</small>` : ''}</div><span class="status-badge ${statusClass}">${label}</span></article>`; }).join('') : '<p class="empty-state">Nenhum documento enviado. Clique em “Adicionar documento” para começar.</p>';
+                document.querySelectorAll('[data-remove-collaborator]').forEach(button => button.addEventListener('click', removeCollaborator));
+            document.querySelectorAll('[data-proposal-opportunity]').forEach(button => button.addEventListener('click', () => openProposal(Number(button.dataset.proposalOpportunity))));
+        }
+        function opportunityCard(opportunity) { const canSubmit = state.homologated; return `<article class="supplier-opportunity"><div><span class="badge badge-blue">${opportunity.category}</span><h3>${opportunity.title}</h3><p>${opportunity.description}</p><small>${opportunity.event} · Entrega até ${opportunity.deadline}</small></div><div class="supplier-opportunity-footer"><strong>${opportunity.budget}</strong><button type="button" class="btn-primary small" data-proposal-opportunity="${opportunity.id}" ${canSubmit ? '' : 'disabled title="Aguarde a homologação dos documentos"'}>${canSubmit ? 'Enviar proposta' : 'Aguardando homologação'}</button></div></article>`; }
+        function openProposal(id) { if (!state.homologated) { alert('O envio de propostas será liberado após a homologação dos documentos.'); return; } const opportunity = state.opportunities.find(item => item.id === id); if (!opportunity) return; $('proposal-opportunity-title').textContent = `${opportunity.title} · ${opportunity.event}`; $('supplier-proposal-modal').dataset.opportunityId = id; $('supplier-proposal-modal').classList.remove('hidden'); $('supplier-proposal-modal').setAttribute('aria-hidden', 'false'); }
+        async function uploadDocument(event) { event.preventDefault(); const nameInput = $('supplier-document-name'); const fileInput = $('supplier-document-file'); const message = $('supplier-document-message'); const file = fileInput.files?.[0]; if (!state.company) { message.textContent = 'Cadastre sua empresa antes de enviar documentos.'; return; } if (!nameInput.value.trim() || !file) { message.textContent = 'Informe o nome e selecione o arquivo.'; return; } if (file.size > 10 * 1024 * 1024) { message.textContent = 'O documento deve ter até 10 MB.'; return; } const reader = new FileReader(); reader.onload = async () => { try { await apiRequest('/api/fornecedor/documentos', { method: 'POST', body: JSON.stringify({ nome: nameInput.value.trim(), nome_arquivo: file.name, conteudo_base64: reader.result }) }); message.textContent = 'Documento enviado para análise / homologação.'; event.target.reset(); await loadData(); openPanel('supplier-documents'); } catch (error) { message.textContent = error.message; } }; reader.readAsDataURL(file); }
+        async function removeCollaborator(event) { const button = event.currentTarget; if (!window.confirm('Remover este colaborador da empresa?')) return; try { await apiRequest(`/api/fornecedor/colaboradores/${button.dataset.removeCollaborator}`, { method: 'DELETE' }); await loadData(); openPanel('supplier-company'); } catch (error) { $('supplier-collaborator-message').textContent = error.message; } }
+        document.querySelectorAll('.nav-btn').forEach(button => button.addEventListener('click', () => openPanel(button.dataset.panel)));
+        document.querySelectorAll('[data-open-panel]').forEach(button => button.addEventListener('click', () => { if (button.closest('#supplier-onboarding')) $('supplier-onboarding').hidden = true; document.querySelector('.organizer-shell').hidden = false; openPanel(button.dataset.openPanel); }));
+        $('supplier-sidebar-chat').addEventListener('click', () => { window.location.href = 'chat-fornecedor.html'; });
+        $('supplier-add-document').addEventListener('click', () => { $('supplier-document-form').hidden = !$('supplier-document-form').hidden; if (!$('supplier-document-form').hidden) $('supplier-document-name').focus(); });
+        $('supplier-document-form').addEventListener('submit', uploadDocument);
+        $('opportunity-event-filter').addEventListener('change', render);
+        $('supplier-company-form').addEventListener('submit', async event => { event.preventDefault(); try { const data = await apiRequest('/api/fornecedor/perfil', { method: 'POST', body: JSON.stringify({ razao_social: $('company-name').value.trim(), cnpj: $('company-document').value.trim(), categoria: $('company-category').value, contato: $('company-contact').value.trim(), email_comercial: $('company-email').value.trim(), telefone: $('company-phone').value.trim(), descricao: $('company-description').value.trim() }) }); state.company = { name: data.company.razao_social, document: data.company.cnpj, category: data.company.categoria, contact: data.company.contato, email: data.company.email_comercial, phone: data.company.telefone, description: data.company.descricao }; $('company-form-message').textContent = 'Cadastro salvo com sucesso.'; $('supplier-company-status').textContent = 'Cadastro preenchido'; $('supplier-onboarding').hidden = true; document.querySelector('.organizer-shell').hidden = false; render(); openPanel('supplier-overview'); } catch (error) { $('company-form-message').textContent = error.message; } });
+        $('supplier-collaborator-form').addEventListener('submit', async event => { event.preventDefault(); const input = $('supplier-collaborator-email'); const message = $('supplier-collaborator-message'); try { await apiRequest('/api/fornecedor/colaboradores', { method: 'POST', body: JSON.stringify({ email: input.value.trim() }) }); input.value = ''; message.textContent = 'Colaborador adicionado com sucesso.'; await loadData(); openPanel('supplier-company'); } catch (error) { message.textContent = error.message; } });
+        $('supplier-proposal-form').addEventListener('submit', async event => { event.preventDefault(); const opportunity = state.opportunities.find(item => item.id === Number($('supplier-proposal-modal').dataset.opportunityId)); try { await apiRequest('/api/fornecedor/propostas', { method: 'POST', body: JSON.stringify({ demanda_id: opportunity.id, valor: $('proposal-value').value, prazo: $('proposal-deadline').value, escopo: $('proposal-scope').value.trim() }) }); $('supplier-proposal-form').reset(); $('supplier-proposal-modal').classList.add('hidden'); $('supplier-proposal-modal').setAttribute('aria-hidden', 'true'); await loadData(); openPanel('supplier-proposals'); } catch (error) { alert(error.message); } });
+        function escapeHtml(value) { return String(value || '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character])); }
+        async function openSupplierChat(demandId) {
+            const proposal = state.proposals.find(item => Number(item.demanda_id) === Number(demandId));
+            const modal = $('supplier-chat-modal');
+            $('supplier-chat-title').textContent = `Chat · ${proposal?.title || 'Proposta'}`;
+            $('supplier-chat-messages').innerHTML = '<p class="chat-no-messages">Carregando mensagens...</p>';
+            modal.dataset.demandId = demandId;
+            modal.classList.remove('hidden');
+            modal.setAttribute('aria-hidden', 'false');
+            $('supplier-chat-input').focus();
+            if (!demandId) {
+                $('supplier-chat-messages').innerHTML = '<p class="chat-no-messages">Envie uma proposta para iniciar uma conversa.</p>';
+                return;
+            }
+            try {
+                const data = await apiRequest(`/api/fornecedor/demandas/${demandId}/mensagens`);
+                $('supplier-chat-messages').innerHTML = data.messages?.length
+                    ? data.messages.map(message => `<div class="chat-message ${message.remetente === 'fornecedor' ? 'outgoing' : 'incoming'}"><p>${escapeHtml(message.texto)}</p></div>`).join('')
+                    : '<p class="chat-no-messages">Inicie a negociação com o organizador.</p>';
+            } catch (error) {
+                $('supplier-chat-messages').innerHTML = `<p class="chat-no-messages chat-error">${escapeHtml(error.message)}</p>`;
+            }
+        }
+        $('supplier-proposal-table').addEventListener('click', event => { const button = event.target.closest('[data-chat-demand]'); if (button) window.location.href = `chat-fornecedor.html?demanda_id=${encodeURIComponent(button.dataset.chatDemand)}`; });
+        $('supplier-chat-form').addEventListener('submit', async event => { event.preventDefault(); const demandId = $('supplier-chat-modal').dataset.demandId; if (!demandId) { $('supplier-chat-messages').innerHTML = '<p class="chat-no-messages">Envie uma proposta para iniciar uma conversa.</p>'; return; } try { await apiRequest(`/api/fornecedor/demandas/${demandId}/mensagens`, { method: 'POST', body: JSON.stringify({ texto: $('supplier-chat-input').value.trim() }) }); $('supplier-chat-input').value = ''; await openSupplierChat(demandId); } catch (error) { $('supplier-chat-messages').innerHTML = `<p class="chat-no-messages chat-error">${escapeHtml(error.message)}</p>`; } });
+        document.querySelector('[data-close-chat]').addEventListener('click', () => { $('supplier-chat-modal').classList.add('hidden'); $('supplier-chat-modal').setAttribute('aria-hidden', 'true'); });
+        $('supplier-chat-modal').addEventListener('click', event => { if (event.target === $('supplier-chat-modal')) { $('supplier-chat-modal').classList.add('hidden'); $('supplier-chat-modal').setAttribute('aria-hidden', 'true'); } });
+        document.querySelector('[data-close-modal]').addEventListener('click', () => { $('supplier-proposal-modal').classList.add('hidden'); $('supplier-proposal-modal').setAttribute('aria-hidden', 'true'); });
+        $('supplier-logout').addEventListener('click', () => { localStorage.removeItem('trocaticket-supplier-company'); localStorage.removeItem('trocaticket-user'); localStorage.removeItem('usuario'); window.location.href = '../auth/login.html'; });
+        async function loadData() { const profile = await apiRequest('/api/fornecedor/perfil'); const results = await Promise.allSettled([apiRequest('/api/fornecedor/oportunidades'), apiRequest('/api/fornecedor/propostas'), apiRequest('/api/fornecedor/documentos'), apiRequest('/api/fornecedor/colaboradores')]); const opportunityData = results[0].status === 'fulfilled' ? results[0].value : { opportunities: [], homologated: false }; const proposalData = results[1].status === 'fulfilled' ? results[1].value : { proposals: [] }; const documentData = results[2].status === 'fulfilled' ? results[2].value : { documents: [], status: 'em análise' }; const collaboratorData = results[3].status === 'fulfilled' ? results[3].value : { collaborators: [] }; state.ownerId = collaboratorData.company?.owner_id || profile.company?.owner_id || null; state.documents = documentData.documents || []; state.documentationStatus = documentData.status || 'em análise'; state.homologated = Boolean(opportunityData.homologated); state.collaborators = collaboratorData.collaborators || []; state.company = profile.company ? { name: profile.company.razao_social, document: profile.company.cnpj, category: profile.company.categoria, contact: profile.company.contato, email: profile.company.email_comercial, phone: profile.company.telefone, description: profile.company.descricao } : null; if (state.company) { $('company-name').value = state.company.name; $('company-document').value = state.company.document; $('company-category').value = state.company.category; $('company-contact').value = state.company.contact; $('company-email').value = state.company.email; $('company-phone').value = state.company.phone; $('company-description').value = state.company.description; $('supplier-company-status').textContent = 'Cadastro preenchido'; } state.opportunities = (opportunityData.opportunities || []).map(item => ({ id: item.id, title: item.titulo, category: item.servico, event: item.evento_nome, deadline: new Date(item.prazo).toLocaleDateString('pt-BR'), budget: money(item.valor_estimado), description: item.escopo, minha_proposta: item.minha_proposta })); state.proposals = (proposalData.proposals || []).map(item => ({ demanda_id: item.demanda_id, title: item.titulo, event: item.evento_nome, value: item.valor, deadline: item.prazo, status: item.status === 'em analise' ? 'Em análise' : item.status })); render(); const needsOnboarding = !state.company; $('supplier-onboarding').hidden = !needsOnboarding; document.querySelector('.organizer-shell').hidden = needsOnboarding; if (results.some(result => result.status === 'rejected')) console.warn('Alguns recursos do fornecedor não puderam ser carregados.'); }
+        const user = readStoredUser(); if (!user?.session_token) { window.location.href = '../auth/login.html'; } if (user?.nome) $('supplier-user-name').textContent = user.nome;
+        loadData().catch(error => { $('supplier-onboarding').hidden = true; document.querySelector('.organizer-shell').hidden = false; $('company-form-message').textContent = `Não foi possível verificar o cadastro da empresa: ${error.message}`; console.error(error); });
+    </script>
+</body>
+</html>
