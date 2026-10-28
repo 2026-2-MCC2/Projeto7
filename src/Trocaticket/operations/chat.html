@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../organizador.css">
+    <link rel="stylesheet" href="../chat.css">
+    <title>Central de chat | TrocaTicket</title>
+</head>
+<body class="organizer-body chat-page">
+    <main class="chat-shell">
+        <aside class="chat-sidebar">
+            <header class="chat-sidebar-header">
+                <a class="brand" href="../organizador.html" aria-label="Voltar ao painel do organizador">
+                    <img class="brand-logo" src="../imagens/logo troca ticket.png" alt="TrocaTicket">
+                    <span>Troca<span class="brand-accent">Ticket</span></span>
+                </a>
+                <a class="chat-back-link" href="../organizador.html">Painel</a>
+            </header>
+            <div class="chat-sidebar-title">
+                <div><p class="section-kicker">Relacionamento</p><h1>Conversas</h1></div>
+                <span id="chat-conversation-count" class="badge badge-blue">0</span>
+            </div>
+            <label class="chat-search"><span aria-hidden="true">⌕</span><span class="sr-only">Buscar empresa</span><input id="chat-search-input" placeholder="Buscar empresa"></label>
+            <div id="chat-contact-list" class="chat-contact-list" aria-label="Empresas com propostas"></div>
+        </aside>
+
+        <section class="chat-conversation" aria-live="polite">
+            <div id="chat-empty-state" class="chat-empty-state">
+                <div class="chat-empty-icon">✦</div>
+                <h2>Selecione uma conversa</h2>
+                <p>As empresas que enviaram propostas aparecerão aqui.</p>
+            </div>
+            <div id="chat-active-conversation" class="chat-active-conversation" hidden>
+                <header class="chat-conversation-header">
+                    <div class="chat-contact-avatar" id="chat-active-avatar">—</div>
+                    <div><h2 id="chat-active-company">Fornecedor</h2><p id="chat-active-context">Proposta comercial</p></div>
+                    <span class="chat-status">● negociação ativa</span>
+                </header>
+                <div class="chat-message-list" id="chat-message-list"></div>
+                <form class="chat-composer" id="chat-composer">
+                    <label class="chat-clip-button" title="Adicionar arquivo ou foto" aria-label="Adicionar arquivo ou foto">📎<input id="chat-attachment-input" type="file" accept="image/*,application/pdf,text/plain" capture="environment"></label>
+                    <button class="chat-camera-button" id="chat-camera-button" type="button" title="Abrir câmera" aria-label="Abrir câmera">▣</button>
+                    <span id="chat-attachment-name" class="chat-attachment-name"></span>
+                    <input id="chat-message-input" autocomplete="off" placeholder="Digite uma mensagem...">
+                    <button class="btn-primary" type="submit">Enviar</button>
+                </form>
+            </div>
+        </section>
+    </main>
+    <div class="chat-camera-modal" id="chat-camera-modal" hidden>
+        <div class="chat-camera-card">
+            <video id="chat-camera-video" autoplay playsinline></video>
+            <canvas id="chat-camera-canvas" hidden></canvas>
+            <div class="chat-camera-actions"><button type="button" class="btn-secondary" id="chat-camera-close">Cancelar</button><button type="button" class="btn-primary" id="chat-camera-capture">Capturar</button></div>
+        </div>
+    </div>
+    <script>
+        const state = { conversations: [], selected: null };
+        const $ = id => document.getElementById(id);
+        const params = new URLSearchParams(window.location.search);
+        function escapeHtml(value) {
+            return String(value || '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
+        }
+        async function request(url, options = {}) {
+            const user = JSON.parse(localStorage.getItem('trocaticket-user') || localStorage.getItem('usuario') || 'null');
+            const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+            if (user?.session_token) headers.Authorization = `Bearer ${user.session_token}`;
+            const response = await fetch(url, { ...options, headers });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(data.message || 'Não foi possível carregar o chat.');
+            return data;
+        }
+        function initials(name) {
+            return String(name || 'Fornecedor').split(/\s+/).filter(Boolean).slice(0, 2).map(word => word[0]).join('').toUpperCase();
+        }
+        function renderContacts() {
+            const query = $('chat-search-input').value.toLowerCase();
+            const visible = state.conversations.filter(conversation => conversation.company.toLowerCase().includes(query));
+            $('chat-conversation-count').textContent = state.conversations.length;
+            $('chat-contact-list').innerHTML = visible.length ? visible.map(conversation => `
+                <button type="button" class="chat-contact ${state.selected?.key === conversation.key ? 'is-selected' : ''}" data-contact-key="${escapeHtml(conversation.key)}">
+                    <span class="chat-contact-avatar">${escapeHtml(initials(conversation.company))}</span>
+                    <span class="chat-contact-copy"><strong>${escapeHtml(conversation.company)}</strong><small>${escapeHtml(conversation.title)}</small><em>${conversation.messages.length ? escapeHtml(conversation.messages[conversation.messages.length - 1].text) : 'Proposta enviada'}</em></span>
+                    <span class="chat-contact-time">${conversation.messages.length ? escapeHtml(conversation.messages[conversation.messages.length - 1].time) : ''}</span>
+                </button>
+            `).join('') : '<p class="chat-no-contacts">Nenhuma empresa encontrada.</p>';
+            document.querySelectorAll('[data-contact-key]').forEach(button => button.addEventListener('click', () => selectConversation(button.dataset.contactKey)));
+        }
+        function renderMessages(scrollToBottom = true) {
+            if (!state.selected) {
+                $('chat-empty-state').hidden = false;
+                $('chat-active-conversation').hidden = true;
+                return;
+            }
+            $('chat-empty-state').hidden = true;
+            $('chat-active-conversation').hidden = false;
+            $('chat-active-avatar').textContent = initials(state.selected.company);
+            $('chat-active-company').textContent = state.selected.company;
+            $('chat-active-context').textContent = `${state.selected.title} · ${state.selected.event}`;
+            $('chat-message-list').innerHTML = state.selected.messages.length ? state.selected.messages.map(message => `
+                <div class="chat-bubble-row ${message.sender === 'organizador' ? 'is-mine' : ''}">
+                    <div class="chat-bubble">${message.attachment ? (message.attachment.type?.startsWith('image/') ? `<a href="${escapeHtml(message.attachment.url)}" target="_blank"><img class="chat-attachment-image" src="${escapeHtml(message.attachment.url)}" alt="${escapeHtml(message.attachment.name)}"></a>` : `<a class="chat-attachment-link" href="${escapeHtml(message.attachment.url)}" target="_blank" download>${escapeHtml(message.attachment.name || 'Baixar arquivo')}</a>`) : ''}${message.text ? `<p>${escapeHtml(message.text)}</p>` : ''}<small>${escapeHtml(message.time)}</small></div>
+                </div>
+            `).join('') : '<p class="chat-no-messages">Inicie a negociação com esta empresa.</p>';
+            if (scrollToBottom) $('chat-message-list').scrollTop = $('chat-message-list').scrollHeight;
+        }
+        async function loadMessages(conversation) {
+            const data = await request(`/api/organizador/demandas/${conversation.demandId}/mensagens`);
+            conversation.messages = (data.messages || []).map(message => ({ sender: message.remetente, text: message.texto, attachment: message.anexo_url ? { url: message.anexo_url, name: message.anexo_nome, type: message.anexo_tipo } : null, time: message.enviado_em ? new Date(message.enviado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '' }));
+        }
+        async function refreshSelectedConversation() {
+            if (document.hidden || !state.selected) return;
+            const key = state.selected.key;
+            const messageList = $('chat-message-list');
+            const wasAtBottom = messageList.scrollHeight - messageList.scrollTop - messageList.clientHeight < 24;
+            const previousScrollTop = messageList.scrollTop;
+            try {
+                await loadMessages(state.selected);
+                if (state.selected?.key === key) {
+                    renderContacts();
+                    renderMessages(false);
+                    messageList.scrollTop = wasAtBottom ? messageList.scrollHeight : previousScrollTop;
+                }
+            } catch (error) {
+                console.warn('Não foi possível atualizar o chat:', error.message);
+            }
+        }
+        async function selectConversation(key) {
+            state.selected = state.conversations.find(conversation => conversation.key === key) || null;
+            if (!state.selected) return;
+            renderContacts();
+            renderMessages();
+            try { await loadMessages(state.selected); renderContacts(); renderMessages(); } catch (error) { alert(error.message); }
+        }
+        async function loadDashboard() {
+            const data = await request('/api/organizador/chat');
+            const conversations = (data.conversations || []).map(item => ({
+                key: `${item.demanda_id}-${item.proposta_id}`,
+                demandId: item.demanda_id,
+                proposalId: item.proposta_id,
+                company: item.empresa || 'Fornecedor',
+                title: item.titulo || 'Proposta comercial',
+                event: item.evento_nome || 'Evento',
+                messages: []
+            }));
+            state.conversations = conversations;
+            renderContacts();
+            const requestedDemand = params.get('demanda_id');
+            const initial = conversations.find(conversation => String(conversation.demandId) === requestedDemand) || conversations[0];
+            if (initial) await selectConversation(initial.key);
+            else renderMessages();
+        }
+        $('chat-search-input').addEventListener('input', renderContacts);
+        let pendingAttachment = null;
+        $('chat-attachment-input').addEventListener('change', event => { const file = event.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => { pendingAttachment = { name: file.name, type: file.type, data: reader.result }; $('chat-attachment-name').textContent = file.name; }; reader.readAsDataURL(file); });
+        let cameraStream = null;
+        function closeCamera() { cameraStream?.getTracks().forEach(track => track.stop()); cameraStream = null; $('chat-camera-modal').hidden = true; }
+        $('chat-camera-button').addEventListener('click', async () => { try { cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }); $('chat-camera-video').srcObject = cameraStream; $('chat-camera-modal').hidden = false; } catch (error) { alert('Não foi possível acessar a câmera. Verifique a permissão do navegador.'); } });
+        $('chat-camera-close').addEventListener('click', closeCamera);
+        $('chat-camera-capture').addEventListener('click', () => { const video = $('chat-camera-video'); const canvas = $('chat-camera-canvas'); canvas.width = video.videoWidth; canvas.height = video.videoHeight; canvas.getContext('2d').drawImage(video, 0, 0); pendingAttachment = { name: `foto-${Date.now()}.jpg`, type: 'image/jpeg', data: canvas.toDataURL('image/jpeg', 0.85) }; $('chat-attachment-name').textContent = pendingAttachment.name; closeCamera(); });
+        $('chat-composer').addEventListener('submit', async event => {
+            event.preventDefault();
+            if (!state.selected || (!$('chat-message-input').value.trim() && !pendingAttachment)) return;
+            const input = $('chat-message-input');
+            try {
+                await request(`/api/organizador/demandas/${state.selected.demandId}/mensagens`, { method: 'POST', body: JSON.stringify({ texto: input.value.trim(), anexo: pendingAttachment }) });
+                input.value = '';
+                pendingAttachment = null; $('chat-attachment-input').value = ''; $('chat-attachment-name').textContent = '';
+                await selectConversation(state.selected.key);
+            } catch (error) { alert(error.message); }
+        });
+        loadDashboard().catch(error => { $('chat-contact-list').innerHTML = `<p class="chat-no-contacts">${escapeHtml(error.message)}</p>`; });
+        window.setInterval(refreshSelectedConversation, 2500);
+    </script>
+</body>
+</html>

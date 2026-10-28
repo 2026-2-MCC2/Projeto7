@@ -68,7 +68,11 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, senha: password })
     });
-    if (data.user) localStorage.setItem('trocaticket-user', JSON.stringify(data.user));
+    if (data.user) {
+      const sessionUser = { ...data.user, session_token: data.session_token };
+      localStorage.setItem('trocaticket-user', JSON.stringify(sessionUser));
+      localStorage.setItem('usuario', JSON.stringify(sessionUser));
+    }
     return data;
   }
 };
