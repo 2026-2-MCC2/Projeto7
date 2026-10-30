@@ -51,6 +51,9 @@
             <a href="#auditoria" class="nav-btn">
                 <span>Equipe</span>
             </a>
+            <a href="#homologacao" class="nav-btn">
+                <span>Homologação</span>
+            </a>
         </nav>
 
         <main id="admin-content" class="admin-content">
@@ -162,6 +165,32 @@
                 </div>
                 <div class="table-container">
                     <table class="data-table"><thead><tr><th>Responsável</th><th>Tipo</th><th>Ação</th><th>Descrição</th><th>Item afetado</th><th>Data e hora</th></tr></thead><tbody id="audit-table-body"><tr><td colspan="6" class="empty-state">Nenhuma atividade registrada</td></tr></tbody></table>
+                </div>
+            </section>
+
+            <section id="section-homologacao" class="admin-section">
+                <div class="section-header">
+                    <div>
+                        <h2>Homologação</h2>
+                        <p class="section-subtitle">Analise a confiabilidade documental das empresas fornecedoras.</p>
+                    </div>
+                </div>
+                <div class="admin-homologacao-kpis">
+                    <article class="stat-card"><div class="stat-icon">◷</div><div class="stat-info"><span class="stat-label">Pendentes de análise</span><span class="stat-value" id="admin-homologacao-pending">0</span></div></article>
+                    <article class="stat-card"><div class="stat-icon">✓</div><div class="stat-info"><span class="stat-label">Homologadas ativas</span><span class="stat-value" id="admin-homologacao-approved">0</span></div></article>
+                    <article class="stat-card"><div class="stat-icon">!</div><div class="stat-info"><span class="stat-label">Recusadas / pendências</span><span class="stat-value" id="admin-homologacao-rejected">0</span></div></article>
+                </div>
+                <div class="admin-homologacao-toolbar">
+                    <div class="admin-homologacao-tabs" role="tablist" aria-label="Filtrar homologações">
+                        <button type="button" class="admin-homologacao-tab is-active" data-homologacao-filter="pending" role="tab">Pendentes de análise</button>
+                        <button type="button" class="admin-homologacao-tab" data-homologacao-filter="approved" role="tab">Homologados</button>
+                        <button type="button" class="admin-homologacao-tab" data-homologacao-filter="rejected" role="tab">Recusados</button>
+                    </div>
+                </div>
+                <div class="dashboard-card admin-homologacao-card">
+                    <div id="admin-homologacao-list" class="admin-homologacao-list">
+                        <p class="empty-state">Carregando documentação dos fornecedores...</p>
+                    </div>
                 </div>
             </section>
 
@@ -333,6 +362,26 @@
             </section>
         </main>
     </div>
+    <dialog id="admin-homologacao-rejection-dialog" class="admin-homologacao-dialog">
+        <form method="dialog" id="admin-homologacao-rejection-form">
+            <button type="button" class="modal-close" data-close-homologacao-dialog aria-label="Fechar">×</button>
+            <h2>Justificar recusa</h2>
+            <p>Informe o motivo que será registrado para o fornecedor.</p>
+            <textarea id="admin-homologacao-reason" required minlength="3" placeholder="Ex.: CNPJ irregular ou documento ilegível."></textarea>
+            <div class="modal-actions"><button type="button" class="button button-outline" data-close-homologacao-dialog>Cancelar</button><button type="submit" class="button button-primary">Continuar</button></div>
+        </form>
+    </dialog>
+    <dialog id="admin-homologacao-final-dialog" class="admin-homologacao-dialog">
+        <form method="dialog" id="admin-homologacao-final-form">
+            <button type="button" class="modal-close" data-close-final-dialog aria-label="Fechar">×</button>
+            <h2>Alterar status da empresa</h2>
+            <p id="admin-homologacao-final-company">A alteração de status exige a senha de login do administrador.</p>
+            <label class="admin-homologacao-password-label" for="admin-homologacao-final-password">Senha de login
+                <input id="admin-homologacao-final-password" type="password" autocomplete="current-password" required>
+            </label>
+            <div class="modal-actions"><button type="button" class="button button-outline" data-close-final-dialog>Cancelar</button><button type="submit" class="button button-primary">Confirmar alteração</button></div>
+        </form>
+    </dialog>
 
     <!-- Modal com seletor de arquivo de imagem, toggle do carrossel e campo Artista -->
     <div id="event-modal" class="modal" style="display: none;">

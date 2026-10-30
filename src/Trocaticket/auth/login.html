@@ -257,7 +257,7 @@
                     localStorage.setItem('usuario', JSON.stringify(sessionUser));
 
                     const requestedRedirect = new URLSearchParams(window.location.search).get('redirect') || '';
-                    const safeRedirect = /^(meus-ingressos\.html|ingresso\.html(?:\?evento=[^&]*)?)$/.test(requestedRedirect)
+                    const safeRedirect = /^(meus-ingressos\.html|ingresso\.html(?:\?evento=[^&]*)?|\.{2}\/operations\/(?:organizador|fornecedor)\.html)$/.test(requestedRedirect)
                         ? requestedRedirect
                         : 'index.html';
                     window.location.href = safeRedirect;

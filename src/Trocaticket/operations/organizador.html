@@ -22,8 +22,9 @@
                 <button class="nav-btn active" type="button" data-panel="overview">Painel Geral</button>
                 <button class="nav-btn" type="button" data-panel="events">Eventos</button>
                 <button class="nav-btn" type="button" data-panel="finance">Viabilidade</button>
-                <button class="nav-btn" type="button" data-panel="providers">Fornecedores</button>
-                <a class="nav-btn nav-link-btn" href="../chat.html">Central de chat</a>
+                <button class="nav-btn" type="button" data-panel="demands">Demandas</button>
+                <button class="nav-btn" type="button" data-panel="suppliers">Fornecedores</button>
+                <a id="organizer-chat-link" class="nav-btn nav-link-btn chat-nav-btn" href="../chat.html">Central de chat<span class="chat-unread-dot" id="organizer-chat-unread" hidden aria-label="Mensagens não lidas"></span></a>
                 <button class="nav-btn" type="button" data-panel="checklist">Checklist</button>
             </nav>
 
@@ -345,60 +346,32 @@
                     </div>
                 </section>
 
-                <section id="panel-providers" class="organizer-panel">
+                <section id="panel-demands" class="organizer-panel">
                     <div class="header-row">
                         <div>
-                            <p class="section-kicker">Operação e compliance</p>
-                            <h2>Gestão de fornecedores</h2>
-                            <p class="panel-description">Supervisione propostas, negociações e documentos obrigatórios em um único painel.</p>
+                            <p class="section-kicker">Cotações</p>
+                            <h2>Demandas por evento</h2>
+                            <p class="panel-description">Analise as demandas abertas, acompanhe os estados das cotações e abra os detalhes de cada solicitação.</p>
                         </div>
-                        <button type="button" class="btn-primary" id="btn-provider-dossier">Baixar dossiê</button>
+                        <div class="inline-select">
+                            <label for="demand-event-select">Evento</label>
+                            <select id="demand-event-select"></select>
+                        </div>
                     </div>
 
                     <div class="provider-kpi-grid">
-                        <article class="provider-kpi">
-                            <span>Propostas recebidas</span>
-                            <strong id="provider-proposals-count">0</strong>
-                            <small>Demandas em andamento</small>
-                        </article>
-                        <article class="provider-kpi">
-                            <span>Em homologação</span>
-                            <strong id="provider-review-count">0</strong>
-                            <small id="provider-pending-documents">Documentos pendentes</small>
-                        </article>
-                        <article class="provider-kpi">
-                            <span>Fornecedores aprovados</span>
-                            <strong id="provider-approved-count">0</strong>
-                            <small>Prontos para contratar</small>
-                        </article>
-                        <article class="provider-kpi">
-                            <span>Valor em negociação</span>
-                            <strong id="provider-negotiation-value">R$ 0,00</strong>
-                            <small>Propostas ativas</small>
-                        </article>
+                        <article class="provider-kpi"><span>Em cotação</span><strong id="demand-quoting-count">0</strong><small>Demandas aguardando propostas</small></article>
+                        <article class="provider-kpi"><span>Em negociação</span><strong id="demand-negotiation-count">0</strong><small>Demandas com propostas ativas</small></article>
+                        <article class="provider-kpi"><span>Confirmadas</span><strong id="demand-confirmed-count">0</strong><small>Demandas aprovadas ou contratadas</small></article>
+                        <article class="provider-kpi"><span>Valor em negociação</span><strong id="demand-negotiation-value">R$ 0,00</strong><small>Soma das propostas recebidas</small></article>
                     </div>
 
-                    <div class="provider-layout">
-                        <aside class="glass-panel demand-list-panel">
-                            <h3>Demandas abertas</h3>
-                            <div id="demand-list" class="demand-list"></div>
-                        </aside>
-
-                        <div class="glass-panel proposals-panel">
-                            <div class="card-header-row">
-                                <h3>Comparativo de propostas</h3>
-                            </div>
-                            <div id="proposal-table-wrap" class="table-wrap"></div>
-                        </div>
-                    </div>
-                    <div class="glass-panel supplier-review-panel" id="supplier-review-panel">
+                    <div class="demand-section">
                         <div class="card-header-row">
-                            <div><p class="section-kicker">Homologação</p><h3>Documentação dos fornecedores</h3></div>
-                            <div class="supplier-review-header-actions" id="supplier-review-header-actions">
-                                <span class="badge badge-blue" id="supplier-review-status">Em análise</span>
-                            </div>
+                            <h3>Demandas abertas</h3>
+                            <span class="badge badge-blue" id="demand-total-count">0</span>
                         </div>
-                        <div id="supplier-review-list" class="supplier-review-list"></div>
+                        <div id="demand-list" class="demand-list"></div>
                     </div>
                 </section>
 
@@ -436,6 +409,25 @@
                             </div>
                             <div id="runofshow-list" class="timeline-list"></div>
                         </div>
+                    </div>
+                </section>
+
+                <section id="panel-suppliers" class="organizer-panel">
+                    <div class="header-row">
+                        <div>
+                            <p class="section-kicker">Operação</p>
+                            <h2>Fornecedores</h2>
+                            <p class="panel-description">Consulte histórico e eficiência operacional sem exposição de valores financeiros.</p>
+                        </div>
+                        <span class="badge badge-blue" id="supplier-history-count">0 fornecedores</span>
+                    </div>
+                    <div class="supplier-history-summary">
+                        <article class="provider-kpi"><span>Homologados</span><strong id="supplier-approved-count">0</strong><small>Documentação aprovada</small></article>
+                        <article class="provider-kpi"><span>Ativos</span><strong id="supplier-active-count">0</strong><small>Com histórico operacional</small></article>
+                        <article class="provider-kpi"><span>Conformidade média</span><strong id="supplier-compliance-average">0%</strong><small>Status documental</small></article>
+                    </div>
+                    <div id="supplier-history-list" class="supplier-history-list">
+                        <p class="empty-state">Carregando histórico operacional...</p>
                     </div>
                 </section>
             </div>
@@ -498,6 +490,16 @@
         </div>
     </div>
 
+    <div id="supplier-history-modal" class="modal hidden" aria-hidden="true">
+        <div class="modal-card supplier-history-modal-card">
+            <div class="modal-header">
+                <h3>Histórico operacional</h3>
+                <button type="button" class="modal-close" data-close="supplier-history-modal">×</button>
+            </div>
+            <div id="supplier-history-modal-body"></div>
+        </div>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const user = JSON.parse(localStorage.getItem('trocaticket-user') || localStorage.getItem('usuario') || 'null');
@@ -519,6 +521,8 @@
                 documents: [],
                 supplierDocuments: [],
                 supplierDocumentsError: '',
+                suppliers: [],
+                suppliersError: '',
                 tasks: [],
                 activeDemandId: null,
                 activeChatDemandId: null
@@ -534,7 +538,16 @@
                 });
                 const data = await response.json().catch(() => ({}));
                 if (!response.ok) {
-                    throw new Error(data.message || 'Erro ao carregar dados do organizador.');
+                    const error = new Error(data.message || 'Erro ao carregar dados do organizador.');
+                    error.status = response.status;
+                    if (response.status === 401 || response.status === 403) {
+                        localStorage.removeItem('trocaticket-user');
+                        localStorage.removeItem('usuario');
+                        sessionStorage.removeItem('trocaticket-user');
+                        sessionStorage.removeItem('usuario');
+                        window.location.href = '../auth/login.html?redirect=../operations/organizador.html';
+                    }
+                    throw error;
                 }
                 return data;
             }
@@ -718,6 +731,14 @@
                     organizerState.supplierDocuments = [];
                     organizerState.supplierDocumentsError = error.message;
                 }
+                try {
+                    organizerState.suppliers = (await fetchJson('/api/organizador/fornecedores')).suppliers || [];
+                    organizerState.suppliersError = '';
+                } catch (error) {
+                    console.warn('Não foi possível carregar o histórico dos fornecedores:', error.message);
+                    organizerState.suppliers = [];
+                    organizerState.suppliersError = error.message;
+                }
                 if (!organizerState.demands.some((demand) => demand.id === organizerState.activeDemandId)) {
                     organizerState.activeDemandId = organizerState.demands[0]?.id || null;
                 }
@@ -726,7 +747,21 @@
                 }
 
                 renderAll();
+                updateOrganizerChatUnread();
             }
+
+            async function updateOrganizerChatUnread() {
+                try {
+                    const data = await fetchJson('/api/organizador/chat/nao-lidas');
+                    document.getElementById('organizer-chat-unread').hidden = !Number(data.unread);
+                } catch (error) {
+                    console.warn('Não foi possível consultar mensagens não lidas:', error.message);
+                }
+            }
+            document.getElementById('organizer-chat-link').addEventListener('click', async (event) => {
+                event.preventDefault();
+                window.location.href = '../chat.html';
+            });
 
             function formatCurrency(value) {
                 return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
@@ -798,6 +833,14 @@
                 }
                 document.getElementById('active-event-name').textContent = current.name;
                 document.getElementById('active-event-date').textContent = new Date(current.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) + ' • ' + new Date(current.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            }
+
+            function renderDemandEventSelect() {
+                const select = document.getElementById('demand-event-select');
+                if (!select) return;
+                select.innerHTML = organizerState.eventList.map(event => `
+                    <option value="${event.id}" ${event.id === organizerState.selectedEventId ? 'selected' : ''}>${event.name}</option>
+                `).join('');
             }
 
             function toLocalInputValue(dateValue) {
@@ -1256,68 +1299,34 @@
             }
 
             function renderDemandList() {
-                const pendingDocuments = organizerState.documents.filter(document => document.status !== 'regularizado').length;
-                const approvedProposals = organizerState.demands.reduce((total, demand) => total + demand.proposals.filter(proposal => ['aprovado', 'contratado', 'homologado'].includes(proposal.status)).length, 0);
+                const normalizedStatuses = organizerState.demands.map(demand => String(demand.status || '').toLowerCase());
+                const quotingCount = normalizedStatuses.filter(status => ['em cotacao', 'em cotação', 'pendente', 'aberta', 'aberto'].includes(status)).length;
+                const confirmedCount = normalizedStatuses.filter(status => ['aprovado', 'confirmada', 'confirmado', 'contratado', 'homologado'].includes(status)).length;
+                const negotiationCount = organizerState.demands.filter(demand => {
+                    const status = String(demand.status || '').toLowerCase();
+                    return ['em negociacao', 'em negociação', 'negociando'].includes(status) || demand.proposals.some(proposal => ['em analise', 'em análise', 'negociacao', 'negociação'].includes(String(proposal.status || '').toLowerCase()));
+                }).length;
                 const negotiationValue = organizerState.demands.reduce((total, demand) => total + demand.proposals.reduce((proposalTotal, proposal) => proposalTotal + Number(proposal.value || 0), 0), 0);
-                document.getElementById('provider-proposals-count').textContent = organizerState.demands.length;
-                document.getElementById('provider-review-count').textContent = organizerState.demands.filter(demand => !['aprovado', 'homologado', 'contratado'].includes(demand.status)).length;
-                document.getElementById('provider-approved-count').textContent = approvedProposals;
-                document.getElementById('provider-pending-documents').textContent = `${pendingDocuments} documento${pendingDocuments === 1 ? '' : 's'} pendente${pendingDocuments === 1 ? '' : 's'}`;
-                document.getElementById('provider-negotiation-value').textContent = formatCurrency(negotiationValue);
+                document.getElementById('demand-quoting-count').textContent = quotingCount;
+                document.getElementById('demand-negotiation-count').textContent = negotiationCount;
+                document.getElementById('demand-confirmed-count').textContent = confirmedCount;
+                document.getElementById('demand-total-count').textContent = organizerState.demands.length;
+                document.getElementById('demand-negotiation-value').textContent = formatCurrency(negotiationValue);
 
                 const demandList = document.getElementById('demand-list');
                 demandList.innerHTML = organizerState.demands.map(demand => `
-                    <button type="button" class="demand-item ${demand.id === organizerState.activeDemandId ? 'selected' : ''}" data-demand-id="${demand.id}">
+                    <article class="demand-item ${demand.id === organizerState.activeDemandId ? 'selected' : ''}" data-demand-id="${demand.id}">
                         <span class="demand-title">${demand.title}</span>
                         <span class="demand-meta">${demand.service}</span>
+                        <a class="btn-secondary small demand-details-link" href="demanda-detalhes.html?evento_id=${encodeURIComponent(organizerState.selectedEventId)}&demanda_id=${encodeURIComponent(demand.id)}">Exibir detalhes</a>
                         <span class="status-badge ${demand.status}">${demand.status}</span>
-                    </button>
+                    </article>
                 `).join('');
-
-                const selectedDemand = organizerState.demands.find(demand => demand.id === organizerState.activeDemandId) || organizerState.demands[0];
-                const wrap = document.getElementById('proposal-table-wrap');
-                if (!selectedDemand) return;
-
-                wrap.innerHTML = `
-                    <div class="proposal-header">
-                        <div>
-                            <h4>${selectedDemand.title}</h4>
-                            <p>${selectedDemand.scope}</p>
-                        </div>
-                        <span class="badge badge-blue">Prazo: ${new Date(selectedDemand.deadline).toLocaleDateString('pt-BR')}</span>
-                    </div>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Fornecedor</th>
-                                <th>Valor</th>
-                                <th>Escopo</th>
-                                <th>Prazos</th>
-                                <th>Anexos</th>
-                                <th>Ação</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${selectedDemand.proposals.map(proposal => `
-                                <tr>
-                                    <td>${proposal.company}</td>
-                                    <td>${formatCurrency(proposal.value)}</td>
-                                    <td>${proposal.scope}</td>
-                                    <td>${proposal.deadline}</td>
-                                    <td>${proposal.files.join(', ')}</td>
-                                    <td>
-                                        <button type="button" class="btn-primary small approve-btn" data-demand-id="${selectedDemand.id}" data-proposal-id="${proposal.id}">Aprovar</button>
-                                        <button type="button" class="btn-secondary small chat-btn" data-demand-id="${selectedDemand.id}" data-company="${proposal.company}">Chat</button>
-                                    </td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                `;
             }
 
             function renderSupplierReview() {
                 const list = document.getElementById('supplier-review-list');
+                if (!list) return;
                 const status = document.getElementById('supplier-review-status');
                 const documents = organizerState.supplierDocuments;
                 if (organizerState.supplierDocumentsError) {
@@ -1326,7 +1335,8 @@
                     status.className = 'badge badge-red';
                     return;
                 }
-                if (!documents.length) {
+
+                    if (!documents.length) {
                     document.getElementById('supplier-review-header-actions').innerHTML = '<span class="badge badge-blue" id="supplier-review-status">Em análise</span>';
                 }
                 const statuses = documents.map(document => document.documentacao_status);
@@ -1347,6 +1357,56 @@
                     const fileLink = fileUrl ? `<a class="btn-secondary small" href="${escapeHtml(fileUrl)}" target="_blank" rel="noopener noreferrer">Abrir arquivo</a>` : '<small>Arquivo indisponível</small>';
                     return `<article class="supplier-review-item"><div><strong>${escapeHtml(document.razao_social || 'Empresa não identificada')}</strong><small>${escapeHtml(document.nome)} · ${escapeHtml(document.nome_arquivo)} · ${escapeHtml(document.email)}</small>${documentStatus === 'recusado' && document.motivo_recusa ? `<small class="supplier-document-reason">Motivo: ${escapeHtml(document.motivo_recusa)}</small>` : ''}</div><div class="supplier-review-actions"><span class="status-badge ${statusClass}">${label}</span>${fileLink}<button type="button" class="btn-secondary small" data-review-document="${document.id}" data-review-status="aprovado">Aprovar</button><button type="button" class="btn-secondary small danger" data-review-document="${document.id}" data-review-status="recusado">Recusar</button></div></article>`;
                 }).join('') : '<p class="empty-state">Nenhum documento de fornecedor aguardando revisão.</p>';
+            }
+
+            function renderSupplierHistory() {
+                const list = document.getElementById('supplier-history-list');
+                if (!list) return;
+                const suppliers = organizerState.suppliers || [];
+                document.getElementById('supplier-history-count').textContent = `${suppliers.length} fornecedor${suppliers.length === 1 ? '' : 'es'}`;
+                const approved = suppliers.filter(supplier => supplier.compliance.status === 'homologado').length;
+                const active = suppliers.filter(supplier => supplier.metrics.service_count > 0).length;
+                const average = suppliers.length ? Math.round(suppliers.reduce((sum, supplier) => sum + supplier.compliance.score, 0) / suppliers.length) : 0;
+                document.getElementById('supplier-approved-count').textContent = approved;
+                document.getElementById('supplier-active-count').textContent = active;
+                document.getElementById('supplier-compliance-average').textContent = `${average}%`;
+                if (organizerState.suppliersError) {
+                    list.innerHTML = `<p class="form-message supplier-review-error">${escapeHtml(organizerState.suppliersError)}</p>`;
+                    return;
+                }
+                if (!suppliers.length) {
+                    list.innerHTML = '<p class="empty-state">Nenhum fornecedor cadastrado ou com histórico operacional.</p>';
+                    return;
+                }
+                list.innerHTML = suppliers.map(supplier => {
+                    const complianceClass = supplier.compliance.score >= 90 ? 'supplier-performance-good' : supplier.compliance.score >= 70 ? 'supplier-performance-attention' : 'supplier-performance-risk';
+                    const complianceLabel = supplier.compliance.status === 'homologado' ? 'Homologado ativo' : supplier.compliance.status === 'recusado' ? 'Com pendências' : 'Em análise';
+                    const services = supplier.services.length ? supplier.services.map(service => `<span class="supplier-service-tag">${escapeHtml(service)}</span>`).join('') : '<span class="supplier-muted">Nenhum serviço registrado</span>';
+                    const avatar = supplier.logo_url ? `<img src="${escapeHtml(supplier.logo_url)}" alt="Logo de ${escapeHtml(supplier.company_name)}">` : `<span>${escapeHtml(supplier.company_name.slice(0, 1).toUpperCase())}</span>`;
+                    return `<button type="button" class="supplier-history-card" data-supplier-history="${escapeHtml(supplier.company_id)}">
+                        <div class="supplier-history-card-header">
+                            <div class="supplier-card-identity"><div class="supplier-card-avatar">${avatar}</div><div><span class="eyebrow">Fornecedor</span><h3>${escapeHtml(supplier.company_name)}</h3><p>${escapeHtml(supplier.category)}</p></div></div>
+                            <span class="supplier-performance-badge ${complianceClass}">${escapeHtml(complianceLabel)}</span>
+                        </div>
+                        <div class="supplier-card-footer"><span>${supplier.metrics.service_count} atendimento(s) registrado(s)</span><span>Ver histórico →</span></div>
+                    </button>`;
+                }).join('');
+                list.querySelectorAll('[data-supplier-history]').forEach(card => card.addEventListener('click', () => openSupplierHistory(card.dataset.supplierHistory)));
+            }
+
+            function openSupplierHistory(companyId) {
+                const supplier = organizerState.suppliers.find(item => String(item.company_id) === String(companyId));
+                if (!supplier) return;
+                const modal = document.getElementById('supplier-history-modal');
+                const body = document.getElementById('supplier-history-modal-body');
+                if (!modal || !body) return;
+                const services = supplier.services.length ? supplier.services.map(service => `<span class="supplier-service-tag">${escapeHtml(service)}</span>`).join('') : '<span class="supplier-muted">Nenhum serviço registrado</span>';
+                body.innerHTML = `<div class="supplier-detail-header"><div class="supplier-card-avatar">${supplier.logo_url ? `<img src="${escapeHtml(supplier.logo_url)}" alt="">` : escapeHtml(supplier.company_name.slice(0, 1).toUpperCase())}</div><div><span class="eyebrow">Dossiê operacional</span><h2>${escapeHtml(supplier.company_name)}</h2><p>${escapeHtml(supplier.category)} · ${escapeHtml(supplier.email || 'E-mail não informado')}</p></div><span class="supplier-performance-badge supplier-performance-good">${escapeHtml(supplier.compliance.status === 'homologado' ? 'Homologado ativo' : supplier.compliance.status === 'recusado' ? 'Com pendências' : 'Em análise')}</span></div>
+                    <div class="supplier-detail-metrics"><div><span>Serviços entregues</span><strong>${supplier.metrics.service_count}</strong></div><div><span>Atendimentos confirmados</span><strong>${supplier.metrics.confirmed_count}</strong></div><div><span>Prazo médio de entrega</span><strong>${supplier.metrics.average_delivery_days ? `${supplier.metrics.average_delivery_days} dias` : 'Sem histórico'}</strong></div><div><span>Tempo médio de resposta</span><strong>${supplier.metrics.response_hours ? `${supplier.metrics.response_hours} h` : 'Sem histórico'}</strong></div></div>
+                    <section class="supplier-detail-section"><h3>Produtos e serviços entregues</h3><div class="supplier-history-services"><div>${services}</div></div></section>
+                    <section class="supplier-detail-section"><h3>Conformidade documental</h3><div class="supplier-compliance-progress"><span style="width:${supplier.compliance.score}%"></span></div><p>${supplier.compliance.score}% de conformidade · ${supplier.compliance.approved_documents} de ${supplier.compliance.total_documents} documentos aprovados.</p></section>`;
+                modal.classList.remove('hidden');
+                modal.setAttribute('aria-hidden', 'false');
             }
 
             function renderDocuments() {
@@ -1499,11 +1559,13 @@
 
             function renderAll() {
                 renderEventSelect();
+                renderDemandEventSelect();
                 renderEventTable();
                 renderOperationalDiagnosis();
                 renderOverview();
                 renderFinanceTable();
                 renderDemandList();
+                renderSupplierHistory();
                 renderSupplierReview();
                 renderDocuments();
                 renderRunOfShow();
@@ -1522,6 +1584,12 @@
                 organizerState.selectedEventId = Number(event.target.value);
                 await loadOrganizerDashboard();
                 refreshFinancialSimulation();
+            });
+
+            document.getElementById('demand-event-select').addEventListener('change', async (event) => {
+                organizerState.selectedEventId = Number(event.target.value);
+                organizerState.activeDemandId = null;
+                await loadOrganizerDashboard();
             });
 
             document.getElementById('sim-ocupacao').addEventListener('change', () => {
@@ -1711,7 +1779,7 @@
                 renderDemandList();
             });
 
-            document.getElementById('supplier-review-panel').addEventListener('click', async (event) => {
+            document.getElementById('supplier-review-panel')?.addEventListener('click', async (event) => {
                 const button = event.target.closest('[data-review-document]');
                 if (!button) return;
                 const documentId = Number(button.dataset.reviewDocument);
@@ -1736,7 +1804,7 @@
                 }
             });
 
-            document.getElementById('supplier-review-panel').addEventListener('click', async (event) => {
+            document.getElementById('supplier-review-panel')?.addEventListener('click', async (event) => {
                 const button = event.target.closest('[data-homologate-company]');
                 if (!button) return;
                 const password = window.prompt('Digite sua senha de login para alterar a homologação definitiva:');
@@ -1752,7 +1820,7 @@
                 }
             });
 
-            document.getElementById('btn-provider-dossier').addEventListener('click', () => {
+            document.getElementById('btn-provider-dossier')?.addEventListener('click', () => {
                 const lines = [
                     'DOSSIÊ DE FORNECEDORES — TROCATICKET',
                     `Evento: ${document.getElementById('active-event-name').textContent}`,
@@ -1771,37 +1839,6 @@
                 link.download = 'dossie-fornecedores-trocaticket.txt';
                 link.click();
                 URL.revokeObjectURL(url);
-            });
-
-            document.getElementById('proposal-table-wrap').addEventListener('click', async (event) => {
-                const chatButton = event.target.closest('.chat-btn');
-                if (chatButton) {
-                    const demandId = Number(chatButton.dataset.demandId);
-                    window.location.href = `../chat.html?demanda_id=${encodeURIComponent(demandId)}`;
-                    return;
-                }
-
-                const approveButton = event.target.closest('.approve-btn');
-                if (!approveButton) return;
-                const demandId = Number(approveButton.dataset.demandId);
-                const proposalId = Number(approveButton.dataset.proposalId);
-                if (!proposalId) {
-                    alert('Esta proposta não possui um identificador válido. Atualize o painel e tente novamente.');
-                    return;
-                }
-                const password = window.prompt('Digite sua senha de login para aceitar esta proposta:');
-                if (!password) return;
-
-                try {
-                    const response = await fetchJson(`/api/organizador/propostas/${proposalId}/aprovar`, {
-                        method: 'POST',
-                        body: JSON.stringify({ password })
-                    });
-                    alert(response.message || 'Proposta aprovada com sucesso!');
-                    await loadOrganizerDashboard();
-                } catch (error) {
-                    alert(error.message || 'Não foi possível aprovar a proposta.');
-                }
             });
 
             document.getElementById('chat-form').addEventListener('submit', async (event) => {
@@ -1909,6 +1946,7 @@
                     if (organizerState.selectedEventId) {
                         renderOverview();
                     }
+                    updateOrganizerChatUnread();
                 }, 1000);
             }
         });

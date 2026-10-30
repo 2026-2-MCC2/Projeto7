@@ -41,6 +41,13 @@ class AdminAccessControl {
     }
   }
 
+  cancelHomologacaoStatusChange() {
+    const pending = this.pendingFinalHomologation;
+    if (pending?.select) pending.select.value = pending.previousStatus;
+    document.getElementById('admin-homologacao-final-dialog')?.close();
+    this.pendingFinalHomologation = null;
+  }
+
   showAdminPanel() {
     const accessCheck = document.getElementById('access-check');
     const adminPanel = document.getElementById('admin-panel');
@@ -71,6 +78,10 @@ class AdminPanel {
   constructor() {
     this.currentSection = 'dashboard';
     this.editingEventId = null;
+    this.homologacaoDocuments = [];
+    this.homologacaoFilter = 'pending';
+    this.pendingHomologacaoRejection = null;
+    this.pendingFinalHomologation = null;
   }
 
   init() {
@@ -82,6 +93,20 @@ class AdminPanel {
     if (authorizeForm) {
       authorizeForm.addEventListener('submit', event => this.authorizePj(event));
     }
+    document.getElementById('admin-homologacao-list')?.addEventListener('click', event => this.handleHomologacaoAction(event));
+    document.getElementById('admin-homologacao-list')?.addEventListener('change', event => this.handleHomologacaoAction(event));
+    document.querySelectorAll('[data-homologacao-filter]').forEach(button => {
+      button.addEventListener('click', () => {
+        this.homologacaoFilter = button.dataset.homologacaoFilter;
+        document.querySelectorAll('[data-homologacao-filter]').forEach(item => item.classList.toggle('is-active', item === button));
+        this.renderHomologacao();
+      });
+    });
+    document.getElementById('admin-homologacao-rejection-form')?.addEventListener('submit', event => this.submitHomologacaoRejection(event));
+    document.getElementById('admin-homologacao-final-form')?.addEventListener('submit', event => this.submitFinalHomologation(event));
+    document.querySelectorAll('[data-close-homologacao-dialog]').forEach(button => button.addEventListener('click', () => document.getElementById('admin-homologacao-rejection-dialog')?.close()));
+    document.querySelectorAll('[data-close-final-dialog]').forEach(button => button.addEventListener('click', () => this.cancelHomologacaoStatusChange()));
+    document.getElementById('admin-homologacao-final-dialog')?.addEventListener('cancel', () => this.cancelHomologacaoStatusChange());
   }
 
   setupNavigation() {
@@ -154,10 +179,216 @@ class AdminPanel {
       case 'auditoria':
         this.loadAuditData();
         break;
+      case 'homologacao':
+        this.loadHomologacaoData();
+        break;
       default:
         this.loadDashboardData();
         break;
     }
+  }
+
+  adminAuthHeaders() {
+    const user = JSON.parse(localStorage.getItem('trocaticket-user') || localStorage.getItem('usuario') || 'null');
+    return user?.session_token ? { Authorization: 'Bearer ' + user.session_token } : {};
+  }
+
+  async loadHomologacaoData() {
+    const list = document.getElementById('admin-homologacao-list');
+    if (!list) return;
+    try {
+      const response = await fetch('/api/organizador/fornecedor-documentos', { headers: this.adminAuthHeaders() });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.message || `HTTP ${response.status}`);
+      this.homologacaoDocuments = data.documents || [];
+      this.renderHomologacao();
+    } catch (error) {
+      console.error('[admin] Erro ao carregar homologação:', error);
+      list.innerHTML = `<p class="empty-state">${this.escapeHtml(error.message)}</p>`;
+    }
+  }
+
+  homologacaoCompanyStatus(item) {
+    const items = Array.isArray(item) ? item : [item];
+    const companyStatus = this.normalizeStatus(items[0]?.empresa_status);
+    const documentStatuses = items.map(document => this.normalizeStatus(document.status));
+    if (companyStatus === 'homologado') return 'approved';
+    if (companyStatus === 'recusado' || documentStatuses.includes('recusado')) return 'rejected';
+    return 'pending';
+  }
+
+  renderHomologacao() {
+    const list = document.getElementById('admin-homologacao-list');
+    if (!list) return;
+    const companies = new Map();
+    this.homologacaoDocuments.forEach(item => {
+      const key = item.empresa_id || item.fornecedor_usuario_id;
+      if (!companies.has(key)) companies.set(key, this.homologacaoCompanyStatus(item));
+    });
+    const counts = { pending: 0, approved: 0, rejected: 0 };
+    companies.forEach(status => counts[status] += 1);
+    ['pending', 'approved', 'rejected'].forEach(status => {
+      const element = document.getElementById(`admin-homologacao-${status}`);
+      if (element) element.textContent = counts[status];
+    });
+    const groupedCompanies = new Map();
+    this.homologacaoDocuments.forEach(item => {
+      const key = item.empresa_id || `fornecedor-${item.fornecedor_usuario_id}`;
+      if (!groupedCompanies.has(key)) groupedCompanies.set(key, []);
+      groupedCompanies.get(key).push(item);
+    });
+    const filteredCompanies = [...groupedCompanies.values()].filter(items => this.homologacaoCompanyStatus(items) === this.homologacaoFilter);
+    list.innerHTML = filteredCompanies.length ? filteredCompanies.map(items => this.renderHomologacaoCard(items)).join('') : '<p class="empty-state">Nenhuma empresa nesta categoria.</p>';
+  }
+
+  renderHomologacaoCard(items) {
+    const item = items[0];
+    const status = this.homologacaoCompanyStatus(items);
+    const label = status === 'approved' ? 'Homologado' : status === 'rejected' ? 'Recusado' : 'Pendente';
+    const badge = status === 'approved' ? 'badge-green' : status === 'rejected' ? 'badge-red' : 'badge-yellow';
+    const documentsMarkup = items.map(document => this.renderHomologacaoDocument(document)).join('');
+    const companyStatus = status === 'approved' ? 'homologado' : status === 'rejected' ? 'recusado' : 'em analise';
+    const statusSelect = item.empresa_id
+        ? `<label class="admin-homologacao-status-control">Status da empresa<select data-admin-company-status="${this.escapeHtml(item.empresa_id)}" data-admin-company-name="${this.escapeHtml(item.razao_social || 'Empresa')}" data-previous-status="${this.escapeHtml(companyStatus)}">
+            <option value="em análise"${companyStatus === 'em analise' ? ' selected' : ''}>Pendente de Análise</option>
+            <option value="homologado"${companyStatus === 'homologado' ? ' selected' : ''}>Homologado Ativo</option>
+            <option value="recusado"${companyStatus === 'recusado' ? ' selected' : ''}>Recusado / Com Pendências</option>
+          </select></label>`
+        : '<span class="admin-homologacao-final-hint">Empresa sem identificador para alteração de status.</span>';
+    return `<article class="admin-homologacao-item">
+        <div class="admin-homologacao-company">
+          <div class="admin-homologacao-item-heading"><div><strong>${this.escapeHtml(item.razao_social || 'Empresa não identificada')}</strong><span class="badge ${badge}">${label}</span></div><div class="admin-homologacao-company-heading-actions">${statusSelect}<small>${this.escapeHtml(item.fornecedor_nome || 'Fornecedor')}</small></div></div>
+          <div class="admin-homologacao-data-grid"><span><b>CNPJ</b>${this.escapeHtml(item.cnpj || 'Não informado')}</span><span><b>Categoria</b>${this.escapeHtml(item.categoria || 'Não informada')}</span><span><b>E-mail</b>${this.escapeHtml(item.email_comercial || item.email || 'Não informado')}</span></div>
+        </div>
+        <div class="admin-homologacao-documents">
+          <div class="admin-homologacao-documents-heading"><b>Documentos enviados (${items.length})</b></div>
+          <div class="admin-homologacao-document-list">${documentsMarkup}</div>
+        </div>
+    </article>`;
+  }
+
+  renderHomologacaoDocument(item) {
+    const documentStatus = this.normalizeStatus(item.status);
+    const fileUrl = item.file_url || item.caminho || '';
+    const fileName = item.nome_arquivo || item.nome || 'Documento sem nome';
+    const date = item.criado_em ? new Date(item.criado_em).toLocaleDateString('pt-BR') : 'Data não informada';
+    const documentLabel = documentStatus === 'aprovado' ? 'Aprovado' : documentStatus === 'recusado' ? 'Recusado' : 'Pendente';
+    const documentBadge = documentStatus === 'aprovado' ? 'badge-green' : documentStatus === 'recusado' ? 'badge-red' : 'badge-yellow';
+    return `<div class="admin-homologacao-document">
+      <div><strong>${this.escapeHtml(fileName)}</strong><small>${this.escapeHtml(item.nome || 'Categoria não informada')} · Enviado em ${date}</small>${documentStatus === 'recusado' && item.motivo_recusa ? `<small class="homologacao-reason">${this.escapeHtml(item.motivo_recusa)}</small>` : ''}</div>
+      <div class="admin-homologacao-document-status"><span class="badge ${documentBadge}">${documentLabel}</span></div>
+      <div class="admin-homologacao-actions">${fileUrl ? `<a class="button button-secondary" href="${this.escapeHtml(fileUrl)}" target="_blank" rel="noopener noreferrer">Abrir arquivo</a>` : '<span class="empty-state">Arquivo indisponível</span>'}
+      ${documentStatus !== 'aprovado' ? `<button type="button" class="button button-primary" data-admin-review-document="${this.escapeHtml(item.id)}" data-admin-review-status="aprovado">Aprovar documento</button>` : ''}
+      ${documentStatus !== 'recusado' ? `<button type="button" class="button button-danger" data-admin-review-document="${this.escapeHtml(item.id)}" data-admin-review-status="recusado">Recusar</button>` : ''}</div>
+    </div>`;
+  }
+
+  normalizeStatus(value) {
+    return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  }
+
+  async handleHomologacaoAction(event) {
+      const statusSelect = event.target.closest('[data-admin-company-status]');
+      if (statusSelect) {
+        if (event.type !== 'change') return;
+        const previousStatus = statusSelect.dataset.previousStatus || statusSelect.dataset.currentStatus || statusSelect.value;
+        this.pendingFinalHomologation = { select: statusSelect, previousStatus };
+        const companyName = document.getElementById('admin-homologacao-final-company');
+        if (companyName) companyName.textContent = `Confirme a alteração de status de ${statusSelect.dataset.adminCompanyName}. A senha de login é obrigatória para gravar esta mudança.`;
+        const password = document.getElementById('admin-homologacao-final-password');
+        if (password) password.value = '';
+        const title = document.querySelector('#admin-homologacao-final-dialog h2');
+        if (title) title.textContent = 'Alterar status da empresa';
+        const submit = document.querySelector('#admin-homologacao-final-form button[type="submit"]');
+        if (submit) submit.textContent = 'Confirmar alteração';
+        const dialog = document.getElementById('admin-homologacao-final-dialog');
+        if (dialog && !dialog.open) dialog.showModal();
+        return;
+      }
+      const documentButton = event.target.closest('[data-admin-review-document]');
+      if (!documentButton) return;
+      if (documentButton.dataset.adminReviewStatus === 'recusado') {
+        this.pendingHomologacaoRejection = documentButton;
+        document.getElementById('admin-homologacao-reason').value = '';
+        document.getElementById('admin-homologacao-rejection-dialog')?.showModal();
+        return;
+      }
+      await this.reviewHomologacaoDocument(documentButton, '');
+  }
+
+  async submitHomologacaoRejection(event) {
+      event.preventDefault();
+      const reason = document.getElementById('admin-homologacao-reason')?.value.trim();
+      if (!reason || !this.pendingHomologacaoRejection) return;
+      document.getElementById('admin-homologacao-rejection-dialog')?.close();
+      await this.reviewHomologacaoDocument(this.pendingHomologacaoRejection, reason);
+      this.pendingHomologacaoRejection = null;
+  }
+
+  async submitFinalHomologation(event) {
+      event.preventDefault();
+      const pending = this.pendingFinalHomologation;
+      const select = pending?.select;
+      const password = document.getElementById('admin-homologacao-final-password')?.value || '';
+      if (!select || !password.trim()) return;
+      const companyId = select.dataset.adminCompanyStatus;
+      if (!companyId) {
+        window.alert('Esta empresa não possui um identificador válido para homologação.');
+        return;
+      }
+      const submit = event.target.querySelector('button[type="submit"]');
+      if (submit) {
+        submit.disabled = true;
+        submit.textContent = 'Salvando...';
+      }
+      try {
+        const response = await fetch(`/api/organizador/fornecedor-empresas/${companyId}/homologacao`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', ...this.adminAuthHeaders() },
+          body: JSON.stringify({ status: select.value, password })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.message || `HTTP ${response.status}`);
+        document.getElementById('admin-homologacao-final-dialog')?.close();
+        await this.loadHomologacaoData();
+      } catch (error) {
+        console.error('[admin] Erro na homologação definitiva:', error);
+        window.alert(error.message);
+        select.value = pending.previousStatus;
+      } finally {
+        if (submit) {
+          submit.disabled = false;
+          submit.textContent = 'Confirmar alteração';
+        }
+        if (this.pendingFinalHomologation === pending) this.pendingFinalHomologation = null;
+      }
+  }
+
+  async reviewHomologacaoDocument(documentButton, reason) {
+      const password = window.prompt('Digite sua senha de login para confirmar esta ação:');
+      if (!password) return;
+      documentButton.disabled = true;
+      const originalLabel = documentButton.textContent;
+      documentButton.textContent = documentButton.dataset.adminReviewStatus === 'aprovado' ? 'Aprovando...' : 'Recusando...';
+      try {
+          const response = await fetch(`/api/organizador/fornecedor-documentos/${documentButton.dataset.adminReviewDocument}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', ...this.adminAuthHeaders() },
+            body: JSON.stringify({ status: documentButton.dataset.adminReviewStatus, motivo_recusa: reason, password })
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.message || `HTTP ${response.status}`);
+        await this.loadHomologacaoData();
+      } catch (error) {
+        console.error('[admin] Erro na homologação:', error);
+        window.alert(error.message);
+        documentButton.disabled = false;
+        documentButton.textContent = originalLabel;
+      }
+  }
+
+  escapeHtml(value) {
+    return String(value || '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
   }
 
   setupEventListeners() {

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="../admin.css">
+    <link rel="stylesheet" href="../organizador.css">
+    <title>Documentação da proposta | TrocaTicket</title>
+</head>
+<body class="organizer-body">
+    <main class="organizer-main demand-details-page">
+        <header class="organizer-topbar">
+            <div><span class="eyebrow">Cotações</span><h1>Documentação da proposta</h1></div>
+            <a class="btn-secondary" id="back-to-demand" href="organizador.html">Voltar</a>
+        </header>
+        <section class="demand-details-content">
+            <p id="proposal-documents-message" class="form-message"></p>
+            <section id="proposal-documents-card" class="proposal-documents-page-card" hidden>
+                <div class="proposal-documents-heading">
+                    <div><p class="section-kicker">Documentos anexados</p><h2 id="proposal-documents-company"></h2><p id="proposal-documents-context"></p></div>
+                    <span class="status-badge" id="proposal-documents-status"></span>
+                </div>
+                <div id="proposal-documents-list" class="proposal-documents-list"></div>
+            </section>
+        </section>
+    </main>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const eventId = Number(params.get('evento_id'));
+        const demandId = Number(params.get('demanda_id'));
+        const proposalId = Number(params.get('proposta_id'));
+        const $ = id => document.getElementById(id);
+        const escapeHtml = value => String(value || '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
+        async function loadDocuments() {
+            const user = JSON.parse(localStorage.getItem('trocaticket-user') || localStorage.getItem('usuario') || 'null');
+            const headers = user?.session_token ? { Authorization: `Bearer ${user.session_token}` } : {};
+            const response = await fetch(`/api/organizador/dashboard?evento_id=${encodeURIComponent(eventId)}`, { headers });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(data.message || 'Não foi possível carregar a documentação.');
+            const demand = (data.dashboard?.demands || []).find(item => Number(item.id) === demandId);
+            const proposal = demand?.proposals?.find(item => Number(item.id) === proposalId);
+            if (!proposal) throw new Error('Proposta não encontrada.');
+            const legacyFiles = String(proposal.anexos || '').split(',').map(item => item.trim()).filter(Boolean);
+            const structuredFiles = Array.isArray(proposal.documentos) ? proposal.documentos.filter(document => document && document.url).map(document => ({
+                name: document.nome_arquivo || 'Documento anexado',
+                url: document.url,
+                createdAt: document.criado_em
+            })) : [];
+            const files = [
+                ...structuredFiles,
+                ...legacyFiles
+                    .filter(file => !structuredFiles.some(document => document.url === file))
+                    .map(file => ({ name: file.split('/').pop() || 'Documento anexado', url: file }))
+            ];
+            $('proposal-documents-company').textContent = proposal.empresa || 'Fornecedor';
+            $('proposal-documents-context').textContent = `${demand.titulo || 'Demanda'} · Proposta #${proposal.id}`;
+            $('proposal-documents-status').textContent = proposal.status || 'Em análise';
+            $('proposal-documents-status').className = `status-badge ${String(proposal.status || 'em analise').toLowerCase()}`;
+            $('proposal-documents-list').innerHTML = files.length ? files.map((file, index) => {
+                const fileName = file.name || `Documento ${index + 1}`;
+                const uploadedAt = file.createdAt ? ` · Enviado em ${new Date(file.createdAt).toLocaleDateString('pt-BR')}` : '';
+                return `<a class="proposal-document-link" href="${escapeHtml(file.url)}" target="_blank" rel="noopener"><span class="document-icon">PDF</span><span><strong>${escapeHtml(fileName)}</strong><small>Documento anexado à proposta${uploadedAt} · Clique para visualizar ou baixar</small></span><span class="document-open">Abrir ↗</span></a>`;
+            }).join('') : '<div class="proposal-documents-empty"><span class="document-icon">—</span><div><strong>Nenhum documento anexado</strong><p>O fornecedor não enviou documentos junto desta proposta.</p></div></div>';
+            $('proposal-documents-card').hidden = false;
+        }
+        $('back-to-demand').href = `demanda-detalhes.html?evento_id=${encodeURIComponent(eventId)}&demanda_id=${encodeURIComponent(demandId)}`;
+        loadDocuments().catch(error => { $('proposal-documents-message').textContent = error.message; });
+    </script>
+</body>
+</html>

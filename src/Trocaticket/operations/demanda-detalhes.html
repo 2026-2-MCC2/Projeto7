@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="../admin.css">
+    <link rel="stylesheet" href="../organizador.css">
+    <title>Detalhes da demanda | TrocaTicket</title>
+</head>
+<body class="organizer-body">
+    <main class="organizer-main demand-details-page">
+        <header class="organizer-topbar">
+            <div><span class="eyebrow">Cotações</span><h1>Detalhes da demanda</h1></div>
+            <a class="btn-secondary" href="organizador.html">Voltar</a>
+        </header>
+        <section class="demand-details-content">
+            <p id="demand-details-message" class="form-message"></p>
+            <div id="demand-details-card" hidden>
+                <section class="demand-hero-card">
+                    <div class="demand-hero-heading">
+                        <div><p class="section-kicker" id="demand-details-service"></p><h2 id="demand-details-title"></h2></div>
+                        <span class="status-badge" id="demand-details-status"></span>
+                    </div>
+                    <div class="demand-metrics">
+                        <div class="demand-metric"><span class="metric-icon">⌛</span><div><small>Prazo de entrega</small><strong id="demand-details-deadline"></strong></div></div>
+                        <div class="demand-metric"><span class="metric-icon">R$</span><div><small>Valor estimado</small><strong id="demand-details-value"></strong></div></div>
+                        <div class="demand-metric"><span class="metric-icon">#</span><div><small>Propostas recebidas</small><strong id="demand-details-proposal-count"></strong></div></div>
+                    </div>
+                    <div class="demand-scope-block"><span class="section-kicker">Escopo da solicitação</span><p id="demand-details-scope"></p></div>
+                </section>
+                <section class="demand-proposals-section">
+                    <div class="section-heading-row"><div><p class="section-kicker">Análise comercial</p><h3>Propostas recebidas</h3></div><span class="proposal-count-badge" id="demand-proposal-label"></span></div>
+                    <div id="demand-details-proposals" class="proposal-list"></div>
+                </section>
+            </div>
+        </section>
+    </main>
+    <dialog id="accept-proposal-dialog" class="security-dialog">
+        <form method="dialog" id="accept-proposal-form"><button class="dialog-close" value="cancel" aria-label="Fechar">×</button><p class="section-kicker">Validação de autoridade</p><h2>Aceitar proposta</h2><p>Confirme sua senha de login para contratar este fornecedor.</p><input id="accept-proposal-password" type="password" required autocomplete="current-password" placeholder="Senha de login"><p id="accept-proposal-message" class="form-message"></p><div class="dialog-actions"><button class="btn-secondary" value="cancel">Cancelar</button><button class="btn-primary" value="default">Confirmar aceite</button></div></form>
+    </dialog>
+    <script>
+        const params = new URLSearchParams(window.location.search), eventId = Number(params.get('evento_id')), demandId = Number(params.get('demanda_id')), $ = id => document.getElementById(id);
+        const formatCurrency = value => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
+        const escapeHtml = value => String(value || '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
+        const readUser = () => JSON.parse(localStorage.getItem('trocaticket-user') || localStorage.getItem('usuario') || 'null');
+        async function fetchJson(url, options = {}) { const user = readUser(); const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) }; if (user?.session_token) headers.Authorization = `Bearer ${user.session_token}`; const response = await fetch(url, { ...options, headers }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.message || 'Não foi possível concluir a operação.'); return data; }
+        function renderProposals(proposals) { $('demand-proposal-label').textContent = `${proposals.length} ${proposals.length === 1 ? 'proposta' : 'propostas'}`; $('demand-details-proposals').innerHTML = proposals.length ? proposals.map(proposal => { return `<article class="proposal-card"><div class="proposal-card-top"><div class="proposal-company"><span class="company-avatar">${escapeHtml(String(proposal.empresa || 'F').trim().slice(0, 1).toUpperCase())}</span><div><h4>${escapeHtml(proposal.empresa || 'Fornecedor')}</h4><span>Proposta #${escapeHtml(proposal.id || '')}</span></div></div><span class="status-badge ${escapeHtml(String(proposal.status || 'em analise').toLowerCase())}">${escapeHtml(proposal.status || 'Em análise')}</span></div><div class="proposal-facts"><div><small>Valor proposto</small><strong>${formatCurrency(proposal.valor)}</strong><em>${Number(proposal.valor) > Number($('demand-details-value').dataset.value || 0) ? 'Acima do estimado' : 'Dentro do estimado'}</em></div><div><small>Prazo de entrega</small><strong>${escapeHtml(proposal.prazo || 'Não informado')}</strong></div><div><small>Anexos</small><strong>${proposal.anexos ? 'Documentos disponíveis' : 'Nenhum'}</strong></div></div><div class="proposal-scope"><small>Escopo detalhado</small><p>${escapeHtml(proposal.escopo || 'Nenhum escopo informado.')}</p></div><div class="proposal-actions"><button type="button" class="btn-secondary small" data-chat-demand="${demandId}" data-proposal-id="${proposal.id || ''}">Chat</button><a class="btn-secondary small" href="proposta-documentacao.html?evento_id=${encodeURIComponent(eventId)}&demanda_id=${encodeURIComponent(demandId)}&proposta_id=${encodeURIComponent(proposal.id || '')}">Documentação</a><button type="button" class="btn-primary small" data-accept-proposal="${proposal.id || ''}">Aceitar proposta</button></div></article>`; }).join('') : '<div class="empty-state">Nenhuma proposta recebida para esta demanda.</div>'; }
+        async function loadDemand() { if (!eventId || !demandId) throw new Error('Demanda inválida.'); const payload = await fetchJson(`/api/organizador/dashboard?evento_id=${encodeURIComponent(eventId)}`); const rawDemand = (payload.dashboard?.demands || []).find(item => Number(item.id) === demandId); if (!rawDemand) throw new Error('Demanda não encontrada para este evento.'); const proposals = Array.isArray(rawDemand.proposals) ? rawDemand.proposals : []; $('demand-details-service').textContent = rawDemand.servico || 'Solicitação'; $('demand-details-title').textContent = rawDemand.titulo || 'Demanda'; $('demand-details-status').textContent = rawDemand.status || 'Em cotação'; $('demand-details-status').className = `status-badge ${String(rawDemand.status || 'em cotacao').toLowerCase()}`; $('demand-details-deadline').textContent = rawDemand.prazo ? new Date(rawDemand.prazo).toLocaleDateString('pt-BR') : 'Não informado'; $('demand-details-value').textContent = formatCurrency(rawDemand.valor_estimado); $('demand-details-value').dataset.value = rawDemand.valor_estimado || 0; $('demand-details-proposal-count').textContent = proposals.length; $('demand-details-scope').textContent = rawDemand.escopo || 'Nenhum escopo informado.'; renderProposals(proposals); $('demand-details-card').hidden = false; }
+        let selectedProposalId = null;
+        $('demand-details-proposals').addEventListener('click', event => { const chat = event.target.closest('[data-chat-demand]'); if (chat) { window.location.href = `../chat.html?demanda_id=${encodeURIComponent(chat.dataset.chatDemand)}&proposta_id=${encodeURIComponent(chat.dataset.proposalId || '')}`; return; } const accept = event.target.closest('[data-accept-proposal]'); if (accept) { selectedProposalId = Number(accept.dataset.acceptProposal); $('accept-proposal-password').value = ''; $('accept-proposal-message').textContent = ''; $('accept-proposal-dialog').showModal(); } });
+        $('accept-proposal-form').addEventListener('submit', async event => { event.preventDefault(); try { await fetchJson(`/api/organizador/propostas/${selectedProposalId}/aprovar`, { method: 'POST', body: JSON.stringify({ password: $('accept-proposal-password').value, email: readUser()?.email }) }); $('accept-proposal-dialog').close(); await loadDemand(); } catch (error) { $('accept-proposal-message').textContent = error.message; } });
+        loadDemand().catch(error => { $('demand-details-message').textContent = error.message; });
+    </script>
+</body>
+</html>

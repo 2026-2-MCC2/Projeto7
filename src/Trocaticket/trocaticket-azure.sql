@@ -962,10 +962,53 @@ BEGIN
         anexo_url varchar(500) NULL,
         anexo_nome varchar(255) NULL,
         anexo_tipo varchar(120) NULL,
+        lida_organizador bit NOT NULL CONSTRAINT df_evento_msg_lida_organizador DEFAULT 0,
+        lida_fornecedor bit NOT NULL CONSTRAINT df_evento_msg_lida_fornecedor DEFAULT 0,
         enviado_em datetime2(0) NOT NULL CONSTRAINT df_evento_msg_enviado DEFAULT SYSUTCDATETIME(),
         CONSTRAINT fk_evento_mensagens_demanda FOREIGN KEY (demanda_id) REFERENCES dbo.evento_demandas(id) ON DELETE CASCADE
     );
     CREATE INDEX idx_evento_mensagens_demanda ON dbo.evento_mensagens_chat(demanda_id, enviado_em);
+END;
+IF COL_LENGTH('dbo.evento_mensagens_chat', 'lida_organizador') IS NULL
+    ALTER TABLE dbo.evento_mensagens_chat ADD lida_organizador bit NOT NULL CONSTRAINT df_evento_msg_lida_organizador_mig DEFAULT 0;
+IF COL_LENGTH('dbo.evento_mensagens_chat', 'lida_fornecedor') IS NULL
+    ALTER TABLE dbo.evento_mensagens_chat ADD lida_fornecedor bit NOT NULL CONSTRAINT df_evento_msg_lida_fornecedor_mig DEFAULT 0;
+IF COL_LENGTH('dbo.evento_mensagens_chat', 'fornecedor_usuario_id') IS NULL
+    ALTER TABLE dbo.evento_mensagens_chat ADD fornecedor_usuario_id int NULL;
+IF OBJECT_ID(N'dbo.evento_proposta_documentos', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.evento_proposta_documentos (
+        id int IDENTITY(1,1) NOT NULL CONSTRAINT pk_evento_proposta_documentos PRIMARY KEY,
+        proposta_id int NOT NULL,
+        nome_arquivo varchar(255) NOT NULL,
+        caminho varchar(500) NOT NULL,
+        criado_em datetime2(0) NOT NULL CONSTRAINT df_evento_proposta_documentos_criado DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT fk_evento_proposta_documentos_proposta FOREIGN KEY (proposta_id) REFERENCES dbo.evento_propostas_fornecedor(id) ON DELETE CASCADE
+    );
+END;
+IF OBJECT_ID(N'dbo.evento_chat_leituras', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.evento_chat_leituras (
+        usuario_id int NOT NULL,
+        demanda_id int NOT NULL,
+        ultima_mensagem_id int NOT NULL CONSTRAINT df_evento_chat_leituras_mensagem DEFAULT 0,
+        lida_em datetime2(0) NOT NULL CONSTRAINT df_evento_chat_leituras_lida DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT pk_evento_chat_leituras PRIMARY KEY (usuario_id, demanda_id)
+    );
+END;
+IF COL_LENGTH('dbo.evento_chat_leituras', 'ultima_mensagem_id') IS NULL
+    ALTER TABLE dbo.evento_chat_leituras ADD ultima_mensagem_id int NOT NULL CONSTRAINT df_evento_chat_leituras_mensagem_mig DEFAULT 0;
+IF OBJECT_ID(N'dbo.evento_demanda_documentos', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.evento_demanda_documentos (
+        id int IDENTITY(1,1) NOT NULL CONSTRAINT pk_evento_demanda_documentos PRIMARY KEY,
+        demanda_id int NOT NULL,
+        nome varchar(180) NOT NULL,
+        nome_arquivo varchar(255) NOT NULL,
+        caminho varchar(500) NOT NULL,
+        criado_em datetime2(0) NOT NULL CONSTRAINT df_evento_demanda_documentos_criado DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT fk_evento_demanda_documentos_demanda FOREIGN KEY (demanda_id) REFERENCES dbo.evento_demandas(id) ON DELETE CASCADE
+    );
 END;
 GO
 
@@ -981,6 +1024,7 @@ BEGIN
         email_comercial varchar(180) NOT NULL,
         telefone varchar(40) NOT NULL,
         descricao varchar(max) NOT NULL,
+        logo_url varchar(500) NULL,
         status varchar(30) NOT NULL CONSTRAINT df_fornecedor_empresas_status DEFAULT 'pendente',
         criado_em datetime2(0) NOT NULL CONSTRAINT df_fornecedor_empresas_criado DEFAULT SYSUTCDATETIME(),
         atualizado_em datetime2(0) NOT NULL CONSTRAINT df_fornecedor_empresas_atualizado DEFAULT SYSUTCDATETIME(),
@@ -988,6 +1032,10 @@ BEGIN
         CONSTRAINT uq_fornecedor_empresas_cnpj UNIQUE (cnpj)
     );
 END;
+GO
+
+IF COL_LENGTH('dbo.fornecedor_empresas', 'logo_url') IS NULL
+    ALTER TABLE dbo.fornecedor_empresas ADD logo_url varchar(500) NULL;
 GO
 
 IF OBJECT_ID(N'dbo.evento_propostas_fornecedor', N'U') IS NOT NULL
