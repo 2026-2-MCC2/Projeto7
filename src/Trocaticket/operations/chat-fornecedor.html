@@ -73,7 +73,7 @@
             const query = $('chat-search-input').value.toLowerCase();
             const visible = state.conversations.filter(item => item.title.toLowerCase().includes(query));
             $('chat-conversation-count').textContent = state.conversations.length;
-            $('chat-contact-list').innerHTML = visible.length ? visible.map(item => `<button type="button" class="chat-contact ${state.selected?.key === item.key ? 'is-selected' : ''}" data-key="${escapeHtml(item.key)}"><span class="chat-contact-avatar">O</span><span class="chat-contact-copy"><strong>Organizador</strong><small>${escapeHtml(item.title)}</small><em>${item.messages.length ? escapeHtml(item.messages[item.messages.length - 1].text) : 'Proposta enviada'}</em></span><span class="chat-contact-time">${item.messages.length ? escapeHtml(item.messages[item.messages.length - 1].time) : ''}</span></button>`).join('') : '<p class="chat-no-contacts">Nenhuma proposta enviada.</p>';
+            $('chat-contact-list').innerHTML = visible.length ? visible.map(item => { const unread = Number(item.unreadCount || 0); return `<button type="button" class="chat-contact ${state.selected?.key === item.key ? 'is-selected' : ''}" data-key="${escapeHtml(item.key)}"><span class="chat-contact-avatar">O</span><span class="chat-contact-copy"><strong>Organizador</strong><small>${escapeHtml(item.title)}</small><em>${item.messages.length ? escapeHtml(item.messages[item.messages.length - 1].text) : 'Proposta enviada'}</em></span><span class="chat-contact-meta"><span class="chat-contact-time">${item.messages.length ? escapeHtml(item.messages[item.messages.length - 1].time) : (item.lastMessageTime || '')}</span>${unread ? '<span class="chat-card-unread-dot" aria-label="Mensagem não lida"></span>' : ''}</span></button>`; }).join('') : '<p class="chat-no-contacts">Nenhuma proposta enviada.</p>';
             document.querySelectorAll('[data-key]').forEach(button => button.addEventListener('click', () => selectConversation(button.dataset.key)));
         }
         function renderMessages(scrollToBottom = true) {
@@ -88,6 +88,8 @@
         async function loadMessages(item) {
             const data = await request(`/api/fornecedor/demandas/${item.demandId}/mensagens`);
             item.messages = (data.messages || []).map(message => ({ sender: message.remetente, text: message.texto, attachment: message.anexo_url ? { url: message.anexo_url, name: message.anexo_nome, type: message.anexo_tipo } : null, time: message.enviado_em ? new Date(message.enviado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '' }));
+            item.lastMessageTimestamp = data.messages?.length ? new Date(data.messages[data.messages.length - 1].enviado_em).getTime() : (item.lastMessageTimestamp || 0);
+            item.lastMessageTime = item.messages.length ? item.messages[item.messages.length - 1].time : item.lastMessageTime;
         }
         async function refreshSelectedConversation() {
             if (document.hidden || !state.selected) return;
@@ -97,6 +99,7 @@
             const previousScrollTop = messageList.scrollTop;
             try {
                 await loadMessages(state.selected);
+                state.conversations.sort((a, b) => b.lastMessageTimestamp - a.lastMessageTimestamp || b.unreadCount - a.unreadCount);
                 if (state.selected?.key === key) {
                     renderContacts();
                     renderMessages(false);
@@ -108,17 +111,37 @@
         }
         async function selectConversation(key) {
             state.selected = state.conversations.find(item => item.key === key) || null;
-            renderContacts(); renderMessages();
             if (!state.selected) return;
-            try { await loadMessages(state.selected); renderContacts(); renderMessages(); } catch (error) { $('chat-message-list').innerHTML = `<p class="chat-no-messages">${escapeHtml(error.message)}</p>`; }
+            renderContacts();
+            renderMessages();
+            try {
+                await loadMessages(state.selected);
+                await request('/api/fornecedor/chat/marcar-lidas', { method: 'POST', body: JSON.stringify({ demanda_id: state.selected.demandId }) });
+                state.selected.unreadCount = 0;
+                renderContacts();
+                renderMessages();
+            } catch (error) {
+                $('chat-message-list').innerHTML = `<p class="chat-no-messages">${escapeHtml(error.message)}</p>`;
+            }
+        }
+        async function refreshUnreadConversations() {
+            try {
+                const data = await request('/api/fornecedor/chat/nao-lidas');
+                const unreadByDemand = data.unreadByDemand || {};
+                state.conversations.forEach(item => {
+                    item.unreadCount = Number(unreadByDemand[String(item.demandId)] || 0);
+                });
+                renderContacts();
+            } catch (error) {
+                console.warn('Não foi possível atualizar as notificações:', error.message);
+            }
         }
         async function loadProposals() {
+            const unreadData = await request('/api/fornecedor/chat/nao-lidas');
+            const unreadByDemand = unreadData.unreadByDemand || {};
             const data = await request('/api/fornecedor/propostas');
-            state.conversations = (data.proposals || []).map(item => ({ key: String(item.demanda_id), demandId: item.demanda_id, title: item.titulo || 'Proposta comercial', event: item.evento_nome || 'Evento', messages: [] }));
+            state.conversations = (data.proposals || []).map(item => ({ key: `${item.demanda_id}-${item.id}`, demandId: item.demanda_id, proposalId: item.id, title: item.titulo || 'Proposta comercial', event: item.evento_nome || 'Evento', lastMessageTime: item.ultima_mensagem_em ? new Date(item.ultima_mensagem_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '', lastMessageTimestamp: item.ultima_mensagem_em ? new Date(item.ultima_mensagem_em).getTime() : 0, messages: [], unreadCount: Number(unreadByDemand[String(item.demanda_id)] || 0) })).sort((a, b) => b.lastMessageTimestamp - a.lastMessageTimestamp || b.unreadCount - a.unreadCount);
             renderContacts();
-            const requested = params.get('demanda_id');
-            const initial = state.conversations.find(item => String(item.demandId) === requested) || state.conversations[0];
-            if (initial) await selectConversation(initial.key);
         }
         $('chat-search-input').addEventListener('input', renderContacts);
         let pendingAttachment = null;
@@ -133,10 +156,10 @@
             if (!state.selected) return;
             const input = $('chat-message-input');
             if (!input.value.trim() && !pendingAttachment) return;
-            try { await request(`/api/fornecedor/demandas/${state.selected.demandId}/mensagens`, { method: 'POST', body: JSON.stringify({ texto: input.value.trim(), anexo: pendingAttachment }) }); input.value = ''; pendingAttachment = null; $('chat-attachment-input').value = ''; $('chat-attachment-name').textContent = ''; await selectConversation(state.selected.key); } catch (error) { $('chat-message-list').innerHTML = `<p class="chat-no-messages">${escapeHtml(error.message)}</p>`; }
+            try { await request(`/api/fornecedor/demandas/${state.selected.demandId}/mensagens`, { method: 'POST', body: JSON.stringify({ texto: input.value.trim(), anexo: pendingAttachment, proposta_id: state.selected.proposalId }) }); input.value = ''; pendingAttachment = null; $('chat-attachment-input').value = ''; $('chat-attachment-name').textContent = ''; await selectConversation(state.selected.key); } catch (error) { $('chat-message-list').innerHTML = `<p class="chat-no-messages">${escapeHtml(error.message)}</p>`; }
         });
         loadProposals().catch(error => { $('chat-contact-list').innerHTML = `<p class="chat-no-contacts">${escapeHtml(error.message)}</p>`; });
-        window.setInterval(refreshSelectedConversation, 2500);
+        window.setInterval(() => { refreshSelectedConversation(); refreshUnreadConversations(); }, 2500);
     </script>
 </body>
 </html>

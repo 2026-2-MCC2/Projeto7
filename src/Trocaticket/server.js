@@ -11,7 +11,9 @@ const db = require('./db');
 
 const port = process.env.PORT || 3000;
 const root = __dirname;
-const sessionTokenSecret = process.env.TROCATICKET_SESSION_SECRET || process.env.DB_PASSWORD || crypto.randomBytes(32);
+const sessionTokenSecret = process.env.TROCATICKET_SESSION_SECRET
+  || process.env.DB_PASSWORD
+  || crypto.createHash('sha256').update(path.join(__dirname, 'trocaticket-session')).digest('hex');
 const uploadDir = path.join(root, 'public', 'uploads', 'avatars');
 const smtpHost = String(process.env.SMTP_HOST || '').trim();
 const smtpPort = Number(process.env.SMTP_PORT || 587);
@@ -67,22 +69,22 @@ async function sendVerificationEmail({ to, name, code }) {
   const transporter = getVerificationTransporter();
 
   if (!transporter) {
-    console.warn(`[auth] SMTP não configurado. Código de verificação para ${to}: ${code}`);
+    console.warn(`[auth] SMTP nÃ£o configurado. CÃ³digo de verificaÃ§Ã£o para ${to}: ${code}`);
     return { sent: false, fallback: true };
   }
 
   await transporter.sendMail({
     from: smtpFrom,
     to,
-    subject: 'TrocaTicket - código de verificação',
-    text: `Olá ${name || 'usuário'}, seu código de verificação do TrocaTicket é ${code}.`,
+    subject: 'TrocaTicket - cÃ³digo de verificaÃ§Ã£o',
+    text: `OlÃ¡ ${name || 'usuÃ¡rio'}, seu cÃ³digo de verificaÃ§Ã£o do TrocaTicket Ã© ${code}.`,
     html: `
       <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #1f2937;">
         <h2 style="margin: 0 0 16px;">TrocaTicket</h2>
-        <p>Olá ${name || 'usuário'},</p>
-        <p>Use o código abaixo para confirmar seu cadastro:</p>
+        <p>OlÃ¡ ${name || 'usuÃ¡rio'},</p>
+        <p>Use o cÃ³digo abaixo para confirmar seu cadastro:</p>
         <div style="font-size: 28px; font-weight: 700; letter-spacing: 6px; margin: 20px 0;">${code}</div>
-        <p>Se você não solicitou este cadastro, pode ignorar esta mensagem.</p>
+        <p>Se vocÃª nÃ£o solicitou este cadastro, pode ignorar esta mensagem.</p>
       </div>
     `
   });
@@ -129,53 +131,53 @@ function createOfflineTicketEmailHtml(ticket, filename, expiresAt, walletUrl, ba
   const sector = escapeHtml(ticket.sector || 'Setor a confirmar');
   const safeFilename = escapeHtml(filename);
   const supportUrl = escapeHtml(process.env.TROCATICKET_SUPPORT_URL || 'https://trocaticket.com/suporte');
-  const title = escapeHtml(`Seu ingresso offline para o ${ticket.eventName} está pronto, aguardamos sua presença!`);
+  const title = escapeHtml(`Seu ingresso offline para o ${ticket.eventName} estÃ¡ pronto, aguardamos sua presenÃ§a!`);
   const walletButton = walletUrl
-    ? `<a href="${escapeHtml(walletUrl)}" target="_blank" style="display:inline-block;padding:14px 22px;border-radius:8px;background:#111827;border:1px solid #374151;color:#ffffff;text-decoration:none;font-size:15px;font-weight:bold;"><span style="display:inline-block;margin-right:8px;color:#4285f4;font-size:18px;font-weight:bold;">G</span>Adicionar à Carteira do Google</a>`
-    : '<span role="button" aria-disabled="true" style="display:inline-block;padding:14px 22px;border-radius:8px;background:#111827;border:1px solid #374151;color:#ffffff;opacity:.55;font-size:15px;font-weight:bold;cursor:not-allowed;"><span style="display:inline-block;margin-right:8px;color:#4285f4;font-size:18px;font-weight:bold;">G</span>Adicionar à Carteira do Google</span><p style="margin:8px 0 0;color:#64748b;font-size:12px;line-height:1.6;">A Carteira do Google ainda não está habilitada para este ingresso.</p>';
+    ? `<a href="${escapeHtml(walletUrl)}" target="_blank" style="display:inline-block;padding:14px 22px;border-radius:8px;background:#111827;border:1px solid #374151;color:#ffffff;text-decoration:none;font-size:15px;font-weight:bold;"><span style="display:inline-block;margin-right:8px;color:#4285f4;font-size:18px;font-weight:bold;">G</span>Adicionar Ã  Carteira do Google</a>`
+    : '<span role="button" aria-disabled="true" style="display:inline-block;padding:14px 22px;border-radius:8px;background:#111827;border:1px solid #374151;color:#ffffff;opacity:.55;font-size:15px;font-weight:bold;cursor:not-allowed;"><span style="display:inline-block;margin-right:8px;color:#4285f4;font-size:18px;font-weight:bold;">G</span>Adicionar Ã  Carteira do Google</span><p style="margin:8px 0 0;color:#64748b;font-size:12px;line-height:1.6;">A Carteira do Google ainda nÃ£o estÃ¡ habilitada para este ingresso.</p>';
 
   const html = `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>Seu ingresso Troca Ticket</title>
 <style>@media only screen and (max-width:600px){.email-shell{width:100%!important}.email-pad{padding-left:18px!important;padding-right:18px!important}.event-title{font-size:23px!important}.step-cell{padding:12px!important}}</style></head>
 <body style="width:100%;margin:0;padding:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">Seu ingresso digital para ${eventName} está pronto, com acesso offline e QR dinâmico.</div>
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">Seu ingresso digital para ${eventName} estÃ¡ pronto, com acesso offline e QR dinÃ¢mico.</div>
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#ffffff;"><tr><td align="center" style="padding:0;">
 <table role="presentation" class="email-shell" width="680" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:680px;margin:0 auto;background:#ffffff;">
 <tr><td align="center" style="padding:0;background:#000000;">
 <img src="${escapeHtml(bannerSrc)}" width="680" alt="Troca Ticket" style="display:block;width:100%;max-width:680px;height:auto;margin:0 auto;border:0;">
 </td></tr>
 <tr><td class="email-pad" style="padding:30px 36px 10px;">
-<p style="margin:0 0 8px;color:#475569;font-size:15px;">Olá, ${holder}.</p>
+<p style="margin:0 0 8px;color:#475569;font-size:15px;">OlÃ¡, ${holder}.</p>
 <h1 class="event-title" style="margin:0;color:#0f172a;font-size:28px;line-height:1.25;">${title}</h1>
 </td></tr>
 <tr><td class="email-pad" style="padding:18px 36px 12px;">
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#eff6ff;border:1px solid #bfdbfe;border-left:4px solid #2563eb;border-radius:8px;"><tr><td width="42" valign="top" style="padding:16px 0 16px 16px;color:#2563eb;font-size:24px;">&#8681;</td><td style="padding:16px 16px 16px 10px;"><p style="margin:0 0 4px;color:#1e3a8a;font-size:14px;font-weight:bold;">Baixar ingresso offline</p><p style="margin:0;color:#334155;font-size:13px;line-height:1.5;">O arquivo está anexado a este e-mail: <strong>${safeFilename}</strong>. Guarde-o no seu smartphone antes de chegar ao evento.</p></td></tr></table>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#eff6ff;border:1px solid #bfdbfe;border-left:4px solid #2563eb;border-radius:8px;"><tr><td width="42" valign="top" style="padding:16px 0 16px 16px;color:#2563eb;font-size:24px;">&#8681;</td><td style="padding:16px 16px 16px 10px;"><p style="margin:0 0 4px;color:#1e3a8a;font-size:14px;font-weight:bold;">Baixar ingresso offline</p><p style="margin:0;color:#334155;font-size:13px;line-height:1.5;">O arquivo estÃ¡ anexado a este e-mail: <strong>${safeFilename}</strong>. Guarde-o no seu smartphone antes de chegar ao evento.</p></td></tr></table>
 </td></tr>
 <tr><td class="email-pad" align="center" style="padding:8px 36px 24px;">${walletButton}</td></tr>
 <tr><td class="email-pad" style="padding:0 36px 22px;">
-<h2 style="margin:0 0 6px;color:#0f172a;font-size:18px;line-height:1.4;">Instruções de utilização do acesso offline (sem internet)</h2>
+<h2 style="margin:0 0 6px;color:#0f172a;font-size:18px;line-height:1.4;">InstruÃ§Ãµes de utilizaÃ§Ã£o do acesso offline (sem internet)</h2>
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td class="step-cell" style="padding:15px 16px;border-bottom:1px solid #e2e8f0;background:#ffffff;">
-<p style="margin:0 0 6px;color:#2563eb;font-size:13px;font-weight:bold;">Passo 1 · Descarregue o anexo</p><p style="margin:0;color:#475569;font-size:13px;line-height:1.6;">Guarde <strong>${safeFilename}</strong> no seu smartphone antes de ir ao evento.</p>
+<p style="margin:0 0 6px;color:#2563eb;font-size:13px;font-weight:bold;">Passo 1 Â· Descarregue o anexo</p><p style="margin:0;color:#475569;font-size:13px;line-height:1.6;">Guarde <strong>${safeFilename}</strong> no seu smartphone antes de ir ao evento.</p>
 </td></tr><tr><td class="step-cell" style="padding:15px 16px;border-bottom:1px solid #e2e8f0;background:#ffffff;">
-<p style="margin:0 0 6px;color:#2563eb;font-size:13px;font-weight:bold;">Passo 2 · Abra no navegador</p><p style="margin:0;color:#475569;font-size:13px;line-height:1.6;">Abra o arquivo no Google Chrome, Samsung Internet ou Safari. Se solicitado, escolha <strong>“Sempre”</strong> ou <strong>“Desta vez”</strong>. O arquivo funciona localmente, sem dados móveis.</p>
+<p style="margin:0 0 6px;color:#2563eb;font-size:13px;font-weight:bold;">Passo 2 Â· Abra no navegador</p><p style="margin:0;color:#475569;font-size:13px;line-height:1.6;">Abra o arquivo no Google Chrome, Samsung Internet ou Safari. Se solicitado, escolha <strong>â€œSempreâ€</strong> ou <strong>â€œDesta vezâ€</strong>. O arquivo funciona localmente, sem dados mÃ³veis.</p>
 </td></tr><tr><td class="step-cell" style="padding:15px 16px;background:#ffffff;">
-<p style="margin:0 0 6px;color:#2563eb;font-size:13px;font-weight:bold;">Passo 3 · Apresente na entrada</p><p style="margin:0;color:#475569;font-size:13px;line-height:1.6;">Na fila, mesmo sem rede ou em modo de voo, o QR continuará atualizando a cada 60 segundos. Apresente a tela do navegador à equipe da portaria.</p>
+<p style="margin:0 0 6px;color:#2563eb;font-size:13px;font-weight:bold;">Passo 3 Â· Apresente na entrada</p><p style="margin:0;color:#475569;font-size:13px;line-height:1.6;">Na fila, mesmo sem rede ou em modo de voo, o QR continuarÃ¡ atualizando a cada 60 segundos. Apresente a tela do navegador Ã  equipe da portaria.</p>
 </td></tr></table>
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:14px;background:#eff6ff;border-left:3px solid #2563eb;"><tr><td style="padding:12px 14px;color:#1e3a8a;font-size:13px;line-height:1.6;"><strong>Validade do Código QR Offline:</strong> Ativo até ao término oficial do evento em ${eventEnd}.</td></tr></table>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:14px;background:#eff6ff;border-left:3px solid #2563eb;"><tr><td style="padding:12px 14px;color:#1e3a8a;font-size:13px;line-height:1.6;"><strong>Validade do CÃ³digo QR Offline:</strong> Ativo atÃ© ao tÃ©rmino oficial do evento em ${eventEnd}.</td></tr></table>
 </td></tr>
 <tr><td class="email-pad" style="padding:0 36px 24px;">
 <h2 style="margin:0 0 10px;color:#0f172a;font-size:18px;">Resumo do ingresso</h2>
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #e2e8f0;border-radius:8px;background:#f1f5f9;">
-<tr><td style="padding:16px 18px 5px;"><p style="margin:0 0 4px;color:#64748b;font-size:11px;font-weight:bold;text-transform:uppercase;">Data e horário de início</p><p style="margin:0;color:#0f172a;font-size:14px;font-weight:bold;">${eventStart}</p></td></tr>
+<tr><td style="padding:16px 18px 5px;"><p style="margin:0 0 4px;color:#64748b;font-size:11px;font-weight:bold;text-transform:uppercase;">Data e horÃ¡rio de inÃ­cio</p><p style="margin:0;color:#0f172a;font-size:14px;font-weight:bold;">${eventStart}</p></td></tr>
 <tr><td style="padding:10px 18px 5px;"><p style="margin:0 0 4px;color:#64748b;font-size:11px;font-weight:bold;text-transform:uppercase;">Local</p><p style="margin:0;color:#0f172a;font-size:14px;">${location}</p></td></tr>
 <tr><td style="padding:10px 18px 5px;"><p style="margin:0 0 4px;color:#64748b;font-size:11px;font-weight:bold;text-transform:uppercase;">Titular</p><p style="margin:0;color:#0f172a;font-size:14px;">${holder} <span style="color:#64748b;">(${email})</span></p></td></tr>
-<tr><td style="padding:10px 18px 16px;"><p style="margin:0 0 4px;color:#64748b;font-size:11px;font-weight:bold;text-transform:uppercase;">Bilhete e setor</p><p style="margin:0;color:#0f172a;font-size:14px;font-weight:bold;">#${ticketNumber} <span style="font-weight:normal;color:#475569;">· ${sector}</span></p></td></tr>
+<tr><td style="padding:10px 18px 16px;"><p style="margin:0 0 4px;color:#64748b;font-size:11px;font-weight:bold;text-transform:uppercase;">Bilhete e setor</p><p style="margin:0;color:#0f172a;font-size:14px;font-weight:bold;">#${ticketNumber} <span style="font-weight:normal;color:#475569;">Â· ${sector}</span></p></td></tr>
 </table>
 </td></tr>
 <tr><td align="center" style="padding:20px 24px;background:#f8fafc;border-top:1px solid #e2e8f0;">
-<p style="margin:0;color:#64748b;font-size:12px;line-height:1.6;">Não responda a este e-mail. Este é um e-mail automático enviado pela plataforma Troca Ticket.</p>
-<p style="margin:8px 0;color:#94a3b8;font-size:12px;">Dúvidas ou suporte? Acesse nossa central de ajuda no site da <a href="${supportUrl}" style="color:#00e5ff;text-decoration:underline;font-weight:bold;">Troca Ticket</a>.</p>
-<p style="margin:12px 0 0;color:#94a3b8;font-size:11px;">© 2026 Troca Ticket. Todos os direitos reservados.</p>
+<p style="margin:0;color:#64748b;font-size:12px;line-height:1.6;">NÃ£o responda a este e-mail. Este Ã© um e-mail automÃ¡tico enviado pela plataforma Troca Ticket.</p>
+<p style="margin:8px 0;color:#94a3b8;font-size:12px;">DÃºvidas ou suporte? Acesse nossa central de ajuda no site da <a href="${supportUrl}" style="color:#00e5ff;text-decoration:underline;font-weight:bold;">Troca Ticket</a>.</p>
+<p style="margin:12px 0 0;color:#94a3b8;font-size:11px;">Â© 2026 Troca Ticket. Todos os direitos reservados.</p>
 </td></tr>
 </table></td></tr></table>
 </body></html>`;
@@ -183,8 +185,8 @@ function createOfflineTicketEmailHtml(ticket, filename, expiresAt, walletUrl, ba
     .replace('Baixar ingresso offline (.html)', 'Baixar ingresso offline')
     .replace('Bilhete e setor', 'Bilhete, pedido e setor')
     .replace(
-      `#${ticketNumber} <span style="font-weight:normal;color:#475569;">· ${sector}</span>`,
-      `#${ticketNumber} <span style="font-weight:normal;color:#475569;">· Pedido #${orderCode} · ${sector}</span>`
+      `#${ticketNumber} <span style="font-weight:normal;color:#475569;">Â· ${sector}</span>`,
+      `#${ticketNumber} <span style="font-weight:normal;color:#475569;">Â· Pedido #${orderCode} Â· ${sector}</span>`
     );
 }
 
@@ -204,16 +206,16 @@ function createOfflineTicketHtml(ticket, qrLibrary) {
   return `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>Ingresso offline | TrocaTicket</title>
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0c0e14;color:#fff;font:16px system-ui,sans-serif}.pass{width:min(340px,calc(100vw - 40px));padding:24px;box-sizing:border-box;background:#171a24;border:1px solid #30364a;border-radius:16px;text-align:center;box-shadow:0 16px 48px #0008}h1{font-size:20px;margin:0 0 8px}p{color:#aeb5c8;font-size:14px;margin:6px 0}.qr{width:220px;height:220px;margin:20px auto;background:#fff;border-radius:10px;display:grid;place-items:center}.qr canvas{max-width:100%;max-height:100%}.notice{color:#ff9f43!important;min-height:20px}.tag{color:#27b7ff;font-weight:700;font-size:12px;text-transform:uppercase}</style></head>
-<body><main class="pass"><p class="tag">TrocaTicket · Ingresso digital</p><h1 id="event-name"></h1><p id="event-details"></p><div class="qr" id="qr"><canvas id="qr-canvas"></canvas></div><p class="notice" id="status" aria-live="polite">Gerando QR offline...</p><p id="ticket-number"></p><p id="event-end"></p></main>
+<body><main class="pass"><p class="tag">TrocaTicket Â· Ingresso digital</p><h1 id="event-name"></h1><p id="event-details"></p><div class="qr" id="qr"><canvas id="qr-canvas"></canvas></div><p class="notice" id="status" aria-live="polite">Gerando QR offline...</p><p id="ticket-number"></p><p id="event-end"></p></main>
 <script>${qrLibrary}</script><script>
 const ticket=${ticketData};
 const encoder=new TextEncoder();
 const keyBytes=Uint8Array.from(ticket.secretKey.match(/.{2}/g),part=>parseInt(part,16));
 document.getElementById('event-name').textContent=ticket.eventName;
-document.getElementById('event-details').textContent=[new Date(ticket.eventDate).toLocaleString('pt-BR'),ticket.location,ticket.sector].filter(Boolean).join(' · ');
-document.getElementById('ticket-number').textContent='Ingresso #'+ticket.number+' · '+ticket.holder;
-document.getElementById('event-end').textContent='Válido até '+new Date(ticket.eventEndDate).toLocaleString('pt-BR');
-async function refresh(){const status=document.getElementById('status');if(Date.now()>ticket.expiresAt){document.getElementById('qr').hidden=true;status.textContent='Ingresso expirado: evento encerrado';return}try{const step=Math.floor(Date.now()/60000);const key=await crypto.subtle.importKey('raw',keyBytes,{name:'HMAC',hash:'SHA-256'},false,['sign']);const digest=await crypto.subtle.sign('HMAC',key,encoder.encode(ticket.number+':'+step));const hash=Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join('');await QRCode.toCanvas(document.getElementById('qr-canvas'),ticket.number+':'+step+':'+hash,{width:200,margin:1,errorCorrectionLevel:'M'});status.textContent='QR atualizado · próximo em até 60 segundos'}catch(error){status.textContent='Não foi possível gerar o QR offline neste navegador.'}}
+document.getElementById('event-details').textContent=[new Date(ticket.eventDate).toLocaleString('pt-BR'),ticket.location,ticket.sector].filter(Boolean).join(' Â· ');
+document.getElementById('ticket-number').textContent='Ingresso #'+ticket.number+' Â· '+ticket.holder;
+document.getElementById('event-end').textContent='VÃ¡lido atÃ© '+new Date(ticket.eventEndDate).toLocaleString('pt-BR');
+async function refresh(){const status=document.getElementById('status');if(Date.now()>ticket.expiresAt){document.getElementById('qr').hidden=true;status.textContent='Ingresso expirado: evento encerrado';return}try{const step=Math.floor(Date.now()/60000);const key=await crypto.subtle.importKey('raw',keyBytes,{name:'HMAC',hash:'SHA-256'},false,['sign']);const digest=await crypto.subtle.sign('HMAC',key,encoder.encode(ticket.number+':'+step));const hash=Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join('');await QRCode.toCanvas(document.getElementById('qr-canvas'),ticket.number+':'+step+':'+hash,{width:200,margin:1,errorCorrectionLevel:'M'});status.textContent='QR atualizado Â· prÃ³ximo em atÃ© 60 segundos'}catch(error){status.textContent='NÃ£o foi possÃ­vel gerar o QR offline neste navegador.'}}
 refresh();setInterval(refresh,Math.max(1000,60000-(Date.now()%60000)+150));
 </script></body></html>`;
 }
@@ -307,13 +309,13 @@ function gerarLinkGoogleWallet(ingresso) {
 function createWalletMockUrl(ticket) {
   const details = [ticket.eventDate && new Date(ticket.eventDate).toLocaleString('pt-BR'), ticket.location, ticket.sector, ticket.holder, ticket.numero_ingresso]
     .filter(Boolean).map(escapeHtml);
-  const html = `<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Prévia Google Wallet</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f1f3f4;font:16px Arial,sans-serif;color:#202124}.pass{width:min(360px,calc(100vw - 40px));background:#171a24;color:#fff;border-radius:18px;padding:24px;box-sizing:border-box;box-shadow:0 8px 28px #0003}.brand{font-size:14px;color:#b9c4d8}.g{font-size:20px;font-weight:700;background:conic-gradient(#4285f4,#34a853,#fbbc05,#ea4335,#4285f4);color:transparent;background-clip:text;-webkit-background-clip:text}h1{font-size:23px;margin:24px 0 18px}p{margin:10px 0;color:#d2d7e2}.mock{margin-top:24px;color:#aeb5c8;font-size:12px}</style><main class="pass"><div class="brand"><span class="g">G</span> Carteira do Google · Demonstração</div><h1>${escapeHtml(ticket.eventName)}</h1>${details.map(detail => `<p>${detail}</p>`).join('')}<p class="mock">Passe de demonstração. Configure as credenciais do Google Wallet para habilitar a emissão real.</p></main></html>`;
+  const html = `<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PrÃ©via Google Wallet</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f1f3f4;font:16px Arial,sans-serif;color:#202124}.pass{width:min(360px,calc(100vw - 40px));background:#171a24;color:#fff;border-radius:18px;padding:24px;box-sizing:border-box;box-shadow:0 8px 28px #0003}.brand{font-size:14px;color:#b9c4d8}.g{font-size:20px;font-weight:700;background:conic-gradient(#4285f4,#34a853,#fbbc05,#ea4335,#4285f4);color:transparent;background-clip:text;-webkit-background-clip:text}h1{font-size:23px;margin:24px 0 18px}p{margin:10px 0;color:#d2d7e2}.mock{margin-top:24px;color:#aeb5c8;font-size:12px}</style><main class="pass"><div class="brand"><span class="g">G</span> Carteira do Google Â· DemonstraÃ§Ã£o</div><h1>${escapeHtml(ticket.eventName)}</h1>${details.map(detail => `<p>${detail}</p>`).join('')}<p class="mock">Passe de demonstraÃ§Ã£o. Configure as credenciais do Google Wallet para habilitar a emissÃ£o real.</p></main></html>`;
   return `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
 }
 
 async function getTicketForSession(request, ticketId) {
   const session = readSessionToken(request);
-  if (!session) return { error: { status: 401, message: 'Sessão inválida. Entre novamente para continuar.' } };
+  if (!session) return { error: { status: 401, message: 'SessÃ£o invÃ¡lida. Entre novamente para continuar.' } };
   await ensureTicketSecuritySchema();
   const [rows] = await db.query(`
           SELECT i.id, i.numero_ingresso, i.pedido_id, i.secret_key, i.status,
@@ -333,10 +335,10 @@ async function getTicketForSession(request, ticketId) {
     LEFT JOIN dbo.pedidos p ON p.id = i.pedido_id
     WHERE i.id = ? AND i.comprador_id = ? AND u.email = ?
   `, [ticketId, session.sub, session.email]);
-  if (!rows.length) return { error: { status: 404, message: 'Ingresso não encontrado para esta conta.' } };
+  if (!rows.length) return { error: { status: 404, message: 'Ingresso nÃ£o encontrado para esta conta.' } };
   const ticket = rows[0];
   if (!['ativo', 'valido'].includes(String(ticket.status).toLowerCase()) || !ticket.secret_key) {
-    return { error: { status: 409, message: 'Este ingresso não está ativo para acesso digital.' } };
+    return { error: { status: 409, message: 'Este ingresso nÃ£o estÃ¡ ativo para acesso digital.' } };
   }
   return { ticket };
 }
@@ -364,7 +366,7 @@ function parseEventDate(value) {
   const parsed = new Date(normalized);
 
   if (Number.isNaN(parsed.getTime())) {
-    throw new Error('Data do evento inválida. Use o formato AAAA-MM-DD HH:MM.');
+    throw new Error('Data do evento invÃ¡lida. Use o formato AAAA-MM-DD HH:MM.');
   }
   return parsed;
 }
@@ -439,6 +441,8 @@ function ensureSupplierSchema() {
             CONSTRAINT uq_fornecedor_empresas_cnpj UNIQUE (cnpj)
           );
         END;
+        IF COL_LENGTH('dbo.fornecedor_empresas', 'logo_url') IS NULL
+          ALTER TABLE dbo.fornecedor_empresas ADD logo_url varchar(500) NULL;
         IF COL_LENGTH('dbo.evento_propostas_fornecedor', 'fornecedor_usuario_id') IS NULL
           ALTER TABLE dbo.evento_propostas_fornecedor ADD fornecedor_usuario_id int NULL;
         IF COL_LENGTH('dbo.evento_mensagens_chat', 'anexo_url') IS NULL
@@ -447,6 +451,47 @@ function ensureSupplierSchema() {
           ALTER TABLE dbo.evento_mensagens_chat ADD anexo_nome varchar(255) NULL;
         IF COL_LENGTH('dbo.evento_mensagens_chat', 'anexo_tipo') IS NULL
           ALTER TABLE dbo.evento_mensagens_chat ADD anexo_tipo varchar(120) NULL;
+        IF COL_LENGTH('dbo.evento_mensagens_chat', 'lida_organizador') IS NULL
+          ALTER TABLE dbo.evento_mensagens_chat ADD lida_organizador bit NOT NULL CONSTRAINT df_evento_mensagens_chat_lida_organizador DEFAULT 0;
+        IF COL_LENGTH('dbo.evento_mensagens_chat', 'lida_fornecedor') IS NULL
+          ALTER TABLE dbo.evento_mensagens_chat ADD lida_fornecedor bit NOT NULL CONSTRAINT df_evento_mensagens_chat_lida_fornecedor DEFAULT 0;
+        IF COL_LENGTH('dbo.evento_mensagens_chat', 'fornecedor_usuario_id') IS NULL
+          ALTER TABLE dbo.evento_mensagens_chat ADD fornecedor_usuario_id int NULL;
+        IF OBJECT_ID(N'dbo.evento_proposta_documentos', N'U') IS NULL
+        BEGIN
+          CREATE TABLE dbo.evento_proposta_documentos (
+            id int IDENTITY(1,1) NOT NULL CONSTRAINT pk_evento_proposta_documentos PRIMARY KEY,
+            proposta_id int NOT NULL,
+            nome_arquivo varchar(255) NOT NULL,
+            caminho varchar(500) NOT NULL,
+            criado_em datetime2(0) NOT NULL CONSTRAINT df_evento_proposta_documentos_criado DEFAULT SYSUTCDATETIME(),
+            CONSTRAINT fk_evento_proposta_documentos_proposta FOREIGN KEY (proposta_id) REFERENCES dbo.evento_propostas_fornecedor(id) ON DELETE CASCADE
+          );
+        END;
+        IF OBJECT_ID(N'dbo.evento_chat_leituras', N'U') IS NULL
+        BEGIN
+          CREATE TABLE dbo.evento_chat_leituras (
+            usuario_id int NOT NULL,
+            demanda_id int NOT NULL,
+            ultima_mensagem_id int NOT NULL CONSTRAINT df_evento_chat_leituras_mensagem DEFAULT 0,
+            lida_em datetime2(0) NOT NULL CONSTRAINT df_evento_chat_leituras_lida DEFAULT SYSUTCDATETIME(),
+            CONSTRAINT pk_evento_chat_leituras PRIMARY KEY (usuario_id, demanda_id)
+          );
+        END;
+        IF COL_LENGTH('dbo.evento_chat_leituras', 'ultima_mensagem_id') IS NULL
+          ALTER TABLE dbo.evento_chat_leituras ADD ultima_mensagem_id int NOT NULL CONSTRAINT df_evento_chat_leituras_mensagem_mig DEFAULT 0;
+        IF OBJECT_ID(N'dbo.trocaticket_chat_migrations', N'U') IS NULL
+        BEGIN
+          CREATE TABLE dbo.trocaticket_chat_migrations (
+            chave varchar(120) NOT NULL CONSTRAINT pk_trocaticket_chat_migrations PRIMARY KEY,
+            executada_em datetime2(0) NOT NULL CONSTRAINT df_trocaticket_chat_migrations_executada DEFAULT SYSUTCDATETIME()
+          );
+        END;
+        IF NOT EXISTS (SELECT 1 FROM dbo.trocaticket_chat_migrations WHERE chave = 'mark-existing-chat-messages-read')
+        BEGIN
+          UPDATE dbo.evento_mensagens_chat SET lida_organizador = 1, lida_fornecedor = 1;
+          INSERT INTO dbo.trocaticket_chat_migrations (chave) VALUES ('mark-existing-chat-messages-read');
+        END;
         IF OBJECT_ID(N'dbo.fornecedor_documentos', N'U') IS NULL
         BEGIN
           CREATE TABLE dbo.fornecedor_documentos (
@@ -474,6 +519,18 @@ function ensureSupplierSchema() {
             CONSTRAINT uq_fornecedor_colaboradores_usuario UNIQUE (empresa_id, usuario_id)
           );
         END;
+        IF OBJECT_ID(N'dbo.evento_demanda_documentos', N'U') IS NULL
+        BEGIN
+          CREATE TABLE dbo.evento_demanda_documentos (
+            id int IDENTITY(1,1) NOT NULL CONSTRAINT pk_evento_demanda_documentos PRIMARY KEY,
+            demanda_id int NOT NULL,
+            nome varchar(180) NOT NULL,
+            nome_arquivo varchar(255) NOT NULL,
+            caminho varchar(500) NOT NULL,
+            criado_em datetime2(0) NOT NULL CONSTRAINT df_evento_demanda_documentos_criado DEFAULT SYSUTCDATETIME(),
+            CONSTRAINT fk_evento_demanda_documentos_demanda FOREIGN KEY (demanda_id) REFERENCES dbo.evento_demandas(id) ON DELETE CASCADE
+          );
+        END;
       `);
     })().catch(error => {
       supplierSchemaPromise = null;
@@ -488,12 +545,12 @@ async function saveChatAttachment(attachment) {
     if (!attachment || !attachment.data) return null;
     const dataUrl = String(attachment.data);
     const match = dataUrl.match(/^data:([a-z0-9.+-]+\/[a-z0-9.+-]+);base64,(.+)$/i);
-    if (!match) throw new Error('Arquivo inválido.');
+    if (!match) throw new Error('Arquivo invÃ¡lido.');
     const mimeType = match[1].toLowerCase();
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf', 'text/plain'];
-    if (!allowedTypes.includes(mimeType)) throw new Error('Formato não permitido. Use imagem, PDF ou TXT.');
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf', 'text/plain', 'text/csv', 'application/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+    if (!allowedTypes.includes(mimeType)) throw new Error('Formato nÃ£o permitido. Use imagem, PDF ou TXT.');
     const fileData = Buffer.from(match[2], 'base64');
-    if (fileData.length > 50 * 1024 * 1024) throw new Error('O arquivo deve ter até 50 MB.');
+    if (fileData.length > 50 * 1024 * 1024) throw new Error('O arquivo deve ter atÃ© 50 MB.');
     const extension = mimeType.split('/')[1].replace('jpeg', 'jpg');
     const safeName = String(attachment.name || `anexo.${extension}`).replace(/[^a-z0-9._-]/gi, '_').slice(0, 120);
     const storedName = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}-${safeName}`;
@@ -507,20 +564,20 @@ async function getSupplierUser(request) {
   const session = readSessionToken(request);
   if (!session) return null;
   const [rows] = await db.query('SELECT id, nome, email, tipo, status, senha_hash FROM dbo.usuarios WHERE id = ? AND email = ?', [session.sub, session.email]);
-  return rows.find(user => ['fornecedor', 'admin', 'comum', 'comprador', 'cliente', ''].includes(String(user.tipo || '').toLowerCase()) && !['bloqueado', 'suspensa', 'excluida'].includes(String(user.status || '').toLowerCase())) || null;
+  return rows.find(user => ['fornecedor', 'admin', 'comum', 'comprador', 'cliente', ''].includes(String(user.tipo || '').trim().toLowerCase()) && !['bloqueado', 'suspensa', 'excluida'].includes(String(user.status || '').trim().toLowerCase())) || null;
 }
 
 async function getSupplierCompanyForUser(user) {
   const [[ownedCompany]] = await db.query(`
     SELECT TOP 1 id, usuario_id AS owner_id, razao_social, cnpj, categoria,
-      contato, email_comercial, telefone, descricao, status
+      contato, email_comercial, telefone, descricao, logo_url, status
     FROM dbo.fornecedor_empresas
     WHERE usuario_id = ?
   `, [user.id]);
   if (ownedCompany) return ownedCompany;
   const [[company]] = await db.query(`
     SELECT TOP 1 fe.id, fe.usuario_id AS owner_id, fe.razao_social, fe.cnpj, fe.categoria,
-      fe.contato, fe.email_comercial, fe.telefone, fe.descricao, fe.status
+      fe.contato, fe.email_comercial, fe.telefone, fe.descricao, fe.logo_url, fe.status
     FROM dbo.fornecedor_empresas fe
     LEFT JOIN dbo.fornecedor_colaboradores fc ON fc.empresa_id = fe.id AND fc.usuario_id = ?
     WHERE fe.usuario_id = ? OR fc.usuario_id = ?
@@ -528,29 +585,43 @@ async function getSupplierCompanyForUser(user) {
   return company || null;
 }
 
+async function getSupplierChatDemandIds(user, company) {
+  const [rows] = await db.query(`
+    SELECT DISTINCT p.demanda_id
+    FROM dbo.evento_propostas_fornecedor p
+    WHERE p.fornecedor_usuario_id IN (?, ?)
+      OR LOWER(LTRIM(RTRIM(ISNULL(p.empresa, '')))) = LOWER(LTRIM(RTRIM(?)))
+      OR EXISTS (
+        SELECT 1
+        FROM dbo.fornecedor_colaboradores fc
+        WHERE fc.empresa_id = ? AND fc.usuario_id = p.fornecedor_usuario_id
+      )
+  `, [user.id, company?.owner_id || -1, company?.razao_social || '', company?.id || -1]);
+  return rows.map(row => Number(row.demanda_id)).filter(Number.isInteger);
+}
+
 async function getSupplierHomologation(ownerId) {
   if (!ownerId) return false;
   const [[company]] = await db.query('SELECT status FROM dbo.fornecedor_empresas WHERE usuario_id = ?', [ownerId]);
-  if (String(company?.status || '').toLowerCase() !== 'homologado') return false;
-  const [[summary]] = await db.query(`
-    SELECT COUNT(*) AS total,
-      SUM(CASE WHEN LOWER(status) IN ('validado', 'aprovado', 'homologado') THEN 1 ELSE 0 END) AS approved
-    FROM dbo.fornecedor_documentos
-    WHERE fornecedor_usuario_id = ?
-  `, [ownerId]);
-  return Number(summary?.total || 0) > 0 && Number(summary?.approved || 0) === Number(summary?.total || 0);
+  return String(company?.status || '').trim().toLowerCase() === 'homologado';
 }
 
 async function getSupplierDocumentationStatus(ownerId) {
-  if (!ownerId) return 'em análise';
+  if (!ownerId) return 'em anÃ¡lise';
+  const [[company]] = await db.query(
+    'SELECT status FROM dbo.fornecedor_empresas WHERE usuario_id = ?',
+    [ownerId]
+  );
+  const companyStatus = String(company?.status || '').toLowerCase();
+  if (companyStatus === 'recusado') return 'recusado';
+  if (companyStatus === 'homologado') return 'homologado';
   const [documents] = await db.query(
     'SELECT status FROM dbo.fornecedor_documentos WHERE fornecedor_usuario_id = ?',
     [ownerId]
   );
-  if (!documents.length) return 'em análise';
+  if (!documents.length) return 'em anÃ¡lise';
   if (documents.some(document => String(document.status || '').toLowerCase() === 'recusado')) return 'recusado';
-  if (documents.every(document => ['aprovado', 'homologado', 'validado'].includes(String(document.status || '').toLowerCase()))) return 'homologado';
-  return 'em análise';
+  return 'em anÃ¡lise';
 }
 
 function ensureTicketSecuritySchema() {
@@ -655,7 +726,7 @@ async function audit(action, description, itemType, itemId, actor = {}) {
       [actorId, actorName, actorType, action, description, itemType, String(itemId || '')]
     );
   } catch (error) {
-    console.error('[auditoria] Não foi possível registrar ação:', error.message);
+    console.error('[auditoria] NÃ£o foi possÃ­vel registrar aÃ§Ã£o:', error.message);
   }
 }
 
@@ -668,7 +739,7 @@ async function auditGenericRequest(request, url) {
     tipo: body.actor_type
   });
   const route = url.pathname.replace(/^\/api\//, '').replaceAll('/', ' ');
-  let itemType = 'ação do sistema';
+  let itemType = 'aÃ§Ã£o do sistema';
   let itemName = route;
 
   try {
@@ -684,7 +755,7 @@ async function auditGenericRequest(request, url) {
       itemType = 'ingresso'; itemName = ticket?.numero_ingresso || 'Ingresso';
     } else if (userId) {
       const [[user]] = await db.query('SELECT nome FROM dbo.usuarios WHERE id = ?', [userId]);
-      itemType = 'usuário'; itemName = user?.nome || 'Usuário';
+      itemType = 'usuÃ¡rio'; itemName = user?.nome || 'UsuÃ¡rio';
     } else if (orderId) {
       const [[order]] = await db.query('SELECT codigo_pedido FROM dbo.pedidos WHERE id = ?', [orderId]);
       itemType = 'pedido'; itemName = order?.codigo_pedido || 'Pedido';
@@ -697,7 +768,7 @@ async function auditGenericRequest(request, url) {
     console.error('[auditoria] Falha ao identificar item:', error.message);
   }
 
-  await audit(`${request.method.toLowerCase()}_${route.replaceAll(' ', '_')}`, `Ação ${request.method} realizada em ${itemName}.`, itemType, itemName, actor);
+  await audit(`${request.method.toLowerCase()}_${route.replaceAll(' ', '_')}`, `AÃ§Ã£o ${request.method} realizada em ${itemName}.`, itemType, itemName, actor);
 }
 
 function shouldSkipGenericAudit(pathname) {
@@ -751,7 +822,7 @@ function parseBody(request) {
     let body = '';
     request.on('data', chunk => {
       body += chunk;
-      if (body.length > 75 * 1024 * 1024) reject(new Error('Payload muito grande (máximo 75 MB)'));
+      if (body.length > 75 * 1024 * 1024) reject(new Error('Payload muito grande (mÃ¡ximo 75 MB)'));
     });
     request.on('end', () => {
       try {
@@ -759,7 +830,7 @@ function parseBody(request) {
         request._auditBody = parsed;
         resolve(parsed);
       } catch {
-        reject(new Error('JSON inválido'));
+        reject(new Error('JSON invÃ¡lido'));
       }
     });
   });
@@ -769,7 +840,7 @@ function parseMultipart(request) {
   return new Promise((resolve, reject) => {
     const contentType = request.headers['content-type'] || '';
     const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/i);
-    if (!boundaryMatch) return reject(new Error('Boundary não encontrado'));
+    if (!boundaryMatch) return reject(new Error('Boundary nÃ£o encontrado'));
     const boundary = boundaryMatch[1] || boundaryMatch[2];
     const chunks = [];
 
@@ -861,7 +932,7 @@ const server = http.createServer(async (request, response) => {
     }
   }
 
-  // ===== AUTENTICAÇÃO =====
+  // ===== AUTENTICAÃ‡ÃƒO =====
   if (request.method === 'POST' && (url.pathname === '/api/auth/login' || url.pathname === '/api/login')) {
     try {
       const body = await parseBody(request);
@@ -869,19 +940,19 @@ const server = http.createServer(async (request, response) => {
       const [rows] = await db.query('SELECT * FROM usuarios WHERE email = ? LIMIT 1', [email]);
       
       if (!rows.length || !(await bcrypt.compare(String(body.senha || ''), rows[0].senha_hash))) {
-        return send(response, 401, { ok: false, message: 'E-mail ou senha inválidos.' });
+        return send(response, 401, { ok: false, message: 'E-mail ou senha invÃ¡lidos.' });
       }
       if (rows[0].email_verificado === false || rows[0].email_verificado === 0 || rows[0].codigo_verificacao) {
-        return send(response, 403, { ok: false, message: 'E-mail ainda não verificado. Confira sua caixa de entrada.' });
+        return send(response, 403, { ok: false, message: 'E-mail ainda nÃ£o verificado. Confira sua caixa de entrada.' });
       }
       if (['bloqueado', 'excluida'].includes(String(rows[0].status || '').toLowerCase())) {
-        return send(response, 403, { ok: false, message: 'Usuário bloqueado pelo administrador.' });
+        return send(response, 403, { ok: false, message: 'UsuÃ¡rio bloqueado pelo administrador.' });
       }
 
       return send(response, 200, { ok: true, user: formatUser(rows[0]), session_token: createSessionToken(rows[0]) });
     } catch (error) {
       console.error('[auth] Erro no login:', error.message);
-      return send(response, 500, { ok: false, message: 'Não foi possível realizar o login.' });
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel realizar o login.' });
     }
   }
 
@@ -892,7 +963,7 @@ const server = http.createServer(async (request, response) => {
       const cpf = normalizeCpf(body.cpf);
       const telefone = normalizePhone(body.telefone);
       if (!body.nome || !/^\S+@\S+\.\S+$/.test(email) || cpf.length !== 11 || !hasValidPhoneLength(telefone) || !body.senha || body.senha.length < 6) {
-        return send(response, 400, { ok: false, message: 'Informe nome, e-mail, CPF com 11 números, telefone com 10 a 15 números e senha com ao menos 6 caracteres.' });
+        return send(response, 400, { ok: false, message: 'Informe nome, e-mail, CPF com 11 nÃºmeros, telefone com 10 a 15 nÃºmeros e senha com ao menos 6 caracteres.' });
       }
       const [excludedUsers] = await db.query(
         `SELECT id FROM dbo.usuarios
@@ -908,7 +979,7 @@ const server = http.createServer(async (request, response) => {
         );
       }
       const [duplicate] = await db.query('SELECT id FROM usuarios WHERE email = ? OR cpf = ? LIMIT 1', [email, cpf]);
-      if (duplicate.length) return send(response, 409, { ok: false, message: 'E-mail ou CPF já cadastrado.' });
+      if (duplicate.length) return send(response, 409, { ok: false, message: 'E-mail ou CPF jÃ¡ cadastrado.' });
       const codigo = String(crypto.randomInt(100000, 1000000));
       const senhaHash = await bcrypt.hash(body.senha, 10);
       await db.query(
@@ -917,10 +988,10 @@ const server = http.createServer(async (request, response) => {
         [body.nome.trim(), email, senhaHash, 'comprador', cpf, telefone, body.nascimento || null, body.sexo || null, codigo]
       );
       await sendVerificationEmail({ to: email, name: body.nome.trim(), code: codigo });
-      return send(response, 201, { ok: true, message: 'Cadastro criado com sucesso! Enviamos um código de verificação para o seu e-mail.' });
+      return send(response, 201, { ok: true, message: 'Cadastro criado com sucesso! Enviamos um cÃ³digo de verificaÃ§Ã£o para o seu e-mail.' });
     } catch (error) {
       console.error('[auth] Erro no cadastro:', error.message);
-      return send(response, 500, { ok: false, message: 'Não foi possível concluir o cadastro.' });
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel concluir o cadastro.' });
     }
   }
 
@@ -931,7 +1002,7 @@ const server = http.createServer(async (request, response) => {
       const codigo = String(body.codigo || '').trim();
 
       if (!email || !/^\d{6}$/.test(codigo)) {
-        return send(response, 400, { ok: false, message: 'Informe um e-mail válido e um código de 6 dígitos.' });
+        return send(response, 400, { ok: false, message: 'Informe um e-mail vÃ¡lido e um cÃ³digo de 6 dÃ­gitos.' });
       }
 
       const [rows] = await db.query(
@@ -940,12 +1011,12 @@ const server = http.createServer(async (request, response) => {
       );
 
       if (!rows.length) {
-        return send(response, 404, { ok: false, message: 'Usuário não encontrado.' });
+        return send(response, 404, { ok: false, message: 'UsuÃ¡rio nÃ£o encontrado.' });
       }
 
       const user = rows[0];
       if (String(user.codigo_verificacao || '').trim() !== codigo) {
-        return send(response, 400, { ok: false, message: 'Código inválido ou expirado.' });
+        return send(response, 400, { ok: false, message: 'CÃ³digo invÃ¡lido ou expirado.' });
       }
 
       await db.query(
@@ -964,16 +1035,16 @@ const server = http.createServer(async (request, response) => {
         user: formatUser(updated[0])
       });
     } catch (error) {
-      console.error('[auth] Erro ao verificar código:', error.message);
-      return send(response, 500, { ok: false, message: 'Não foi possível verificar o código.' });
+      console.error('[auth] Erro ao verificar cÃ³digo:', error.message);
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel verificar o cÃ³digo.' });
     }
   }
 
-  // ===== PERFIL DO USUÁRIO =====
+  // ===== PERFIL DO USUÃRIO =====
   if (request.method === 'GET' && url.pathname === '/api/usuario/meu-perfil') {
     try {
       const [rows] = await db.query('SELECT id, nome, email, cpf, telefone, genero, data_nascimento, tipo, status, foto_perfil FROM dbo.usuarios WHERE email = ? LIMIT 1', [normalizeEmail(url.searchParams.get('email'))]);
-      return rows.length ? send(response, 200, { ok: true, user: formatUser(rows[0]) }) : send(response, 404, { ok: false, message: 'Usuário não encontrado.' });
+      return rows.length ? send(response, 200, { ok: true, user: formatUser(rows[0]) }) : send(response, 404, { ok: false, message: 'UsuÃ¡rio nÃ£o encontrado.' });
     } catch (error) { return send(response, 500, { ok: false, message: 'Erro ao carregar perfil.' }); }
   }
 
@@ -984,10 +1055,10 @@ const server = http.createServer(async (request, response) => {
       const novoEmail = normalizeEmail(body.email || emailAtual);
 
       if (!emailAtual || !novoEmail) {
-        return send(response, 400, { ok: false, message: 'E-mail é obrigatório.' });
+        return send(response, 400, { ok: false, message: 'E-mail Ã© obrigatÃ³rio.' });
       }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(novoEmail)) {
-        return send(response, 400, { ok: false, message: 'E-mail inválido.' });
+        return send(response, 400, { ok: false, message: 'E-mail invÃ¡lido.' });
       }
 
       const [[existingUser]] = await db.query(
@@ -995,13 +1066,13 @@ const server = http.createServer(async (request, response) => {
         [emailAtual]
       );
       if (!existingUser) {
-        return send(response, 404, { ok: false, message: 'Usuário não encontrado.' });
+        return send(response, 404, { ok: false, message: 'UsuÃ¡rio nÃ£o encontrado.' });
       }
 
       if (novoEmail !== emailAtual) {
         const [[emailOwner]] = await db.query('SELECT id FROM dbo.usuarios WHERE email = ?', [novoEmail]);
         if (emailOwner && emailOwner.id !== existingUser.id) {
-          return send(response, 409, { ok: false, message: 'Este e-mail já está em uso.' });
+          return send(response, 409, { ok: false, message: 'Este e-mail jÃ¡ estÃ¡ em uso.' });
         }
       }
 
@@ -1017,13 +1088,13 @@ const server = http.createServer(async (request, response) => {
       const dataNascimento = body.data_nascimento !== undefined ? body.data_nascimento || null : existingUser.data_nascimento;
 
       if (!nomeCompleto) {
-        return send(response, 400, { ok: false, message: 'Nome é obrigatório.' });
+        return send(response, 400, { ok: false, message: 'Nome Ã© obrigatÃ³rio.' });
       }
       if (cpf && cpf.length !== 11) {
-        return send(response, 400, { ok: false, message: 'CPF inválido.' });
+        return send(response, 400, { ok: false, message: 'CPF invÃ¡lido.' });
       }
       if (body.telefone !== undefined && telefone && !hasValidPhoneLength(telefone)) {
-        return send(response, 400, { ok: false, message: 'Telefone inválido. Informe de 10 a 15 números.' });
+        return send(response, 400, { ok: false, message: 'Telefone invÃ¡lido. Informe de 10 a 15 nÃºmeros.' });
       }
 
       const senha = String(body.senha || '');
@@ -1046,13 +1117,13 @@ const server = http.createServer(async (request, response) => {
         ]
       );
 
-      if (!result.length) return send(response, 404, { ok: false, message: 'Usuário não encontrado.' });
+      if (!result.length) return send(response, 404, { ok: false, message: 'UsuÃ¡rio nÃ£o encontrado.' });
       const [rows] = await db.query('SELECT id, nome, email, cpf, telefone, genero, data_nascimento, tipo, status, foto_perfil FROM dbo.usuarios WHERE id = ?', [result[0].id]);
       await audit('atualizacao_perfil', `Perfil de ${nomeCompleto} atualizado.`, 'usuario', result[0].id, rows[0]);
       return send(response, 200, { ok: true, user: formatUser(rows[0]), message: 'Dados atualizados com sucesso.' });
     } catch (error) {
       console.error('[usuario] Erro ao atualizar perfil:', error.message);
-      return send(response, 500, { ok: false, message: 'Não foi possível atualizar o perfil.' });
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel atualizar o perfil.' });
     }
   }
 
@@ -1061,7 +1132,7 @@ const server = http.createServer(async (request, response) => {
     try {
       const session = readSessionToken(request);
       const requestedEmail = normalizeEmail(url.searchParams.get('email'));
-      if (!session || session.email !== requestedEmail) return send(response, 403, { ok: false, message: 'Sessão inválida. Entre novamente para acessar seus ingressos.' });
+      if (!session || session.email !== requestedEmail) return send(response, 403, { ok: false, message: 'SessÃ£o invÃ¡lida. Entre novamente para acessar seus ingressos.' });
       await ensureTicketSecuritySchema();
       const ticketId = url.pathname.match(/\/(\d+)$/)?.[1];
       const includeQr = url.searchParams.get('includeQr') === 'true';
@@ -1084,7 +1155,7 @@ const server = http.createServer(async (request, response) => {
           LEFT JOIN dbo.usuarios u2 ON u2.id = tp.destinatario_id
           WHERE i.id = ? AND u.email = ? AND i.status NOT IN ('cancelado', 'bloqueado')
         `, [Number(ticketId), requestedEmail]);
-        if (!tickets.length) return send(response, 404, { ok: false, message: 'Ingresso não encontrado.' });
+        if (!tickets.length) return send(response, 404, { ok: false, message: 'Ingresso nÃ£o encontrado.' });
         const ticket = tickets[0];
         if (includeQr && ['ativo', 'valido'].includes(String(ticket.status).toLowerCase())) {
           const ticketSecret = await getTicketSecret(ticket.id);
@@ -1110,7 +1181,7 @@ const server = http.createServer(async (request, response) => {
           const parsed = JSON.parse(Buffer.from(cursorValue, 'base64url').toString('utf8'));
           if (parsed && parsed.emittedAt && Number.isInteger(parsed.id)) cursor = parsed;
         } catch {
-          return send(response, 400, { ok: false, message: 'Cursor de paginação inválido.' });
+          return send(response, 400, { ok: false, message: 'Cursor de paginaÃ§Ã£o invÃ¡lido.' });
         }
       }
       const cursorClause = cursor ? 'AND (i.emitido_em < ? OR (i.emitido_em = ? AND i.id < ?))' : '';
@@ -1154,17 +1225,17 @@ const server = http.createServer(async (request, response) => {
       const body = await parseBody(request);
       const ticketId = Number(body.ingresso_id);
       if (!Number.isInteger(ticketId) || ticketId <= 0) {
-        return send(response, 400, { ok: false, message: 'ID de ingresso inválido.' });
+        return send(response, 400, { ok: false, message: 'ID de ingresso invÃ¡lido.' });
       }
       const result = await getTicketForSession(request, ticketId);
       if (result.error) return send(response, result.error.status, { ok: false, message: result.error.message });
 
       const { ticket } = result;
       const eventDate = new Date(ticket.eventDate);
-      if (Number.isNaN(eventDate.getTime())) return send(response, 400, { ok: false, message: 'A data do evento não está configurada.' });
+      if (Number.isNaN(eventDate.getTime())) return send(response, 400, { ok: false, message: 'A data do evento nÃ£o estÃ¡ configurada.' });
       const expiresAt = new Date(ticket.eventEndDate);
       if (!ticket.eventEndDate || Number.isNaN(expiresAt.getTime())) {
-        return send(response, 409, { ok: false, message: 'O horário oficial de encerramento do evento ainda não foi configurado.' });
+        return send(response, 409, { ok: false, message: 'O horÃ¡rio oficial de encerramento do evento ainda nÃ£o foi configurado.' });
       }
       if (Date.now() >= expiresAt.getTime()) return send(response, 409, { ok: false, message: 'Ingresso expirado: evento encerrado.' });
 
@@ -1179,7 +1250,7 @@ const server = http.createServer(async (request, response) => {
           setor: ticket.sector
         });
       } catch (error) {
-        console.error('[google wallet] Não foi possível gerar o link para o e-mail:', error.message);
+        console.error('[google wallet] NÃ£o foi possÃ­vel gerar o link para o e-mail:', error.message);
       }
       const transporter = getVerificationTransporter();
       const banner = fs.readFileSync(path.join(root, 'imagens', 'banner troca ticket.jpg'));
@@ -1190,7 +1261,7 @@ const server = http.createServer(async (request, response) => {
           from: smtpFrom,
           to: ticket.email,
           subject: `TrocaTicket - ingresso offline para ${ticket.eventName}`,
-          text: `Olá ${ticket.holder || 'titular'},\n\nSeu ingresso para ${ticket.eventName} está pronto. Baixe o anexo antes do evento e abra-o no navegador do celular; o QR continuará atualizando a cada 60 segundos mesmo sem internet.\n\nValidade do Código QR Offline: ativo até ao término oficial do evento em ${formatEmailDateTime(expiresAt)}.${walletUrl ? `\n\nAdicionar à Carteira do Google: ${walletUrl}` : ''}\n\nDúvidas ou suporte: ${process.env.TROCATICKET_SUPPORT_URL || 'https://trocaticket.com/suporte'}\n\nNão responda a este e-mail. Este é um e-mail automático enviado pela plataforma Troca Ticket.`,
+          text: `OlÃ¡ ${ticket.holder || 'titular'},\n\nSeu ingresso para ${ticket.eventName} estÃ¡ pronto. Baixe o anexo antes do evento e abra-o no navegador do celular; o QR continuarÃ¡ atualizando a cada 60 segundos mesmo sem internet.\n\nValidade do CÃ³digo QR Offline: ativo atÃ© ao tÃ©rmino oficial do evento em ${formatEmailDateTime(expiresAt)}.${walletUrl ? `\n\nAdicionar Ã  Carteira do Google: ${walletUrl}` : ''}\n\nDÃºvidas ou suporte: ${process.env.TROCATICKET_SUPPORT_URL || 'https://trocaticket.com/suporte'}\n\nNÃ£o responda a este e-mail. Este Ã© um e-mail automÃ¡tico enviado pela plataforma Troca Ticket.`,
           html: emailHtml,
           attachments: [
             { filename, content: offlineHtml, contentType: 'text/html; charset=utf-8' },
@@ -1207,11 +1278,11 @@ const server = http.createServer(async (request, response) => {
         filename,
         offlineHtml,
         emailPreviewHtml: transporter ? undefined : emailHtml,
-        message: transporter ? 'Pacote offline enviado por e-mail.' : 'Pacote offline preparado em modo de demonstração; SMTP não configurado.'
+        message: transporter ? 'Pacote offline enviado por e-mail.' : 'Pacote offline preparado em modo de demonstraÃ§Ã£o; SMTP nÃ£o configurado.'
       });
     } catch (error) {
       console.error('[ingresso offline] Falha ao preparar pacote:', error.message);
-      return send(response, 500, { ok: false, message: 'Não foi possível preparar o pacote offline.' });
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel preparar o pacote offline.' });
     }
   }
 
@@ -1220,13 +1291,13 @@ const server = http.createServer(async (request, response) => {
       const body = await parseBody(request);
       const ticketId = Number(body.ingresso_id);
       if (!Number.isInteger(ticketId) || ticketId <= 0) {
-        return send(response, 400, { ok: false, message: 'ID de ingresso inválido.' });
+        return send(response, 400, { ok: false, message: 'ID de ingresso invÃ¡lido.' });
       }
       const result = await getTicketForSession(request, ticketId);
       if (result.error) return send(response, result.error.status, { ok: false, message: result.error.message });
       const { ticket } = result;
       if (Number.isNaN(new Date(ticket.eventDate).getTime())) {
-        return send(response, 400, { ok: false, message: 'A data do evento não está configurada.' });
+        return send(response, 400, { ok: false, message: 'A data do evento nÃ£o estÃ¡ configurada.' });
       }
 
       const walletUrl = gerarLinkGoogleWallet({
@@ -1247,7 +1318,7 @@ const server = http.createServer(async (request, response) => {
       });
     } catch (error) {
       console.error('[google wallet] Falha ao preparar passe:', error.message);
-      return send(response, 500, { ok: false, message: 'Não foi possível preparar o passe Google Wallet.' });
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel preparar o passe Google Wallet.' });
     }
   }
 
@@ -1262,7 +1333,7 @@ const server = http.createServer(async (request, response) => {
       const quantidade = Math.max(1, Math.min(10, Number(body.quantidade) || 1));
 
       if (!email || !eventoId) {
-        return send(response, 400, { ok: false, message: 'Usuário e evento são obrigatórios.' });
+        return send(response, 400, { ok: false, message: 'UsuÃ¡rio e evento sÃ£o obrigatÃ³rios.' });
       }
 
       await connection.beginTransaction();
@@ -1271,11 +1342,11 @@ const server = http.createServer(async (request, response) => {
 
       if (!user) {
         await connection.rollback();
-        return send(response, 404, { ok: false, message: 'Usuário não encontrado.' });
+        return send(response, 404, { ok: false, message: 'UsuÃ¡rio nÃ£o encontrado.' });
       }
       if (!event) {
         await connection.rollback();
-        return send(response, 404, { ok: false, message: 'Evento não encontrado.' });
+        return send(response, 404, { ok: false, message: 'Evento nÃ£o encontrado.' });
       }
 
       const purchaseItems = Array.isArray(body.items) && body.items.length
@@ -1325,13 +1396,13 @@ const server = http.createServer(async (request, response) => {
     } catch (error) {
       try { await connection.rollback(); } catch {}
       console.error('[ingressos] Erro na compra:', error.message);
-      return send(response, 500, { ok: false, message: 'Não foi possível concluir a compra.' });
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel concluir a compra.' });
     } finally {
       connection.release();
     }
   }
 
-  // ===== TRANSFERÊNCIA NOMINAL =====
+  // ===== TRANSFERÃŠNCIA NOMINAL =====
   if (request.method === 'POST' && url.pathname === '/api/ingressos/solicitar-transferencia') {
     const connection = await db.getConnection();
     try {
@@ -1348,12 +1419,12 @@ const server = http.createServer(async (request, response) => {
 
       if (!ticket || ticket.status !== 'valido') {
         await connection.rollback();
-        return send(response, 400, { ok: false, message: 'Ingresso indisponível para transferência.' });
+        return send(response, 400, { ok: false, message: 'Ingresso indisponÃ­vel para transferÃªncia.' });
       }
 
       if (Number(ticket.versao_titularidade || 1) > 1) {
         await connection.rollback();
-        return send(response, 403, { ok: false, message: 'Este ingresso já foi transferido uma vez.' });
+        return send(response, 403, { ok: false, message: 'Este ingresso jÃ¡ foi transferido uma vez.' });
       }
 
       const [[hasPending]] = await connection.query(
@@ -1362,18 +1433,18 @@ const server = http.createServer(async (request, response) => {
       );
       if (hasPending) {
         await connection.rollback();
-        return send(response, 400, { ok: false, message: 'Já existe uma solicitação pendente.' });
+        return send(response, 400, { ok: false, message: 'JÃ¡ existe uma solicitaÃ§Ã£o pendente.' });
       }
 
       const [[destUser]] = await connection.query('SELECT id, nome, email FROM usuarios WHERE email = ? LIMIT 1', [targetEmail]);
       if (!destUser) {
         await connection.rollback();
-        return send(response, 404, { ok: false, message: 'Destinatário não encontrado no TrocaTicket.' });
+        return send(response, 404, { ok: false, message: 'DestinatÃ¡rio nÃ£o encontrado no TrocaTicket.' });
       }
 
       if (destUser.id === ticket.comprador_id) {
         await connection.rollback();
-        return send(response, 400, { ok: false, message: 'Você não pode transferir para si mesmo.' });
+        return send(response, 400, { ok: false, message: 'VocÃª nÃ£o pode transferir para si mesmo.' });
       }
 
       const nomeDestinatarioFinal = (destUser.nome && destUser.nome.trim()) ? destUser.nome.trim() : destUser.email;
@@ -1388,7 +1459,7 @@ const server = http.createServer(async (request, response) => {
         ok: true, 
         transferencia_id: insertResult.insertId,
         destinatario_nome: nomeDestinatarioFinal,
-        message: `Solicitação enviada para ${nomeDestinatarioFinal}!`
+        message: `SolicitaÃ§Ã£o enviada para ${nomeDestinatarioFinal}!`
       });
     } catch (error) {
       await connection.rollback();
@@ -1402,7 +1473,7 @@ const server = http.createServer(async (request, response) => {
     try {
       const body = await parseBody(request);
       await db.query("UPDATE transferencias_pendentes SET status = 'cancelada' WHERE ingresso_id = ? AND status = 'pendente'", [body.ingresso_id]);
-      return send(response, 200, { ok: true, message: 'Transferência cancelada.' });
+      return send(response, 200, { ok: true, message: 'TransferÃªncia cancelada.' });
     } catch (error) {
       return send(response, 500, { ok: false, message: 'Erro ao cancelar.' });
     }
@@ -1446,7 +1517,7 @@ const server = http.createServer(async (request, response) => {
     } catch (error) {
       await connection.rollback();
       response.writeHead(500, { 'Content-Type': 'text/html; charset=utf-8' });
-      return response.end('<h1>Erro ao confirmar transferência.</h1>');
+      return response.end('<h1>Erro ao confirmar transferÃªncia.</h1>');
     } finally {
       connection.release();
     }
@@ -1460,7 +1531,7 @@ const server = http.createServer(async (request, response) => {
       const [lotRows] = await db.query('SELECT * FROM dbo.evento_lotes ORDER BY id');
       const events = rows.map(r => ({
         id: r.id,
-        name: String(r.nome || '').replace(/edi\?\?o/gi, 'edição'),
+        name: String(r.nome || '').replace(/edi\?\?o/gi, 'ediÃ§Ã£o'),
         artista: r.artista || '',
         location: r.local || '',
         date: r.data_evento ? new Date(r.data_evento).toISOString() : '',
@@ -1498,9 +1569,10 @@ const server = http.createServer(async (request, response) => {
 
   if (request.method === 'GET' && url.pathname === '/api/organizador/dashboard') {
     try {
+      await ensureSupplierSchema();
       const eventoId = Number(url.searchParams.get('evento_id') || 1);
       const [eventRows] = await db.query('SELECT * FROM dbo.eventos WHERE id = ? LIMIT 1', [eventoId]);
-      if (!eventRows.length) return send(response, 404, { ok: false, message: 'Evento não encontrado.' });
+      if (!eventRows.length) return send(response, 404, { ok: false, message: 'Evento nÃ£o encontrado.' });
 
       const event = eventRows[0];
       const [lots] = await db.query('SELECT * FROM dbo.evento_lotes WHERE evento_id = ? ORDER BY id', [event.id]);
@@ -1512,11 +1584,15 @@ const server = http.createServer(async (request, response) => {
 
       const demands = await Promise.all(demandsRows.map(async demand => {
         const [proposalRows] = await db.query('SELECT * FROM dbo.evento_propostas_fornecedor WHERE demanda_id = ? ORDER BY id', [demand.id]);
+        const proposals = await Promise.all(proposalRows.map(async proposal => {
+          const [documents] = await db.query('SELECT id, nome_arquivo, caminho AS url, criado_em FROM dbo.evento_proposta_documentos WHERE proposta_id = ? ORDER BY criado_em DESC', [proposal.id]);
+          return { ...proposal, documentos: documents };
+        }));
         const [messageRows] = await db.query('SELECT * FROM dbo.evento_mensagens_chat WHERE demanda_id = ? ORDER BY enviado_em', [demand.id]);
         return {
           ...demand,
           prazo: demand.prazo ? new Date(demand.prazo).toISOString().slice(0, 10) : null,
-          proposals: proposalRows,
+          proposals,
           messages: messageRows
         };
       }));
@@ -1561,6 +1637,7 @@ const server = http.createServer(async (request, response) => {
 
   if (request.method === 'GET' && url.pathname === '/api/organizador/chat') {
     try {
+      await ensureSupplierSchema();
       const [rows] = await db.query(`
         SELECT
           d.id AS demanda_id,
@@ -1569,16 +1646,28 @@ const server = http.createServer(async (request, response) => {
           e.nome AS evento_nome,
           p.id AS proposta_id,
           p.empresa,
-          p.status AS proposta_status
+          p.status AS proposta_status,
+          COALESCE(fe.logo_url, '') AS logo_url,
+          last_message.ultima_mensagem_em,
+          last_message.ultima_mensagem_texto
         FROM dbo.evento_demandas d
         JOIN dbo.evento_propostas_fornecedor p ON p.demanda_id = d.id
         JOIN dbo.eventos e ON e.id = d.evento_id
-        ORDER BY d.id DESC, p.id DESC
+        LEFT JOIN dbo.fornecedor_empresas fe
+          ON fe.usuario_id = p.fornecedor_usuario_id
+          OR LOWER(LTRIM(RTRIM(fe.razao_social))) = LOWER(LTRIM(RTRIM(p.empresa)))
+        OUTER APPLY (
+          SELECT TOP 1 m.enviado_em AS ultima_mensagem_em, m.texto AS ultima_mensagem_texto
+          FROM dbo.evento_mensagens_chat m
+          WHERE m.demanda_id = d.id
+          ORDER BY m.enviado_em DESC, m.id DESC
+        ) last_message
+        ORDER BY COALESCE(last_message.ultima_mensagem_em, p.criado_em) DESC, p.id DESC
       `);
       return send(response, 200, { ok: true, conversations: rows });
     } catch (error) {
       console.error('[organizador] carregar conversas:', error.message);
-      return send(response, 500, { ok: false, message: 'Não foi possível carregar as conversas.' });
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel carregar as conversas.' });
     }
   }
 
@@ -1595,10 +1684,10 @@ const server = http.createServer(async (request, response) => {
       const classificacaoEtaria = String(body.classificacao || body.classificacao_etaria || 'Livre').trim();
 
       if (!nome || !local || !dataEvento || !lotacao) {
-        return send(response, 400, { ok: false, message: 'Nome, local, lotação e data do evento são obrigatórios.' });
+        return send(response, 400, { ok: false, message: 'Nome, local, lotaÃ§Ã£o e data do evento sÃ£o obrigatÃ³rios.' });
       }
       if (!dataFim || dataFim <= dataEvento) {
-        return send(response, 400, { ok: false, message: 'Informe um horário de encerramento posterior ao início do evento.' });
+        return send(response, 400, { ok: false, message: 'Informe um horÃ¡rio de encerramento posterior ao inÃ­cio do evento.' });
       }
 
       const [result] = await db.query(
@@ -1654,10 +1743,10 @@ const server = http.createServer(async (request, response) => {
       const classificacaoEtaria = String(body.classificacao || body.classificacao_etaria || 'Livre').trim();
 
       if (!eventoId || !nome || !local || !dataEvento || !lotacao) {
-        return send(response, 400, { ok: false, message: 'Evento, nome, local, lotação e data são obrigatórios.' });
+        return send(response, 400, { ok: false, message: 'Evento, nome, local, lotaÃ§Ã£o e data sÃ£o obrigatÃ³rios.' });
       }
       if (!dataFim || dataFim <= dataEvento) {
-        return send(response, 400, { ok: false, message: 'Informe um horário de encerramento posterior ao início do evento.' });
+        return send(response, 400, { ok: false, message: 'Informe um horÃ¡rio de encerramento posterior ao inÃ­cio do evento.' });
       }
 
       const connection = await db.getConnection();
@@ -1725,13 +1814,13 @@ const server = http.createServer(async (request, response) => {
       const valorEstimado = Number(body.valor_estimado || body.value || 0);
 
       if (!eventoId || !titulo || !escopo || !valorEstimado) {
-        return send(response, 400, { ok: false, message: 'Dados da cotação incompletos.' });
+        return send(response, 400, { ok: false, message: 'Dados da cotaÃ§Ã£o incompletos.' });
       }
 
       const [result] = await db.query(
         `INSERT INTO dbo.evento_demandas (evento_id, titulo, servico, escopo, prazo, valor_estimado, status)
          OUTPUT INSERTED.id VALUES (?, ?, ?, ?, ?, ?, 'em cotacao')`,
-        [eventoId, titulo, servico || 'Solicitação', escopo, prazo, valorEstimado]
+        [eventoId, titulo, servico || 'SolicitaÃ§Ã£o', escopo, prazo, valorEstimado]
       );
 
       const demandaId = result[0]?.id || result.insertId;
@@ -1742,9 +1831,9 @@ const server = http.createServer(async (request, response) => {
         );
       }
 
-      return send(response, 201, { ok: true, demanda_id: demandaId, message: 'Cotação registrada com sucesso.' });
+      return send(response, 201, { ok: true, demanda_id: demandaId, message: 'CotaÃ§Ã£o registrada com sucesso.' });
     } catch (error) {
-      console.error('[organizador] criar cotação:', error.message);
+      console.error('[organizador] criar cotaÃ§Ã£o:', error.message);
       return send(response, 500, { ok: false, message: error.message });
     }
   }
@@ -1758,7 +1847,7 @@ const server = http.createServer(async (request, response) => {
       return send(response, 200, { ok: true, company, user: { id: user.id, nome: user.nome, email: user.email, tipo: user.tipo } });
     } catch (error) {
       console.error('[fornecedor] perfil:', error.message);
-      return send(response, 500, { ok: false, message: 'Não foi possível carregar o cadastro da empresa.' });
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel carregar o cadastro da empresa.' });
     }
   }
 
@@ -1769,22 +1858,33 @@ const server = http.createServer(async (request, response) => {
       if (!user) return send(response, 403, { ok: false, message: 'Acesso restrito a fornecedores.' });
       const existingCompany = await getSupplierCompanyForUser(user);
       if (existingCompany && existingCompany.owner_id !== user.id) {
-        return send(response, 403, { ok: false, message: 'Somente o proprietário pode editar os dados da empresa.' });
+        return send(response, 403, { ok: false, message: 'Somente o proprietÃ¡rio pode editar os dados da empresa.' });
       }
       const body = await parseBody(request);
       const values = [String(body.razao_social || '').trim(), String(body.cnpj || '').trim(), String(body.categoria || '').trim(), String(body.contato || '').trim(), String(body.email_comercial || '').trim(), String(body.telefone || '').trim(), String(body.descricao || '').trim()];
-      if (values.some(value => !value)) return send(response, 400, { ok: false, message: 'Preencha todos os dados obrigatórios da empresa.' });
+      if (values.some(value => !value)) return send(response, 400, { ok: false, message: 'Preencha todos os dados obrigatÃ³rios da empresa.' });
+      let logoUrl = existingCompany?.logo_url || null;
+      if (body.logo) {
+        if (!['image/jpeg', 'image/png', 'image/webp'].includes(String(body.logo.type || '').toLowerCase())) {
+          return send(response, 400, { ok: false, message: 'A logo deve ser uma imagem JPG, PNG ou WEBP.' });
+        }
+        const logo = await saveChatAttachment(body.logo);
+        if (!logo) {
+          return send(response, 400, { ok: false, message: 'A logo deve ser uma imagem JPG, PNG ou WEBP.' });
+        }
+        logoUrl = logo.url;
+      }
       const [updatedRows, updateResult] = await db.query(`
         UPDATE dbo.fornecedor_empresas
-        SET razao_social = ?, cnpj = ?, categoria = ?, contato = ?, email_comercial = ?, telefone = ?, descricao = ?, atualizado_em = SYSUTCDATETIME()
+        SET razao_social = ?, cnpj = ?, categoria = ?, contato = ?, email_comercial = ?, telefone = ?, descricao = ?, logo_url = ?, atualizado_em = SYSUTCDATETIME()
         WHERE usuario_id = ?
-      `, [...values, user.id]);
+      `, [...values, logoUrl, user.id]);
       if (!updateResult.affectedRows) {
         await db.query(`
           INSERT INTO dbo.fornecedor_empresas
-            (usuario_id, razao_social, cnpj, categoria, contato, email_comercial, telefone, descricao)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `, [user.id, ...values]);
+            (usuario_id, razao_social, cnpj, categoria, contato, email_comercial, telefone, descricao, logo_url)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [user.id, ...values, logoUrl]);
       }
       if (String(user.tipo || '').toLowerCase() !== 'admin') {
         await db.query('UPDATE dbo.usuarios SET tipo = ? WHERE id = ?', ['fornecedor', user.id]);
@@ -1793,7 +1893,7 @@ const server = http.createServer(async (request, response) => {
       return send(response, 200, { ok: true, company: rows[0] });
     } catch (error) {
       console.error('[fornecedor] salvar perfil:', error.message);
-      return send(response, 500, { ok: false, message: 'Não foi possível salvar o cadastro da empresa.' });
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel salvar o cadastro da empresa.' });
     }
   }
 
@@ -1818,7 +1918,7 @@ const server = http.createServer(async (request, response) => {
       });
     } catch (error) {
       console.error('[fornecedor] colaboradores:', error.message);
-      return send(response, 500, { ok: false, message: 'Não foi possível carregar os colaboradores.' });
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel carregar os colaboradores.' });
     }
   }
 
@@ -1831,24 +1931,24 @@ const server = http.createServer(async (request, response) => {
       if (!company) return send(response, 409, { ok: false, message: 'Cadastre sua empresa antes de adicionar colaboradores.' });
       const body = await parseBody(request);
       const email = normalizeEmail(body.email);
-      if (!email || !/^\S+@\S+\.\S+$/.test(email)) return send(response, 400, { ok: false, message: 'Informe um e-mail válido.' });
+      if (!email || !/^\S+@\S+\.\S+$/.test(email)) return send(response, 400, { ok: false, message: 'Informe um e-mail vÃ¡lido.' });
       const [[member]] = await db.query(
         `SELECT id, nome, email, tipo, status FROM dbo.usuarios
          WHERE email = ? AND LOWER(tipo) IN ('admin', 'fornecedor')`,
         [email]
       );
-      if (!member) return send(response, 404, { ok: false, message: 'O e-mail precisa pertencer a um usuário admin ou fornecedor cadastrado.' });
-      if (member.id === user.id) return send(response, 400, { ok: false, message: 'O proprietário já faz parte da empresa.' });
+      if (!member) return send(response, 404, { ok: false, message: 'O e-mail precisa pertencer a um usuÃ¡rio admin ou fornecedor cadastrado.' });
+      if (member.id === user.id) return send(response, 400, { ok: false, message: 'O proprietÃ¡rio jÃ¡ faz parte da empresa.' });
       if (['bloqueado', 'suspensa', 'excluida'].includes(String(member.status || '').toLowerCase())) {
-        return send(response, 400, { ok: false, message: 'Este usuário está bloqueado ou inativo.' });
+        return send(response, 400, { ok: false, message: 'Este usuÃ¡rio estÃ¡ bloqueado ou inativo.' });
       }
       const [[existing]] = await db.query('SELECT id FROM dbo.fornecedor_colaboradores WHERE empresa_id = ? AND usuario_id = ?', [company.id, member.id]);
-      if (existing) return send(response, 409, { ok: false, message: 'Este usuário já é colaborador da empresa.' });
+      if (existing) return send(response, 409, { ok: false, message: 'Este usuÃ¡rio jÃ¡ Ã© colaborador da empresa.' });
       await db.query('INSERT INTO dbo.fornecedor_colaboradores (empresa_id, usuario_id) VALUES (?, ?)', [company.id, member.id]);
       return send(response, 201, { ok: true, collaborator: member });
     } catch (error) {
       console.error('[fornecedor] adicionar colaborador:', error.message);
-      return send(response, 500, { ok: false, message: 'Não foi possível adicionar o colaborador.' });
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel adicionar o colaborador.' });
     }
   }
 
@@ -1859,12 +1959,12 @@ const server = http.createServer(async (request, response) => {
       if (!user) return send(response, 403, { ok: false, message: 'Acesso restrito a fornecedores.' });
       const [[company]] = await db.query('SELECT id FROM dbo.fornecedor_empresas WHERE usuario_id = ?', [user.id]);
       const collaboratorId = Number(url.pathname.split('/').pop());
-      if (!company || !collaboratorId) return send(response, 404, { ok: false, message: 'Colaborador não encontrado.' });
+      if (!company || !collaboratorId) return send(response, 404, { ok: false, message: 'Colaborador nÃ£o encontrado.' });
       await db.query('DELETE FROM dbo.fornecedor_colaboradores WHERE id = ? AND empresa_id = ?', [collaboratorId, company.id]);
       return send(response, 200, { ok: true });
     } catch (error) {
       console.error('[fornecedor] remover colaborador:', error.message);
-      return send(response, 500, { ok: false, message: 'Não foi possível remover o colaborador.' });
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel remover o colaborador.' });
     }
   }
 
@@ -1879,18 +1979,18 @@ const server = http.createServer(async (request, response) => {
         SELECT d.id, d.evento_id, d.titulo, d.servico, d.escopo, d.prazo, d.valor_estimado, d.status, e.nome AS evento_nome,
           (SELECT COUNT(*) FROM dbo.evento_propostas_fornecedor p WHERE p.demanda_id = d.id AND p.fornecedor_usuario_id = ?) AS minha_proposta
         FROM dbo.evento_demandas d JOIN dbo.eventos e ON e.id = d.evento_id
-        WHERE d.status IN ('em cotacao', 'em análise', 'em analise')
+        WHERE d.status IN ('em cotacao', 'em anÃ¡lise', 'em analise')
         ORDER BY d.criado_em DESC
       `, [user.id]);
       return send(response, 200, {
         ok: true,
         opportunities: rows,
         homologated: Boolean(company && homologated),
-        message: company && homologated ? null : 'As demandas ficam disponíveis para consulta, mas o envio de propostas será liberado após a homologação.'
+        message: company && homologated ? null : 'As demandas ficam disponÃ­veis para consulta, mas o envio de propostas serÃ¡ liberado apÃ³s a homologaÃ§Ã£o.'
       });
     } catch (error) {
       console.error('[fornecedor] oportunidades:', error.message);
-      return send(response, 500, { ok: false, message: 'Não foi possível carregar as oportunidades.' });
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel carregar as oportunidades.' });
     }
   }
 
@@ -1901,21 +2001,24 @@ const server = http.createServer(async (request, response) => {
       if (!user) return send(response, 403, { ok: false, message: 'Acesso restrito a fornecedores.' });
       const company = await getSupplierCompanyForUser(user);
       const [rows] = await db.query(`
-        SELECT p.id, p.demanda_id, p.empresa, p.valor, p.escopo, p.prazo, p.status, p.criado_em, d.titulo, d.evento_id, e.nome AS evento_nome
+        SELECT p.id, p.demanda_id, p.empresa, p.valor, p.escopo, p.prazo, p.status, p.anexos, p.criado_em, d.titulo, d.evento_id, e.nome AS evento_nome,
+          (SELECT COUNT(*) FROM dbo.evento_proposta_documentos pd WHERE pd.proposta_id = p.id) AS documento_count,
+          (SELECT MAX(m.enviado_em) FROM dbo.evento_mensagens_chat m WHERE m.demanda_id = p.demanda_id AND (m.fornecedor_usuario_id = p.fornecedor_usuario_id OR m.fornecedor_usuario_id = ?)) AS ultima_mensagem_em
         FROM dbo.evento_propostas_fornecedor p JOIN dbo.evento_demandas d ON d.id = p.demanda_id
         JOIN dbo.eventos e ON e.id = d.evento_id
         WHERE p.fornecedor_usuario_id = ?
           OR p.fornecedor_usuario_id = ?
+          OR (p.fornecedor_usuario_id IS NULL AND p.empresa = ?)
           OR EXISTS (
             SELECT 1 FROM dbo.fornecedor_colaboradores fc
             WHERE fc.empresa_id = ? AND fc.usuario_id = p.fornecedor_usuario_id
           )
-        ORDER BY p.criado_em DESC
-      `, [user.id, company?.owner_id || -1, company?.id || -1]);
+        ORDER BY ultima_mensagem_em DESC, p.criado_em DESC, p.id DESC
+      `, [user.id, user.id, company?.owner_id || -1, company?.razao_social || '', company?.id || -1]);
       return send(response, 200, { ok: true, proposals: rows });
     } catch (error) {
       console.error('[fornecedor] propostas:', error.message);
-      return send(response, 500, { ok: false, message: 'Não foi possível carregar suas propostas.' });
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel carregar suas propostas.' });
     }
   }
 
@@ -1926,17 +2029,17 @@ const server = http.createServer(async (request, response) => {
       if (!user) return send(response, 403, { ok: false, message: 'Acesso restrito a fornecedores.' });
       const company = await getSupplierCompanyForUser(user);
       const homologated = await getSupplierHomologation(company?.owner_id || user.id);
-      if (!company || !homologated) return send(response, 403, { ok: false, message: 'Aguarde a aprovação de todos os documentos para enviar propostas.' });
+      if (!company || !homologated) return send(response, 403, { ok: false, message: 'Aguarde a aprovaÃ§Ã£o de todos os documentos para enviar propostas.' });
       const body = await parseBody(request);
       const demandaId = Number(body.demanda_id);
       const valor = Number(body.valor || 0);
       const escopo = String(body.escopo || '').trim();
       const prazo = String(body.prazo || '').trim();
       if (!demandaId || !valor || !escopo || !prazo) return send(response, 400, { ok: false, message: 'Informe valor, prazo e escopo da proposta.' });
-      const [[demand]] = await db.query('SELECT id FROM dbo.evento_demandas WHERE id = ? AND status IN (?, ?, ?)', [demandaId, 'em cotacao', 'em análise', 'em analise']);
-      if (!demand) return send(response, 404, { ok: false, message: 'Oportunidade indisponível.' });
+      const [[demand]] = await db.query('SELECT id FROM dbo.evento_demandas WHERE id = ? AND status IN (?, ?, ?)', [demandaId, 'em cotacao', 'em anÃ¡lise', 'em analise']);
+      if (!demand) return send(response, 404, { ok: false, message: 'Oportunidade indisponÃ­vel.' });
       const [[existing]] = await db.query('SELECT id FROM dbo.evento_propostas_fornecedor WHERE demanda_id = ? AND fornecedor_usuario_id = ?', [demandaId, user.id]);
-      if (existing) return send(response, 409, { ok: false, message: 'Você já enviou uma proposta para esta demanda.' });
+      if (existing) return send(response, 409, { ok: false, message: 'VocÃª jÃ¡ enviou uma proposta para esta demanda.' });
       const [result] = await db.query(
         'INSERT INTO dbo.evento_propostas_fornecedor (demanda_id, fornecedor_usuario_id, empresa, valor, escopo, prazo, status) OUTPUT INSERTED.id VALUES (?, ?, ?, ?, ?, ?, ?)',
         [demandaId, user.id, company.razao_social, valor, escopo, prazo, 'em analise']
@@ -1944,7 +2047,60 @@ const server = http.createServer(async (request, response) => {
       return send(response, 201, { ok: true, proposta_id: result[0]?.id || result.insertId });
     } catch (error) {
       console.error('[fornecedor] criar proposta:', error.message);
-      return send(response, 500, { ok: false, message: 'Não foi possível enviar a proposta.' });
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel enviar a proposta.' });
+    }
+  }
+
+  if (request.method === 'GET' && /^\/api\/fornecedor\/propostas\/\d+\/documentos$/.test(url.pathname)) {
+    try {
+      await ensureSupplierSchema();
+      const user = await getSupplierUser(request);
+      if (!user) return send(response, 403, { ok: false, message: 'Acesso restrito a fornecedores.' });
+      const proposalId = Number(url.pathname.match(/^\/api\/fornecedor\/propostas\/(\d+)\/documentos$/)?.[1]);
+      const company = await getSupplierCompanyForUser(user);
+      const [[proposal]] = await db.query(`
+        SELECT TOP 1 p.id
+        FROM dbo.evento_propostas_fornecedor p
+        WHERE p.id = ? AND (
+          p.fornecedor_usuario_id = ? OR p.fornecedor_usuario_id = ?
+          OR (p.fornecedor_usuario_id IS NULL AND p.empresa = ?)
+        )
+      `, [proposalId, user.id, company?.owner_id || -1, company?.razao_social || '']);
+      if (!proposal) return send(response, 404, { ok: false, message: 'Proposta nÃ£o encontrada.' });
+      const [documents] = await db.query('SELECT id, nome_arquivo, caminho AS url, criado_em FROM dbo.evento_proposta_documentos WHERE proposta_id = ? ORDER BY criado_em DESC', [proposalId]);
+      return send(response, 200, { ok: true, documents });
+    } catch (error) {
+      console.error('[fornecedor] documentos da proposta:', error.message);
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel carregar os anexos da proposta.' });
+    }
+  }
+
+  if (request.method === 'POST' && /^\/api\/fornecedor\/propostas\/\d+\/documentos$/.test(url.pathname)) {
+    try {
+      await ensureSupplierSchema();
+      const user = await getSupplierUser(request);
+      if (!user) return send(response, 403, { ok: false, message: 'Acesso restrito a fornecedores.' });
+      const proposalId = Number(url.pathname.match(/^\/api\/fornecedor\/propostas\/(\d+)\/documentos$/)?.[1]);
+      const body = await parseBody(request);
+      const company = await getSupplierCompanyForUser(user);
+      const [[proposal]] = await db.query(`
+        SELECT TOP 1 p.id
+        FROM dbo.evento_propostas_fornecedor p
+        WHERE p.id = ? AND (
+          p.fornecedor_usuario_id = ? OR p.fornecedor_usuario_id = ?
+          OR (p.fornecedor_usuario_id IS NULL AND p.empresa = ?)
+        )
+      `, [proposalId, user.id, company?.owner_id || -1, company?.razao_social || '']);
+      const attachment = await saveChatAttachment(body.arquivo);
+      if (!proposal || !attachment) return send(response, 400, { ok: false, message: 'Selecione um arquivo vÃ¡lido para anexar.' });
+      const [result] = await db.query(
+        'INSERT INTO dbo.evento_proposta_documentos (proposta_id, nome_arquivo, caminho) OUTPUT INSERTED.id VALUES (?, ?, ?)',
+        [proposalId, attachment.name, attachment.url]
+      );
+      return send(response, 201, { ok: true, documento_id: result[0]?.id || result.insertId });
+    } catch (error) {
+      console.error('[fornecedor] anexar documento Ã  proposta:', error.message);
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel anexar o documento Ã  proposta.' });
     }
   }
 
@@ -1959,7 +2115,7 @@ const server = http.createServer(async (request, response) => {
       return send(response, 200, { ok: true, status: await getSupplierDocumentationStatus(ownerId), documents: rows });
     } catch (error) {
       console.error('[fornecedor] documentos:', error.message);
-      return send(response, 500, { ok: false, message: 'Não foi possível carregar os documentos.' });
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel carregar os documentos.' });
     }
   }
 
@@ -1970,17 +2126,17 @@ const server = http.createServer(async (request, response) => {
       if (!user) return send(response, 403, { ok: false, message: 'Acesso restrito a fornecedores.' });
       const company = await getSupplierCompanyForUser(user);
       const ownerId = company?.owner_id || user.id;
-      if (company && company.owner_id !== user.id) return send(response, 403, { ok: false, message: 'Somente o proprietário pode atualizar documentos.' });
+      if (company && company.owner_id !== user.id) return send(response, 403, { ok: false, message: 'Somente o proprietÃ¡rio pode atualizar documentos.' });
       const body = await parseBody(request);
       const nome = String(body.nome || '').trim();
       const nomeArquivo = String(body.nome_arquivo || '').trim();
       const encodedFile = String(body.conteudo_base64 || '');
       const match = encodedFile.match(/^data:([a-z0-9.+-]+\/[a-z0-9.+-]+);base64,(.+)$/i);
-      if (!nome || !nomeArquivo || !match) return send(response, 400, { ok: false, message: 'Arquivo de documento inválido.' });
+      if (!nome || !nomeArquivo || !match) return send(response, 400, { ok: false, message: 'Arquivo de documento invÃ¡lido.' });
       const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg'];
       if (!allowedTypes.includes(match[1].toLowerCase())) return send(response, 400, { ok: false, message: 'Envie um PDF, PNG ou JPG.' });
       const fileData = Buffer.from(match[2], 'base64');
-      if (!fileData.length || fileData.length > 10 * 1024 * 1024) return send(response, 400, { ok: false, message: 'O documento deve ter até 10 MB.' });
+      if (!fileData.length || fileData.length > 10 * 1024 * 1024) return send(response, 400, { ok: false, message: 'O documento deve ter atÃ© 10 MB.' });
       const safeName = nomeArquivo.replace(/[^a-z0-9._-]/gi, '_');
       const documentDir = path.join(root, 'public', 'uploads', 'supplier-documents');
       if (!fs.existsSync(documentDir)) fs.mkdirSync(documentDir, { recursive: true });
@@ -1993,10 +2149,10 @@ const server = http.createServer(async (request, response) => {
         WHEN MATCHED THEN UPDATE SET nome_arquivo = ?, caminho = ?, status = 'em analise', motivo_recusa = NULL, atualizado_em = SYSUTCDATETIME()
         WHEN NOT MATCHED THEN INSERT (fornecedor_usuario_id, nome, nome_arquivo, caminho, status) VALUES (?, ?, ?, ?, 'em analise');
       `, [ownerId, nome, safeName, `/uploads/supplier-documents/${storedName}`, ownerId, nome, safeName, `/uploads/supplier-documents/${storedName}`]);
-      return send(response, 201, { ok: true, message: 'Documento enviado para validação.' });
+      return send(response, 201, { ok: true, message: 'Documento enviado para validaÃ§Ã£o.' });
     } catch (error) {
       console.error('[fornecedor] upload documento:', error.message);
-      return send(response, 500, { ok: false, message: 'Não foi possível salvar o documento.' });
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel salvar o documento.' });
     }
   }
 
@@ -2007,7 +2163,8 @@ const server = http.createServer(async (request, response) => {
       if (!operator) return send(response, 403, { ok: false, message: 'Acesso restrito a administradores e organizadores.' });
       const [rows] = await db.query(`
         SELECT fd.id, fd.fornecedor_usuario_id, fd.nome, fd.nome_arquivo, fd.caminho, fd.status, fd.motivo_recusa,
-          fd.criado_em, fd.atualizado_em, fe.id AS empresa_id, fe.razao_social, fe.status AS empresa_status, u.nome AS fornecedor_nome, u.email
+          fd.criado_em, fd.atualizado_em, fe.id AS empresa_id, fe.razao_social, fe.cnpj, fe.categoria,
+          fe.email_comercial, fe.status AS empresa_status, u.nome AS fornecedor_nome, u.email
         FROM dbo.fornecedor_documentos fd
         LEFT JOIN dbo.fornecedor_empresas fe ON fe.usuario_id = fd.fornecedor_usuario_id
         LEFT JOIN dbo.usuarios u ON u.id = fd.fornecedor_usuario_id
@@ -2021,7 +2178,80 @@ const server = http.createServer(async (request, response) => {
       return send(response, 200, { ok: true, documents });
     } catch (error) {
       console.error('[organizador] documentos de fornecedores:', error.message);
-      return send(response, 500, { ok: false, message: 'Não foi possível carregar os documentos dos fornecedores.' });
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel carregar os documentos dos fornecedores.' });
+    }
+  }
+
+  if (request.method === 'GET' && url.pathname === '/api/organizador/fornecedores') {
+    try {
+      await ensureSupplierSchema();
+      const operator = await getTicketOperator(request);
+      if (!operator) return send(response, 403, { ok: false, message: 'Acesso restrito a administradores e organizadores.' });
+      const [companies] = await db.query(`
+        SELECT fe.id, fe.usuario_id, fe.razao_social, fe.cnpj, fe.categoria, fe.email_comercial, fe.logo_url,
+          fe.status AS empresa_status, u.nome AS fornecedor_nome, u.email
+        FROM dbo.fornecedor_empresas fe
+        LEFT JOIN dbo.usuarios u ON u.id = fe.usuario_id
+        ORDER BY fe.razao_social
+      `);
+      const suppliers = await Promise.all(companies.map(async company => {
+        const [documents] = await db.query(
+          'SELECT status FROM dbo.fornecedor_documentos WHERE fornecedor_usuario_id = ?',
+          [company.usuario_id]
+        );
+        const [proposals] = await db.query(`
+          SELECT p.escopo, p.prazo, p.status, p.criado_em
+          FROM dbo.evento_propostas_fornecedor p
+          WHERE p.fornecedor_usuario_id = ? OR LOWER(LTRIM(RTRIM(ISNULL(p.empresa, '')))) = LOWER(LTRIM(RTRIM(?)))
+          ORDER BY p.criado_em DESC
+        `, [company.usuario_id, company.razao_social || '']);
+        const [messages] = await db.query(`
+          SELECT remetente, enviado_em
+          FROM dbo.evento_mensagens_chat
+          WHERE fornecedor_usuario_id = ?
+          ORDER BY enviado_em ASC
+        `, [company.usuario_id]);
+        const responseIntervals = [];
+        for (let index = 1; index < messages.length; index += 1) {
+          if (String(messages[index - 1].remetente).toLowerCase() === 'organizador' &&
+              String(messages[index].remetente).toLowerCase() === 'fornecedor') {
+            const start = new Date(messages[index - 1].enviado_em).getTime();
+            const end = new Date(messages[index].enviado_em).getTime();
+            if (Number.isFinite(start) && Number.isFinite(end) && end >= start) responseIntervals.push((end - start) / 3600000);
+          }
+        }
+        const approvedDocuments = documents.filter(document => String(document.status || '').toLowerCase() === 'aprovado').length;
+        const totalDocuments = documents.length;
+        const complianceScore = totalDocuments ? Math.round((approvedDocuments / totalDocuments) * 100) : (String(company.empresa_status || '').toLowerCase() === 'homologado' ? 100 : 0);
+        const deliveryDays = proposals
+          .map(proposal => (new Date(proposal.prazo).getTime() - new Date(proposal.criado_em).getTime()) / 86400000)
+          .filter(value => Number.isFinite(value) && value >= 0);
+        return {
+          company_id: company.id,
+          company_name: company.razao_social || company.fornecedor_nome || 'Fornecedor não identificado',
+          logo_url: company.logo_url || null,
+          email: company.email_comercial || company.email || '',
+          category: company.categoria || 'Categoria não informada',
+          status: company.empresa_status || 'em análise',
+          services: [...new Set(proposals.map(proposal => String(proposal.escopo || '').trim()).filter(Boolean))].slice(0, 5),
+          metrics: {
+            service_count: proposals.length,
+            confirmed_count: proposals.filter(proposal => ['aprovado', 'aceito', 'contratado'].includes(String(proposal.status || '').toLowerCase())).length,
+            average_delivery_days: deliveryDays.length ? Math.round((deliveryDays.reduce((sum, value) => sum + value, 0) / deliveryDays.length) * 10) / 10 : null,
+            response_hours: responseIntervals.length ? Math.round((responseIntervals.reduce((sum, value) => sum + value, 0) / responseIntervals.length) * 10) / 10 : null
+          },
+          compliance: {
+            status: String(company.empresa_status || 'em análise').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase() === 'homologado' ? 'homologado' : String(company.empresa_status || '').toLowerCase() === 'recusado' ? 'recusado' : 'em análise',
+            score: complianceScore,
+            approved_documents: approvedDocuments,
+            total_documents: totalDocuments
+          }
+        };
+      }));
+      return send(response, 200, { ok: true, suppliers });
+    } catch (error) {
+      console.error('[organizador] histórico de fornecedores:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível carregar o histórico operacional dos fornecedores.' });
     }
   }
 
@@ -2040,17 +2270,17 @@ const server = http.createServer(async (request, response) => {
       }
       const status = String(body.status || '').trim().toLowerCase();
       const motivoRecusa = String(body.motivo_recusa || '').trim();
-      if (!['aprovado', 'recusado'].includes(status)) return send(response, 400, { ok: false, message: 'Status inválido. Use aprovado ou recusado.' });
+      if (!['aprovado', 'recusado'].includes(status)) return send(response, 400, { ok: false, message: 'Status invÃ¡lido. Use aprovado ou recusado.' });
       if (status === 'recusado' && !motivoRecusa) return send(response, 400, { ok: false, message: 'Informe o motivo da recusa.' });
       const [result] = await db.query(
         'UPDATE dbo.fornecedor_documentos SET status = ?, motivo_recusa = ?, atualizado_em = SYSUTCDATETIME() WHERE id = ?',
         [status, status === 'recusado' ? motivoRecusa : null, documentId]
       );
-      if (!result.affectedRows) return send(response, 404, { ok: false, message: 'Documento não encontrado.' });
+      if (!result.affectedRows) return send(response, 404, { ok: false, message: 'Documento nÃ£o encontrado.' });
       return send(response, 200, { ok: true, message: status === 'aprovado' ? 'Documento aprovado.' : 'Documento recusado.', status });
     } catch (error) {
       console.error('[organizador] revisar documento de fornecedor:', error.message);
-      return send(response, 500, { ok: false, message: 'Não foi possível atualizar o documento.' });
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel atualizar o documento.' });
     }
   }
 
@@ -2059,21 +2289,182 @@ const server = http.createServer(async (request, response) => {
         await ensureSupplierSchema();
         const operator = await getTicketOperator(request);
         if (!operator) return send(response, 403, { ok: false, message: 'Acesso restrito a administradores e organizadores.' });
-        const companyId = Number(url.pathname.split('/')[4]);
+        const companyMatch = url.pathname.match(/^\/api\/organizador\/fornecedor-empresas\/(\d+)\/homologacao$/);
+        const companyId = Number(companyMatch?.[1]);
+        if (!companyId) return send(response, 400, { ok: false, message: 'Empresa invÃ¡lida.' });
         const body = await parseBody(request);
         const password = String(body.password || '');
         const [[approver]] = await db.query('SELECT senha_hash FROM dbo.usuarios WHERE id = ?', [operator.id]);
         if (!password || !approver || !(await bcrypt.compare(password, approver.senha_hash))) {
           return send(response, 403, { ok: false, message: 'Confirme sua senha de login para homologar a empresa.' });
         }
-        const status = String(body.status || '').toLowerCase();
-        if (!['homologado', 'em análise', 'recusado'].includes(status)) return send(response, 400, { ok: false, message: 'Status de homologação inválido.' });
-        const [result] = await db.query('UPDATE dbo.fornecedor_empresas SET status = ?, atualizado_em = SYSUTCDATETIME() WHERE id = ?', [status, companyId]);
-        if (!result.affectedRows) return send(response, 404, { ok: false, message: 'Empresa não encontrada.' });
+        const requestedStatus = String(body.status || '').trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        const status = requestedStatus === 'em analise' ? 'em análise' : requestedStatus;
+        if (!['homologado', 'em análise', 'recusado'].includes(status)) return send(response, 400, { ok: false, message: 'Status de homologaÃ§Ã£o invÃ¡lido.' });
+        const [[company]] = await db.query('SELECT id FROM dbo.fornecedor_empresas WHERE id = ?', [companyId]);
+        if (!company) return send(response, 404, { ok: false, message: 'Empresa nÃ£o encontrada.' });
+        await db.query('UPDATE dbo.fornecedor_empresas SET status = ?, atualizado_em = SYSUTCDATETIME() WHERE id = ?', [status, companyId]);
         return send(response, 200, { ok: true, status });
       } catch (error) {
-        console.error('[organizador] homologação de fornecedor:', error.message);
-        return send(response, 500, { ok: false, message: 'Não foi possível atualizar a homologação.' });
+        console.error('[organizador] homologaÃ§Ã£o de fornecedor:', error.message);
+        return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel atualizar a homologaÃ§Ã£o.' });
+    }
+  }
+
+  if (request.method === 'GET' && ['/api/chat/nao-lidas', '/api/organizador/chat/nao-lidas', '/api/fornecedor/chat/nao-lidas'].includes(url.pathname)) {
+    try {
+      await ensureSupplierSchema();
+      const session = readSessionToken(request);
+      if (!session) return send(response, 403, { ok: false, message: 'SessÃ£o invÃ¡lida.' });
+      const [[user]] = await db.query('SELECT id, tipo FROM dbo.usuarios WHERE id = ? AND email = ?', [session.sub, session.email]);
+      if (!user) return send(response, 403, { ok: false, message: 'UsuÃ¡rio nÃ£o encontrado.' });
+      let rows;
+      const notificationPanel = url.pathname.startsWith('/api/fornecedor/') ? 'fornecedor' : url.pathname.startsWith('/api/organizador/') ? 'organizador' : null;
+      if (notificationPanel === 'organizador' || (!notificationPanel && ['admin', 'organizador'].includes(String(user.tipo || '').trim().toLowerCase()))) {
+        const [unreadRows] = await db.query(`
+          SELECT demanda_id, COUNT(*) AS total
+          FROM dbo.evento_mensagens_chat
+          WHERE LOWER(LTRIM(RTRIM(remetente))) = 'fornecedor'
+            AND ISNULL(lida_organizador, 0) = 0
+          GROUP BY demanda_id
+        `);
+        const unreadByDemand = Object.fromEntries(unreadRows.map(row => [String(row.demanda_id), Number(row.total || 0)]));
+        return send(response, 200, {
+          ok: true,
+          unread: Object.values(unreadByDemand).reduce((total, count) => total + count, 0),
+          unreadByDemand
+        });
+      } else {
+        const company = await getSupplierCompanyForUser(user);
+        const [unreadRows] = await db.query(`
+          SELECT m.demanda_id, COUNT(*) AS total
+          FROM dbo.evento_mensagens_chat m
+          LEFT JOIN dbo.evento_chat_leituras l
+            ON l.usuario_id = ? AND l.demanda_id = m.demanda_id
+          WHERE LOWER(LTRIM(RTRIM(m.remetente))) = 'organizador'
+            AND ISNULL(m.lida_fornecedor, 0) = 0
+            AND (
+              m.fornecedor_usuario_id = ?
+              OR EXISTS (
+                SELECT 1
+                FROM dbo.evento_propostas_fornecedor p
+                WHERE p.demanda_id = m.demanda_id
+                  AND (
+                    p.fornecedor_usuario_id = ?
+                    OR (p.fornecedor_usuario_id IS NULL AND p.empresa = ?)
+                    OR EXISTS (
+                      SELECT 1
+                      FROM dbo.fornecedor_colaboradores fc
+                      WHERE fc.empresa_id = ? AND fc.usuario_id = p.fornecedor_usuario_id
+                    )
+                  )
+              )
+            )
+          GROUP BY m.demanda_id
+        `, [user.id, user.id, user.id, company?.razao_social || '', company?.id || -1]);
+        const unreadByDemand = Object.fromEntries(unreadRows.map(row => [String(row.demanda_id), Number(row.total || 0)]));
+        return send(response, 200, {
+          ok: true,
+          unread: Object.values(unreadByDemand).reduce((total, count) => total + count, 0),
+          unreadByDemand
+        });
+      }
+      return send(response, 200, { ok: true, unread: Number(rows[0]?.total || 0) });
+    } catch (error) {
+      console.error('[chat] mensagens nÃ£o lidas:', error.message);
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel consultar as mensagens pendentes.' });
+    }
+  }
+
+  if (request.method === 'POST' && ['/api/chat/marcar-lidas', '/api/organizador/chat/marcar-lidas', '/api/fornecedor/chat/marcar-lidas'].includes(url.pathname)) {
+    try {
+      await ensureSupplierSchema();
+      const session = readSessionToken(request);
+      if (!session) return send(response, 403, { ok: false, message: 'SessÃ£o invÃ¡lida.' });
+      const [[user]] = await db.query('SELECT id, tipo FROM dbo.usuarios WHERE id = ? AND email = ?', [session.sub, session.email]);
+      if (!user) return send(response, 403, { ok: false, message: 'UsuÃ¡rio nÃ£o encontrado.' });
+      const notificationPanel = url.pathname.startsWith('/api/fornecedor/') ? 'fornecedor' : url.pathname.startsWith('/api/organizador/') ? 'organizador' : null;
+      const body = await parseBody(request);
+      const demandId = Number(body.demanda_id || 0);
+      if (!demandId && url.pathname !== '/api/chat/marcar-lidas') {
+        return send(response, 400, { ok: false, message: 'Informe a conversa que deve ser marcada como lida.' });
+      }
+      if (notificationPanel === 'organizador' || (!notificationPanel && ['admin', 'organizador'].includes(String(user.tipo || '').trim().toLowerCase()))) {
+        await db.query(
+          "UPDATE dbo.evento_mensagens_chat SET lida_organizador = 1 WHERE remetente = 'fornecedor' AND (? = 0 OR demanda_id = ?)",
+          [demandId, demandId]
+        );
+      } else {
+        const company = await getSupplierCompanyForUser(user);
+        const [demands] = await db.query(`
+          SELECT m.demanda_id, MAX(m.id) AS ultima_mensagem_id
+          FROM dbo.evento_mensagens_chat m
+          WHERE LOWER(LTRIM(RTRIM(m.remetente))) = 'organizador'
+            AND m.demanda_id = CASE WHEN ? = 0 THEN m.demanda_id ELSE ? END
+            AND (
+              m.fornecedor_usuario_id = ?
+              OR EXISTS (
+                SELECT 1
+                FROM dbo.evento_propostas_fornecedor p
+                WHERE p.demanda_id = m.demanda_id
+                  AND (
+                    p.fornecedor_usuario_id = ?
+                    OR (p.fornecedor_usuario_id IS NULL AND p.empresa = ?)
+                    OR EXISTS (
+                      SELECT 1
+                      FROM dbo.fornecedor_colaboradores fc
+                      WHERE fc.empresa_id = ?
+                        AND fc.usuario_id = p.fornecedor_usuario_id
+                    )
+                  )
+              )
+            )
+          GROUP BY m.demanda_id
+        `, [demandId, demandId, user.id, user.id, company?.razao_social || '', company?.id || -1]);
+        for (const demand of demands) {
+          await db.query(`
+            UPDATE m
+            SET lida_fornecedor = 1
+            FROM dbo.evento_mensagens_chat m
+            WHERE m.demanda_id = ?
+              AND LOWER(LTRIM(RTRIM(m.remetente))) = 'organizador'
+              AND (
+                m.fornecedor_usuario_id = ?
+                OR EXISTS (
+                  SELECT 1
+                  FROM dbo.evento_propostas_fornecedor p
+                  WHERE p.demanda_id = m.demanda_id
+                    AND (
+                      p.fornecedor_usuario_id = ?
+                      OR (p.fornecedor_usuario_id IS NULL AND p.empresa = ?)
+                      OR EXISTS (
+                        SELECT 1
+                        FROM dbo.fornecedor_colaboradores fc
+                        WHERE fc.empresa_id = ? AND fc.usuario_id = p.fornecedor_usuario_id
+                      )
+                    )
+                )
+              )
+          `, [demand.demanda_id, user.id, user.id, company?.razao_social || '', company?.id || -1]);
+          await db.query(`
+            UPDATE dbo.evento_chat_leituras
+            SET ultima_mensagem_id = ?, lida_em = SYSUTCDATETIME()
+            WHERE usuario_id = ? AND demanda_id = ?
+          `, [demand.ultima_mensagem_id, user.id, demand.demanda_id]);
+          await db.query(`
+            IF NOT EXISTS (
+              SELECT 1 FROM dbo.evento_chat_leituras
+              WHERE usuario_id = ? AND demanda_id = ?
+            )
+            INSERT INTO dbo.evento_chat_leituras (usuario_id, demanda_id, ultima_mensagem_id)
+            VALUES (?, ?, ?)
+          `, [user.id, demand.demanda_id, user.id, demand.demanda_id, demand.ultima_mensagem_id]);
+        }
+      }
+      return send(response, 200, { ok: true });
+    } catch (error) {
+      console.error('[chat] marcar mensagens como lidas:', error.message);
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel marcar as mensagens como lidas.' });
     }
   }
 
@@ -2082,20 +2473,29 @@ const server = http.createServer(async (request, response) => {
       await ensureSupplierSchema();
       const user = await getSupplierUser(request);
       if (!user) return send(response, 403, { ok: false, message: 'Acesso restrito a fornecedores.' });
+      const company = await getSupplierCompanyForUser(user);
       const demandId = Number(url.pathname.match(/^\/api\/fornecedor\/demandas\/(\d+)\/mensagens$/)?.[1]);
       const [rows] = await db.query(`
         SELECT m.id, m.remetente, m.texto, m.anexo_url, m.anexo_nome, m.anexo_tipo, m.enviado_em
         FROM dbo.evento_mensagens_chat m
         WHERE m.demanda_id = ? AND (
-          m.remetente = 'organizador' OR EXISTS (
-            SELECT 1 FROM dbo.evento_propostas_fornecedor p WHERE p.demanda_id = m.demanda_id AND p.fornecedor_usuario_id = ?
+          m.fornecedor_usuario_id = ? OR EXISTS (
+            SELECT 1 FROM dbo.evento_propostas_fornecedor p WHERE p.demanda_id = m.demanda_id AND (
+              p.fornecedor_usuario_id = ?
+              OR p.fornecedor_usuario_id = ?
+              OR (p.fornecedor_usuario_id IS NULL AND p.empresa = ?)
+              OR EXISTS (
+                SELECT 1 FROM dbo.fornecedor_colaboradores fc
+                WHERE fc.empresa_id = ? AND fc.usuario_id = p.fornecedor_usuario_id
+              )
+            )
           )
         ) ORDER BY m.enviado_em
-      `, [demandId, user.id]);
+      `, [demandId, user.id, user.id, user.id, company?.razao_social || '', company?.id || -1]);
       return send(response, 200, { ok: true, messages: rows });
     } catch (error) {
       console.error('[fornecedor] mensagens:', error.message);
-      return send(response, 500, { ok: false, message: 'Não foi possível carregar o chat.' });
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel carregar o chat.' });
     }
   }
 
@@ -2109,36 +2509,44 @@ const server = http.createServer(async (request, response) => {
       const texto = String(body.texto || '').trim();
       const attachment = await saveChatAttachment(body.anexo);
       const [[company]] = await db.query('SELECT razao_social FROM dbo.fornecedor_empresas WHERE usuario_id = ?', [user.id]);
+      const proposalId = Number(body.proposta_id || body.proposal_id || 0);
       const [[proposal]] = await db.query(
-        `SELECT TOP 1 id, fornecedor_usuario_id
-         FROM dbo.evento_propostas_fornecedor
-         WHERE demanda_id = ? AND (
-           fornecedor_usuario_id = ?
-           OR (fornecedor_usuario_id IS NULL AND empresa = ?)
-         )
-         ORDER BY id DESC`,
-        [demandId, user.id, company?.razao_social || '']
+        proposalId
+          ? `SELECT TOP 1 id, fornecedor_usuario_id FROM dbo.evento_propostas_fornecedor
+             WHERE id = ? AND demanda_id = ? AND (
+               fornecedor_usuario_id = ? OR (fornecedor_usuario_id IS NULL AND empresa = ?)
+             )`
+          : `SELECT TOP 1 id, fornecedor_usuario_id
+             FROM dbo.evento_propostas_fornecedor
+             WHERE demanda_id = ? AND (
+               fornecedor_usuario_id = ?
+               OR (fornecedor_usuario_id IS NULL AND empresa = ?)
+             )
+             ORDER BY id DESC`,
+        proposalId
+          ? [proposalId, demandId, user.id, company?.razao_social || '']
+          : [demandId, user.id, company?.razao_social || '']
       );
       if (!proposal || (!texto && !attachment)) return send(response, 400, { ok: false, message: 'Escreva uma mensagem ou selecione um anexo.' });
       if (!proposal.fornecedor_usuario_id) {
         await db.query('UPDATE dbo.evento_propostas_fornecedor SET fornecedor_usuario_id = ? WHERE id = ?', [user.id, proposal.id]);
       }
       const [result] = await db.query(
-        'INSERT INTO dbo.evento_mensagens_chat (demanda_id, remetente, texto, anexo_url, anexo_nome, anexo_tipo) OUTPUT INSERTED.id VALUES (?, ?, ?, ?, ?, ?)',
-        [demandId, 'fornecedor', texto, attachment?.url || null, attachment?.name || null, attachment?.type || null]
+        'INSERT INTO dbo.evento_mensagens_chat (demanda_id, fornecedor_usuario_id, remetente, texto, anexo_url, anexo_nome, anexo_tipo, lida_organizador, lida_fornecedor) OUTPUT INSERTED.id VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [demandId, user.id, 'fornecedor', texto, attachment?.url || null, attachment?.name || null, attachment?.type || null, 0, 1]
       );
       return send(response, 201, { ok: true, mensagem_id: result[0]?.id || result.insertId });
     } catch (error) {
       console.error('[fornecedor] enviar mensagem:', error.message);
-      return send(response, 500, { ok: false, message: 'Não foi possível enviar a mensagem.' });
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel enviar a mensagem.' });
     }
   }
 
   if (request.method === 'POST' && /^\/api\/organizador\/propostas\/.+\/aprovar$/.test(url.pathname)) {
     let connection;
     try {
-      const proposalId = Number(url.pathname.split('/')[3]);
-      if (!proposalId) return send(response, 400, { ok: false, message: 'Identificador de proposta inválido.' });
+      const proposalId = Number(url.pathname.match(/^\/api\/organizador\/propostas\/(\d+)\/aprovar$/)?.[1]);
+      if (!proposalId) return send(response, 400, { ok: false, message: 'Identificador de proposta invÃ¡lido.' });
       const approvalBody = await parseBody(request);
       const session = readSessionToken(request);
       const approvalEmail = normalizeEmail(approvalBody.email || session?.email);
@@ -2160,7 +2568,7 @@ const server = http.createServer(async (request, response) => {
 
       if (!proposal) {
         await connection.rollback();
-        return send(response, 404, { ok: false, message: 'Proposta não encontrada.' });
+        return send(response, 404, { ok: false, message: 'Proposta nÃ£o encontrada.' });
       }
 
       await connection.query(
@@ -2192,11 +2600,11 @@ const server = http.createServer(async (request, response) => {
         message: 'Proposta aprovada com sucesso. O custo foi atualizado automaticamente.'
       });
     } catch (error) {
-      await connection.rollback();
+      if (connection) await connection.rollback();
       console.error('[organizador] aprovar proposta:', error.message);
       return send(response, 500, { ok: false, message: error.message });
     } finally {
-      connection.release();
+      if (connection) connection.release();
     }
   }
 
@@ -2204,15 +2612,28 @@ const server = http.createServer(async (request, response) => {
     try {
       await ensureSupplierSchema();
       const demandId = Number(url.pathname.match(/^\/api\/organizador\/demandas\/(\d+)\/mensagens$/)?.[1]);
-      if (!demandId) return send(response, 400, { ok: false, message: 'Demanda inválida.' });
+      if (!demandId) return send(response, 400, { ok: false, message: 'Demanda invÃ¡lida.' });
       const [rows] = await db.query(
-        'SELECT id, remetente, texto, anexo_url, anexo_nome, anexo_tipo, enviado_em FROM dbo.evento_mensagens_chat WHERE demanda_id = ? ORDER BY enviado_em',
+        `SELECT m.id, m.remetente, m.texto, m.anexo_url, m.anexo_nome, m.anexo_tipo, m.enviado_em,
+         COALESCE(fe.logo_url, '') AS remetente_logo_url
+         FROM dbo.evento_mensagens_chat m
+         OUTER APPLY (
+           SELECT TOP 1 company.logo_url
+           FROM dbo.fornecedor_empresas company
+           LEFT JOIN dbo.evento_propostas_fornecedor proposal
+             ON proposal.fornecedor_usuario_id = company.usuario_id
+             OR LOWER(LTRIM(RTRIM(company.razao_social))) = LOWER(LTRIM(RTRIM(proposal.empresa)))
+           WHERE company.usuario_id = m.fornecedor_usuario_id
+              OR (proposal.demanda_id = m.demanda_id AND proposal.empresa IS NOT NULL)
+           ORDER BY CASE WHEN company.usuario_id = m.fornecedor_usuario_id THEN 0 ELSE 1 END
+         ) fe
+         WHERE m.demanda_id = ? ORDER BY m.enviado_em`,
         [demandId]
       );
       return send(response, 200, { ok: true, messages: rows });
     } catch (error) {
       console.error('[organizador] carregar mensagens:', error.message);
-      return send(response, 500, { ok: false, message: 'Não foi possível carregar as mensagens.' });
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel carregar as mensagens.' });
     }
   }
 
@@ -2226,9 +2647,31 @@ const server = http.createServer(async (request, response) => {
       if (!demandId || (!texto && !attachment)) {
         return send(response, 400, { ok: false, message: 'Escreva uma mensagem ou selecione um anexo.' });
       }
+      const proposalId = Number(body.proposta_id || body.proposal_id || 0);
+      const [[proposal]] = await db.query(
+        proposalId
+          ? `SELECT TOP 1 p.id, COALESCE(p.fornecedor_usuario_id, fe.usuario_id) AS fornecedor_usuario_id
+             FROM dbo.evento_propostas_fornecedor p
+             LEFT JOIN dbo.fornecedor_empresas fe
+               ON LOWER(LTRIM(RTRIM(fe.razao_social))) = LOWER(LTRIM(RTRIM(p.empresa)))
+             WHERE p.id = ? AND p.demanda_id = ?`
+          : `SELECT TOP 1 p.id, COALESCE(p.fornecedor_usuario_id, fe.usuario_id) AS fornecedor_usuario_id
+             FROM dbo.evento_propostas_fornecedor p
+             LEFT JOIN dbo.fornecedor_empresas fe
+               ON LOWER(LTRIM(RTRIM(fe.razao_social))) = LOWER(LTRIM(RTRIM(p.empresa)))
+             WHERE p.demanda_id = ? AND (p.fornecedor_usuario_id IS NOT NULL OR fe.usuario_id IS NOT NULL)
+             ORDER BY p.id DESC`,
+        proposalId ? [proposalId, demandId] : [demandId]
+      );
+      if (proposal?.fornecedor_usuario_id) {
+        await db.query(
+          'UPDATE dbo.evento_propostas_fornecedor SET fornecedor_usuario_id = ? WHERE id = ? AND fornecedor_usuario_id IS NULL',
+          [proposal.fornecedor_usuario_id, proposal.id]
+        );
+      }
       const [result] = await db.query(
-        'INSERT INTO dbo.evento_mensagens_chat (demanda_id, remetente, texto, anexo_url, anexo_nome, anexo_tipo) OUTPUT INSERTED.id VALUES (?, ?, ?, ?, ?, ?)',
-        [demandId, 'organizador', texto, attachment?.url || null, attachment?.name || null, attachment?.type || null]
+        'INSERT INTO dbo.evento_mensagens_chat (demanda_id, fornecedor_usuario_id, remetente, texto, anexo_url, anexo_nome, anexo_tipo, lida_organizador, lida_fornecedor) OUTPUT INSERTED.id VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [demandId, proposal?.fornecedor_usuario_id || null, 'organizador', texto, attachment?.url || null, attachment?.name || null, attachment?.type || null, 1, 0]
       );
       return send(response, 201, { ok: true, mensagem_id: result[0]?.id || result.insertId });
     } catch (error) {
@@ -2280,6 +2723,39 @@ const server = http.createServer(async (request, response) => {
     }
   }
 
+  if (request.method === 'GET' && /^\/api\/organizador\/demandas\/\d+\/documentos$/.test(url.pathname)) {
+    try {
+      await ensureSupplierSchema();
+      if (!readSessionToken(request)) return send(response, 403, { ok: false, message: 'SessÃ£o invÃ¡lida.' });
+      const demandId = Number(url.pathname.match(/^\/api\/organizador\/demandas\/(\d+)\/documentos$/)?.[1]);
+      const [documents] = await db.query('SELECT id, nome, nome_arquivo, caminho AS url, criado_em FROM dbo.evento_demanda_documentos WHERE demanda_id = ? ORDER BY criado_em DESC', [demandId]);
+      return send(response, 200, { ok: true, documents });
+    } catch (error) {
+      console.error('[organizador] documentos da demanda:', error.message);
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel carregar os documentos da cotaÃ§Ã£o.' });
+    }
+  }
+
+  if (request.method === 'POST' && /^\/api\/organizador\/demandas\/\d+\/documentos$/.test(url.pathname)) {
+    try {
+      await ensureSupplierSchema();
+      if (!readSessionToken(request)) return send(response, 403, { ok: false, message: 'SessÃ£o invÃ¡lida.' });
+      const demandId = Number(url.pathname.match(/^\/api\/organizador\/demandas\/(\d+)\/documentos$/)?.[1]);
+      const body = await parseBody(request);
+      const nome = String(body.nome || '').trim();
+      const attachment = await saveChatAttachment(body.arquivo);
+      if (!demandId || !nome || !attachment) return send(response, 400, { ok: false, message: 'Informe o nome e o arquivo do documento.' });
+      const [result] = await db.query(
+        'INSERT INTO dbo.evento_demanda_documentos (demanda_id, nome, nome_arquivo, caminho) OUTPUT INSERTED.id VALUES (?, ?, ?, ?)',
+        [demandId, nome, attachment.name, attachment.url]
+      );
+      return send(response, 201, { ok: true, documento_id: result[0]?.id || result.insertId });
+    } catch (error) {
+      console.error('[organizador] upload de documento da demanda:', error.message);
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel salvar o documento da cotaÃ§Ã£o.' });
+    }
+  }
+
   if (request.method === 'POST' && url.pathname === '/api/organizador/custos') {
     try {
       const body = await parseBody(request);
@@ -2288,7 +2764,7 @@ const server = http.createServer(async (request, response) => {
       const nomeItem = String(body.nome_item || '').trim();
       const custoEstimado = Number(body.custo_estimado);
       if (!eventoId || !categoria || !nomeItem || !Number.isFinite(custoEstimado) || custoEstimado < 0) {
-        return send(response, 400, { ok: false, message: 'Dados do item de custo inválidos.' });
+        return send(response, 400, { ok: false, message: 'Dados do item de custo invÃ¡lidos.' });
       }
       const [rows] = await db.query(
         `INSERT INTO dbo.evento_itens_custo (evento_id, categoria, nome_item, custo_estimado, status)
@@ -2324,13 +2800,13 @@ const server = http.createServer(async (request, response) => {
       const body = await parseBody(request);
       const eventoId = Number(body.evento_id);
       if (!taskId || !eventoId || typeof body.concluida !== 'boolean') {
-        return send(response, 400, { ok: false, message: 'Status da tarefa inválido.' });
+        return send(response, 400, { ok: false, message: 'Status da tarefa invÃ¡lido.' });
       }
       const [rows] = await db.query(
         'UPDATE dbo.evento_tarefas SET concluida = ? OUTPUT INSERTED.id WHERE id = ? AND evento_id = ?',
         [body.concluida ? 1 : 0, taskId, eventoId]
       );
-      if (!rows.length) return send(response, 404, { ok: false, message: 'Tarefa não encontrada.' });
+      if (!rows.length) return send(response, 404, { ok: false, message: 'Tarefa nÃ£o encontrada.' });
       return send(response, 200, { ok: true, tarefa_id: taskId, concluida: body.concluida });
     } catch (error) {
       console.error('[organizador] atualizar tarefa:', error.message);
@@ -2344,7 +2820,7 @@ const server = http.createServer(async (request, response) => {
       const eventDate = parseEventDate(body.data_evento || body.date);
       const eventEndDate = body.data_fim ? parseEventDate(body.data_fim) : null;
       if (!eventDate) return send(response, 400, { ok: false, message: 'Informe a data do evento.' });
-      if (!eventEndDate || eventEndDate <= eventDate) return send(response, 400, { ok: false, message: 'Informe um horário de encerramento posterior ao início do evento.' });
+      if (!eventEndDate || eventEndDate <= eventDate) return send(response, 400, { ok: false, message: 'Informe um horÃ¡rio de encerramento posterior ao inÃ­cio do evento.' });
       const [result] = await db.query(
         `INSERT INTO eventos (organizador_id, nome, artista, \`local\`, data_evento, data_fim, ticket_calculado, publico_minimo, publico_maximo, margem_lucro, status, destaque, imagem) OUTPUT INSERTED.id VALUES (1, ?, ?, ?, ?, ?, ?, 500, 2000, 0.20, 'publicado', ?, ?)`,
         [body.nome.trim(), body.artista || null, body.local.trim(), eventDate, eventEndDate, parseFloat(body.preco) || 0, body.destaque ? 1 : 0, body.imagem || null]
@@ -2359,7 +2835,7 @@ const server = http.createServer(async (request, response) => {
     try {
       const eventId = Number(url.pathname.split('/').pop());
       const [rows] = await db.query('SELECT * FROM eventos WHERE id = ? LIMIT 1', [eventId]);
-      if (!rows.length) return send(response, 404, { ok: false, message: 'Evento não encontrado.' });
+      if (!rows.length) return send(response, 404, { ok: false, message: 'Evento nÃ£o encontrado.' });
       const [sectorRows] = await db.query('SELECT id, evento_id, nome, capacidade FROM dbo.evento_setores WHERE evento_id = ? ORDER BY id', [eventId]);
       const [lotRows] = await db.query('SELECT * FROM dbo.evento_lotes WHERE evento_id = ? ORDER BY id', [eventId]);
       const resolveLotSectorName = (lot, lotIndex) => {
@@ -2412,7 +2888,7 @@ const server = http.createServer(async (request, response) => {
       const eventDate = parseEventDate(body.data_evento || body.date);
       const eventEndDate = body.data_fim ? parseEventDate(body.data_fim) : null;
       if (!eventDate) return send(response, 400, { ok: false, message: 'Informe a data do evento.' });
-      if (!eventEndDate || eventEndDate <= eventDate) return send(response, 400, { ok: false, message: 'Informe um horário de encerramento posterior ao início do evento.' });
+      if (!eventEndDate || eventEndDate <= eventDate) return send(response, 400, { ok: false, message: 'Informe um horÃ¡rio de encerramento posterior ao inÃ­cio do evento.' });
       
       const [eventRows] = await db.query('SELECT nome FROM dbo.eventos WHERE id = ?', [eventId]);
       const eventName = eventRows[0]?.nome || `Evento ${eventId}`;
@@ -2445,8 +2921,8 @@ const server = http.createServer(async (request, response) => {
       const [eventRows] = await db.query('SELECT nome FROM dbo.eventos WHERE id = ?', [eventId]);
       const eventName = eventRows[0]?.nome || `Evento ${eventId}`;
       await db.query('DELETE FROM eventos WHERE id = ?', [eventId]);
-      await audit('exclusao_evento', `Evento ${eventName} excluído pelo painel.`, 'evento', eventName, auditActor(body));
-      return send(response, 200, { ok: true, message: 'Evento excluído com sucesso!' });
+      await audit('exclusao_evento', `Evento ${eventName} excluÃ­do pelo painel.`, 'evento', eventName, auditActor(body));
+      return send(response, 200, { ok: true, message: 'Evento excluÃ­do com sucesso!' });
     } catch (error) { 
       return send(response, 500, { ok: false, message: error.message }); 
     }
@@ -2538,15 +3014,15 @@ const server = http.createServer(async (request, response) => {
       const requestedStatus = String(body.status || '').toLowerCase();
 
       if (!allowedTypes.includes(tipo) || !allowedStatuses.includes(requestedStatus)) {
-        return send(response, 400, { ok: false, message: 'Tipo ou status de usuário inválido.' });
+        return send(response, 400, { ok: false, message: 'Tipo ou status de usuÃ¡rio invÃ¡lido.' });
       }
 
       const [[admin]] = await db.query('SELECT id, nome, tipo, senha_hash FROM dbo.usuarios WHERE email = ?', [adminEmail]);
       if (!admin || admin.tipo !== 'admin' || !(await bcrypt.compare(adminPassword, admin.senha_hash))) {
-        return send(response, 403, { ok: false, message: 'Senha do administrador inválida.' });
+        return send(response, 403, { ok: false, message: 'Senha do administrador invÃ¡lida.' });
       }
       if (admin.id === userId && tipo !== 'admin') {
-        return send(response, 400, { ok: false, message: 'A conta do administrador não pode perder o tipo admin.' });
+        return send(response, 400, { ok: false, message: 'A conta do administrador nÃ£o pode perder o tipo admin.' });
       }
 
       const [[affectedUser]] = await db.query('SELECT nome FROM dbo.usuarios WHERE id = ?', [userId]);
@@ -2557,12 +3033,12 @@ const server = http.createServer(async (request, response) => {
          WHERE id = ?`,
         [tipo, requestedStatus === 'suspensa' ? 'suspensa' : 'aprovado', userId]
       );
-      if (!updated.length) return send(response, 404, { ok: false, message: 'Usuário não encontrado.' });
-      await audit('alteracao_acesso', `Tipo alterado para ${tipo} e status para ${requestedStatus}.`, 'usuario', `Conta de ${affectedUser?.nome || 'usuário'}`, { id: admin.id, nome: admin.nome, tipo: 'admin' });
+      if (!updated.length) return send(response, 404, { ok: false, message: 'UsuÃ¡rio nÃ£o encontrado.' });
+      await audit('alteracao_acesso', `Tipo alterado para ${tipo} e status para ${requestedStatus}.`, 'usuario', `Conta de ${affectedUser?.nome || 'usuÃ¡rio'}`, { id: admin.id, nome: admin.nome, tipo: 'admin' });
       return send(response, 200, { ok: true, user: { ...updated[0], status: requestedStatus } });
     } catch (error) {
-      console.error('[admin] Erro ao atualizar usuário:', error.message);
-      return send(response, 500, { ok: false, message: 'Não foi possível atualizar o usuário.' });
+      console.error('[admin] Erro ao atualizar usuÃ¡rio:', error.message);
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel atualizar o usuÃ¡rio.' });
     }
   }
 
@@ -2573,21 +3049,21 @@ const server = http.createServer(async (request, response) => {
       const adminEmail = normalizeEmail(body.admin_email);
       const adminPassword = String(body.admin_password || '');
       if (!adminEmail || !adminPassword) {
-        return send(response, 400, { ok: false, message: 'E-mail e senha do administrador são obrigatórios.' });
+        return send(response, 400, { ok: false, message: 'E-mail e senha do administrador sÃ£o obrigatÃ³rios.' });
       }
 
       const [[admin]] = await db.query('SELECT id, nome, tipo, senha_hash FROM dbo.usuarios WHERE email = ?', [adminEmail]);
       if (!admin || String(admin.tipo).toLowerCase() !== 'admin' || !(await bcrypt.compare(adminPassword, admin.senha_hash))) {
-        return send(response, 403, { ok: false, message: 'Senha do administrador inválida.' });
+        return send(response, 403, { ok: false, message: 'Senha do administrador invÃ¡lida.' });
       }
       if (admin.id === userId) {
-        return send(response, 400, { ok: false, message: 'A conta do administrador logado não pode ser excluída por este painel.' });
+        return send(response, 400, { ok: false, message: 'A conta do administrador logado nÃ£o pode ser excluÃ­da por este painel.' });
       }
 
       const [[affectedUser]] = await db.query('SELECT id, nome, email, tipo, status FROM dbo.usuarios WHERE id = ?', [userId]);
-      if (!affectedUser) return send(response, 404, { ok: false, message: 'Usuário não encontrado.' });
+      if (!affectedUser) return send(response, 404, { ok: false, message: 'UsuÃ¡rio nÃ£o encontrado.' });
       if (String(affectedUser.tipo).toLowerCase() === 'admin') {
-        return send(response, 403, { ok: false, message: 'Contas de administrador não podem ser excluídas por este fluxo.' });
+        return send(response, 403, { ok: false, message: 'Contas de administrador nÃ£o podem ser excluÃ­das por este fluxo.' });
       }
 
       const releasedEmail = `excluida-${userId}-${Date.now()}@invalid.trocaticket.local`;
@@ -2598,18 +3074,18 @@ const server = http.createServer(async (request, response) => {
          WHERE id = ?`,
         [releasedEmail, userId]
       );
-      await audit('exclusao_usuario', `Conta de ${affectedUser.nome || affectedUser.email} excluída pelo painel administrativo; dados de acesso liberados para novo cadastro.`, 'usuario', userId, { id: admin.id, nome: admin.nome, tipo: 'admin' });
-      return send(response, 200, { ok: true, message: 'Conta excluída. O e-mail, CPF e telefone já podem ser usados em um novo cadastro.', user_id: userId });
+      await audit('exclusao_usuario', `Conta de ${affectedUser.nome || affectedUser.email} excluÃ­da pelo painel administrativo; dados de acesso liberados para novo cadastro.`, 'usuario', userId, { id: admin.id, nome: admin.nome, tipo: 'admin' });
+      return send(response, 200, { ok: true, message: 'Conta excluÃ­da. O e-mail, CPF e telefone jÃ¡ podem ser usados em um novo cadastro.', user_id: userId });
     } catch (error) {
-      console.error('[admin] Erro ao excluir usuário:', error.message);
-      return send(response, 500, { ok: false, message: 'Não foi possível excluir a conta.' });
+      console.error('[admin] Erro ao excluir usuÃ¡rio:', error.message);
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel excluir a conta.' });
     }
   }
 
   if (request.method === 'GET' && url.pathname === '/api/admin/tickets') {
     try {
       const operator = await getTicketOperator(request);
-      if (!operator) return send(response, 403, { ok: false, message: 'Acesso restrito à equipe de operação.' });
+      if (!operator) return send(response, 403, { ok: false, message: 'Acesso restrito Ã  equipe de operaÃ§Ã£o.' });
       await ensureTicketSecuritySchema();
       const [objects] = await db.query("SELECT name FROM sys.tables WHERE schema_id = SCHEMA_ID('dbo') AND name = 'ingressos_emitidos'");
       if (!objects.length) return send(response, 200, { ok: true, tickets: [] });
@@ -2628,9 +3104,9 @@ const server = http.createServer(async (request, response) => {
           i.utilizado_em AS checkinAt,
           i.motivo_checkin AS checkinReason,
           i.checkin_operador AS checkinOperator,
-          'não identificado' AS lotCategory,
+          'nÃ£o identificado' AS lotCategory,
           p.criado_em AS purchaseDate,
-          CASE WHEN i.bilheteria_id IS NULL THEN 'Emissão própria' ELSE 'Emissão por bilheteria parceira' END AS emissionMethod,
+          CASE WHEN i.bilheteria_id IS NULL THEN 'EmissÃ£o prÃ³pria' ELSE 'EmissÃ£o por bilheteria parceira' END AS emissionMethod,
           CASE
             WHEN i.status = 'ativo' AND e.data_evento < SYSUTCDATETIME() THEN 'expirado'
             WHEN i.status = 'valido' THEN 'ativo'
@@ -2660,13 +3136,13 @@ const server = http.createServer(async (request, response) => {
   if (request.method === 'GET' && /^\/api\/admin\/tickets\/\d+\/qr$/.test(url.pathname)) {
     try {
       const operator = await getTicketOperator(request);
-      if (!operator) return send(response, 403, { ok: false, message: 'Acesso restrito à equipe de operação.' });
+      if (!operator) return send(response, 403, { ok: false, message: 'Acesso restrito Ã  equipe de operaÃ§Ã£o.' });
       await ensureTicketSecuritySchema();
       const ticketId = Number(url.pathname.split('/')[4]);
       const [rows] = await db.query('SELECT id, numero_ingresso, status FROM dbo.ingressos_emitidos WHERE id = ?', [ticketId]);
-      if (!rows.length) return send(response, 404, { ok: false, message: 'Ingresso não encontrado.' });
+      if (!rows.length) return send(response, 404, { ok: false, message: 'Ingresso nÃ£o encontrado.' });
       if (!['ativo', 'valido'].includes(String(rows[0].status).toLowerCase())) {
-        return send(response, 409, { ok: false, message: 'Este ingresso não possui um hash ativo.' });
+        return send(response, 409, { ok: false, message: 'Este ingresso nÃ£o possui um hash ativo.' });
       }
       const ticketSecret = await getTicketSecret(ticketId);
       const timeStep = Math.floor(Date.now() / 1000 / 60);
@@ -2675,20 +3151,20 @@ const server = http.createServer(async (request, response) => {
       return send(response, 200, { ok: true, ticketId, timeStep, hash: payload.split(':')[2], payload, qrImage, expiresAt: (timeStep + 1) * 60000 });
     } catch (error) {
       console.error('[bilheteria] Erro ao gerar QR ativo:', error.message);
-      return send(response, 500, { ok: false, message: 'Não foi possível gerar o QR ativo.' });
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel gerar o QR ativo.' });
     }
   }
 
   if (request.method === 'POST' && url.pathname === '/api/bilheteria/validar-acesso') {
     const operator = await getTicketOperator(request);
-    if (!operator) return send(response, 403, { ok: false, message: 'Acesso restrito à equipe de operação.' });
+    if (!operator) return send(response, 403, { ok: false, message: 'Acesso restrito Ã  equipe de operaÃ§Ã£o.' });
     const connection = await db.getConnection();
     try {
       await ensureTicketSecuritySchema();
       const body = await parseBody(request);
       const parts = String(body.qr_code_payload || '').trim().split(':');
       if (parts.length !== 3 || !parts[0] || !/^\d+$/.test(parts[1]) || !/^[a-f\d]{64}$/i.test(parts[2])) {
-        return send(response, 400, { ok: false, kind: 'error', message: 'Ingresso Inválido ou Não Encontrado.' });
+        return send(response, 400, { ok: false, kind: 'error', message: 'Ingresso InvÃ¡lido ou NÃ£o Encontrado.' });
       }
       const [ticketId, timeStepText, receivedHash] = parts;
       await connection.beginTransaction();
@@ -2704,12 +3180,12 @@ const server = http.createServer(async (request, response) => {
       const ticket = rows[0];
       if (!ticket || Number(ticket.evento_id) !== Number(body.evento_id)) {
         await connection.rollback();
-        return send(response, 404, { ok: false, kind: 'error', message: 'Ingresso Inválido ou Não Encontrado.' });
+        return send(response, 404, { ok: false, kind: 'error', message: 'Ingresso InvÃ¡lido ou NÃ£o Encontrado.' });
       }
       const status = String(ticket.status || '').toLowerCase();
       if (['utilizado', 'usado', 'checked_in'].includes(status)) {
         await connection.rollback();
-        return send(response, 409, { ok: false, kind: 'error', message: 'Ingresso já utilizado.', checkinAt: ticket.utilizado_em });
+        return send(response, 409, { ok: false, kind: 'error', message: 'Ingresso jÃ¡ utilizado.', checkinAt: ticket.utilizado_em });
       }
       if (!['ativo', 'valido'].includes(status)) {
         await connection.rollback();
@@ -2717,7 +3193,7 @@ const server = http.createServer(async (request, response) => {
       }
       if (body.setor_catraca && body.setor_catraca !== '*' && ticket.setor_nome !== body.setor_catraca) {
         await connection.rollback();
-        return send(response, 409, { ok: false, kind: 'warning', message: `SETOR INCORRETO: Ingresso emitido para ${ticket.setor_nome || 'setor não informado'}. Direcione o cliente para o portão correto.`, sector: ticket.setor_nome || null });
+        return send(response, 409, { ok: false, kind: 'warning', message: `SETOR INCORRETO: Ingresso emitido para ${ticket.setor_nome || 'setor nÃ£o informado'}. Direcione o cliente para o portÃ£o correto.`, sector: ticket.setor_nome || null });
       }
       const timeStep = Number(timeStepText);
       const currentStep = Math.floor(Date.now() / 1000 / 60);
@@ -2732,7 +3208,7 @@ const server = http.createServer(async (request, response) => {
       }
       if (!safeHashEqual(makeTicketHash(ticket.numero_ingresso, timeStep, secretKey), receivedHash)) {
         await connection.rollback();
-        return send(response, 401, { ok: false, kind: 'error', message: 'Hash inválido ou chave revogada.' });
+        return send(response, 401, { ok: false, kind: 'error', message: 'Hash invÃ¡lido ou chave revogada.' });
       }
       const [updated] = await connection.query(`
         UPDATE dbo.ingressos_emitidos
@@ -2742,7 +3218,7 @@ const server = http.createServer(async (request, response) => {
       `, [operator.nome || operator.email, ticket.id]);
       if (!updated.length) {
         await connection.rollback();
-        return send(response, 409, { ok: false, kind: 'error', message: 'Ingresso já utilizado por outra catraca.' });
+        return send(response, 409, { ok: false, kind: 'error', message: 'Ingresso jÃ¡ utilizado por outra catraca.' });
       }
       await connection.commit();
       await audit('checkin_ingresso', `Check-in validado no evento ${ticket.evento}.`, 'ingresso', ticket.numero_ingresso, operator);
@@ -2750,7 +3226,7 @@ const server = http.createServer(async (request, response) => {
     } catch (error) {
       try { await connection.rollback(); } catch {}
       console.error('[bilheteria] Erro ao validar ingresso:', error.message);
-      return send(response, 500, { ok: false, message: 'Não foi possível validar o ingresso.' });
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel validar o ingresso.' });
     } finally {
       connection.release();
     }
@@ -2758,23 +3234,23 @@ const server = http.createServer(async (request, response) => {
 
   if (request.method === 'POST' && /^\/api\/bilheteria\/tickets\/\d+\/checkin-manual$/.test(url.pathname)) {
     const operator = await getTicketOperator(request);
-    if (!operator) return send(response, 403, { ok: false, message: 'Acesso restrito à equipe de operação.' });
+    if (!operator) return send(response, 403, { ok: false, message: 'Acesso restrito Ã  equipe de operaÃ§Ã£o.' });
     const ticketId = Number(url.pathname.split('/')[4]);
     const connection = await db.getConnection();
     try {
       await ensureTicketSecuritySchema();
       const body = await parseBody(request);
       const reason = String(body.motivo || '').trim();
-      if (!reason) return send(response, 400, { ok: false, message: 'Informe o motivo da liberação manual.' });
+      if (!reason) return send(response, 400, { ok: false, message: 'Informe o motivo da liberaÃ§Ã£o manual.' });
       await connection.beginTransaction();
       const [rows] = await connection.query('SELECT id, numero_ingresso, status FROM dbo.ingressos_emitidos WITH (UPDLOCK, ROWLOCK) WHERE id = ?', [ticketId]);
       if (!rows.length) {
         await connection.rollback();
-        return send(response, 404, { ok: false, message: 'Ingresso não encontrado.' });
+        return send(response, 404, { ok: false, message: 'Ingresso nÃ£o encontrado.' });
       }
       if (!['ativo', 'valido'].includes(String(rows[0].status).toLowerCase())) {
         await connection.rollback();
-        return send(response, 409, { ok: false, message: 'Ingresso não está disponível para check-in.' });
+        return send(response, 409, { ok: false, message: 'Ingresso nÃ£o estÃ¡ disponÃ­vel para check-in.' });
       }
       const [updated] = await connection.query(`
         UPDATE dbo.ingressos_emitidos
@@ -2784,7 +3260,7 @@ const server = http.createServer(async (request, response) => {
       `, [reason.slice(0, 240), operator.nome || operator.email, ticketId]);
       if (!updated.length) {
         await connection.rollback();
-        return send(response, 409, { ok: false, message: 'Ingresso já utilizado por outra catraca.' });
+        return send(response, 409, { ok: false, message: 'Ingresso jÃ¡ utilizado por outra catraca.' });
       }
       await connection.commit();
       await audit('checkin_manual_ingresso', `Check-in manual: ${reason}.`, 'ingresso', rows[0].numero_ingresso, operator);
@@ -2792,7 +3268,7 @@ const server = http.createServer(async (request, response) => {
     } catch (error) {
       try { await connection.rollback(); } catch {}
       console.error('[bilheteria] Erro no check-in manual:', error.message);
-      return send(response, 500, { ok: false, message: 'Não foi possível concluir o check-in manual.' });
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel concluir o check-in manual.' });
     } finally {
       connection.release();
     }
@@ -2800,7 +3276,7 @@ const server = http.createServer(async (request, response) => {
 
   if (request.method === 'POST' && url.pathname === '/api/bilheteria/transferencias') {
     const operator = await getTicketOperator(request);
-    if (!operator) return send(response, 403, { ok: false, message: 'Acesso restrito à equipe de operação.' });
+    if (!operator) return send(response, 403, { ok: false, message: 'Acesso restrito Ã  equipe de operaÃ§Ã£o.' });
     const connection = await db.getConnection();
     try {
       await ensureTicketSecuritySchema();
@@ -2819,11 +3295,11 @@ const server = http.createServer(async (request, response) => {
       const ticket = ticketRows[0];
       if (!ticket) {
         await connection.rollback();
-        return send(response, 404, { ok: false, message: 'Ingresso não encontrado.' });
+        return send(response, 404, { ok: false, message: 'Ingresso nÃ£o encontrado.' });
       }
       if (!['ativo', 'valido'].includes(String(ticket.status).toLowerCase())) {
         await connection.rollback();
-        return send(response, 409, { ok: false, message: 'Somente ingressos disponíveis podem ser transferidos.' });
+        return send(response, 409, { ok: false, message: 'Somente ingressos disponÃ­veis podem ser transferidos.' });
       }
       const contactDigits = normalizeCpf(contact);
       const [recipientRows] = await connection.query(
@@ -2837,7 +3313,7 @@ const server = http.createServer(async (request, response) => {
       }
       if (Number(recipient.id) === Number(ticket.comprador_id)) {
         await connection.rollback();
-        return send(response, 400, { ok: false, message: 'O novo titular já é o titular deste ingresso.' });
+        return send(response, 400, { ok: false, message: 'O novo titular jÃ¡ Ã© o titular deste ingresso.' });
       }
       const revokedPayload = `${ticket.qr_code_payload || ''}_REVOGADO_${Date.now()}`;
       await connection.query("UPDATE dbo.ingressos_emitidos SET status = 'invalidado_por_revenda', qr_code_payload = ?, secret_key = NULL WHERE id = ?", [revokedPayload, ticket.id]);
@@ -2853,12 +3329,12 @@ const server = http.createServer(async (request, response) => {
       `, [ticket.pedido_id, recipient.id, ticket.evento_id, ticket.bilheteria_id || null, ticket.bilheteria_origem || 'Troca Ticket', ticket.setor_nome || null, newNumber, ticket.codigo_original_bilheteria || newNumber, newPayload, newSecret, nextVersion]);
       await connection.commit();
       const matrixSync = ticket.bilheteria_origem && ticket.bilheteria_origem !== 'Troca Ticket' ? 'not_configured' : 'not_applicable';
-      await audit('transferencia_ingresso_painel', `${body.motivo || 'Transferência'}: titular anterior ${ticket.titular_anterior}; novo titular ${recipient.nome}; hash anterior invalidado e novo hash criado.`, 'ingresso', newNumber, operator);
-      return send(response, 200, { ok: true, message: 'Transferência concluída. Hash antigo revogado e nova chave criada.', matrixSync, ticket: { id: newTicketRows[0].id, numero_ingresso: newNumber, titular: recipient.nome, cpf: recipient.cpf, setor: ticket.setor_nome, evento_id: ticket.evento_id, bilheteria_origem: ticket.bilheteria_origem || 'Troca Ticket' } });
+      await audit('transferencia_ingresso_painel', `${body.motivo || 'TransferÃªncia'}: titular anterior ${ticket.titular_anterior}; novo titular ${recipient.nome}; hash anterior invalidado e novo hash criado.`, 'ingresso', newNumber, operator);
+      return send(response, 200, { ok: true, message: 'TransferÃªncia concluÃ­da. Hash antigo revogado e nova chave criada.', matrixSync, ticket: { id: newTicketRows[0].id, numero_ingresso: newNumber, titular: recipient.nome, cpf: recipient.cpf, setor: ticket.setor_nome, evento_id: ticket.evento_id, bilheteria_origem: ticket.bilheteria_origem || 'Troca Ticket' } });
     } catch (error) {
       try { await connection.rollback(); } catch {}
-      console.error('[bilheteria] Erro na transferência:', error.message);
-      return send(response, 500, { ok: false, message: 'Não foi possível concluir a transferência.' });
+      console.error('[bilheteria] Erro na transferÃªncia:', error.message);
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel concluir a transferÃªncia.' });
     } finally {
       connection.release();
     }
@@ -2870,7 +3346,7 @@ const server = http.createServer(async (request, response) => {
       const body = await parseBody(request);
       const status = String(body.status || '').trim().toLowerCase();
       if (!['cancelado', 'bloqueado'].includes(status)) {
-        return send(response, 400, { ok: false, message: 'O painel só pode definir os status cancelado ou bloqueado.' });
+        return send(response, 400, { ok: false, message: 'O painel sÃ³ pode definir os status cancelado ou bloqueado.' });
       }
 
       const [result] = await db.query(
@@ -2880,15 +3356,15 @@ const server = http.createServer(async (request, response) => {
          WHERE id = ?`,
         [status, ticketId]
       );
-      if (!result.length) return send(response, 404, { ok: false, message: 'Ingresso não encontrado.' });
+      if (!result.length) return send(response, 404, { ok: false, message: 'Ingresso nÃ£o encontrado.' });
       const [[ticket]] = await db.query(`SELECT e.nome AS evento FROM dbo.ingressos_emitidos i JOIN dbo.eventos e ON e.id = i.evento_id WHERE i.id = ?`, [ticketId]);
       const actor = auditActor(body);
       const [[ticketCode]] = await db.query('SELECT numero_ingresso FROM dbo.ingressos_emitidos WHERE id = ?', [ticketId]);
-      await audit('alteracao_status_ingresso', `Status do ingresso do evento ${ticket?.evento || 'evento'} alterado para ${status}.`, 'ingresso', ticketCode?.numero_ingresso || 'Ingresso não identificado', actor);
+      await audit('alteracao_status_ingresso', `Status do ingresso do evento ${ticket?.evento || 'evento'} alterado para ${status}.`, 'ingresso', ticketCode?.numero_ingresso || 'Ingresso nÃ£o identificado', actor);
       return send(response, 200, { ok: true, ticket: result[0] });
     } catch (error) {
       console.error('[admin] Erro ao alterar status do ingresso:', error.message);
-      return send(response, 500, { ok: false, message: 'Não foi possível alterar o status.' });
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel alterar o status.' });
     }
   }
 
@@ -2922,7 +3398,7 @@ const server = http.createServer(async (request, response) => {
       if (!search) return send(response, 400, { ok: false, message: 'Informe nome, telefone, e-mail ou CPF.' });
       const [users] = await db.query(`SELECT TOP (1) id, nome, email, cpf, telefone, tipo, status, criado_em
         FROM dbo.usuarios WHERE nome LIKE '%' + ? + '%' OR email LIKE '%' + ? + '%' OR telefone LIKE '%' + ? + '%' OR cpf LIKE '%' + ? + '%'`, [search, search, search, search]);
-      if (!users.length) return send(response, 404, { ok: false, message: 'Usuário não encontrado.' });
+      if (!users.length) return send(response, 404, { ok: false, message: 'UsuÃ¡rio nÃ£o encontrado.' });
       const user = users[0];
       const [purchases] = await db.query(`SELECT p.id, p.codigo_pedido, p.valor_total, p.status, p.criado_em
         FROM dbo.pedidos p WHERE p.comprador_id = ? ORDER BY p.criado_em DESC`, [user.id]);
@@ -2933,8 +3409,8 @@ const server = http.createServer(async (request, response) => {
         FROM dbo.auditoria_admin WHERE item_tipo = 'usuario' AND item_id = ? ORDER BY criado_em DESC`, [String(user.id)]);
       return send(response, 200, { ok: true, user: { ...user, status: getAdminUserStatus(user) }, purchases, tickets, support: [], transactions: purchases, logs });
     } catch (error) {
-      console.error('[admin] Erro no histórico do usuário:', error.message);
-      return send(response, 500, { ok: false, message: 'Não foi possível carregar o histórico.' });
+      console.error('[admin] Erro no histÃ³rico do usuÃ¡rio:', error.message);
+      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel carregar o histÃ³rico.' });
     }
   }
 
@@ -2947,18 +3423,18 @@ const server = http.createServer(async (request, response) => {
     } catch (error) { return send(response, 500, { ok: false, message: error.message }); }
   }
 
-  // ===== CARTÕES DO USUÁRIO (ROBUSTO E SEGURO) =====
+  // ===== CARTÃ•ES DO USUÃRIO (ROBUSTO E SEGURO) =====
   if (request.method === 'GET' && url.pathname === '/api/usuario/cartoes') {
     try {
       const email = normalizeEmail(url.searchParams.get('email'));
       const [users] = await db.query('SELECT id FROM dbo.usuarios WHERE email = ? LIMIT 1', [email]);
-      if (!users.length) return send(response, 404, { ok: false, message: 'Usuário não encontrado.' });
+      if (!users.length) return send(response, 404, { ok: false, message: 'UsuÃ¡rio nÃ£o encontrado.' });
       
       const [cards] = await db.query('SELECT id, nome_titular, ultimos_digitos, bandeira, validade_mes, validade_ano, criado_em FROM dbo.cartoes_usuario WHERE usuario_id = ? ORDER BY id DESC', [users[0].id]);
       return send(response, 200, { ok: true, cards });
     } catch (error) {
       console.error('[cartoes GET]', error.message);
-      return send(response, 500, { ok: false, message: 'Erro ao carregar cartões.' });
+      return send(response, 500, { ok: false, message: 'Erro ao carregar cartÃµes.' });
     }
   }
 
@@ -2967,15 +3443,15 @@ const server = http.createServer(async (request, response) => {
       const body = await parseBody(request);
       const email = normalizeEmail(body.email);
       const [users] = await db.query('SELECT id FROM dbo.usuarios WHERE email = ? LIMIT 1', [email]);
-      if (!users.length) return send(response, 404, { ok: false, message: 'Comprador não encontrado.' });
+      if (!users.length) return send(response, 404, { ok: false, message: 'Comprador nÃ£o encontrado.' });
 
       const cpf = normalizeCpf(body.cpf);
-      if (cpf.length !== 11) return send(response, 400, { ok: false, message: 'Informe um CPF com 11 números. A pontuação é opcional.' });
+      if (cpf.length !== 11) return send(response, 400, { ok: false, message: 'Informe um CPF com 11 nÃºmeros. A pontuaÃ§Ã£o Ã© opcional.' });
 
       const numCartao = String(body.numero_cartao || body.numero || '').trim();
       const numLimpo = numCartao.replace(/\D/g, '');
       if (numLimpo.length < 13 || numLimpo.length > 19) {
-        return send(response, 400, { ok: false, message: 'Número de cartão inválido.' });
+        return send(response, 400, { ok: false, message: 'NÃºmero de cartÃ£o invÃ¡lido.' });
       }
       const ultimos_digitos = numLimpo.slice(-4) || '0000';
       const bandeira = detectCardBrand(numLimpo);
@@ -3005,10 +3481,10 @@ const server = http.createServer(async (request, response) => {
         ]
       );
 
-      return send(response, 201, { ok: true, message: 'Cartão salvo com segurança!' });
+      return send(response, 201, { ok: true, message: 'CartÃ£o salvo com seguranÃ§a!' });
     } catch (error) {
       console.error('[cartoes POST] Erro:', error.message);
-      return send(response, 500, { ok: false, message: 'Erro ao salvar o cartão no banco de dados.' });
+      return send(response, 500, { ok: false, message: 'Erro ao salvar o cartÃ£o no banco de dados.' });
     }
   }
 
@@ -3018,16 +3494,16 @@ const server = http.createServer(async (request, response) => {
       const body = await parseBody(request);
       const email = normalizeEmail(body.email);
       const [users] = await db.query('SELECT id FROM dbo.usuarios WHERE email = ? LIMIT 1', [email]);
-      if (!users.length) return send(response, 404, { ok: false, message: 'Usuário não encontrado.' });
+      if (!users.length) return send(response, 404, { ok: false, message: 'UsuÃ¡rio nÃ£o encontrado.' });
 
       await db.query('DELETE FROM dbo.cartoes_usuario WHERE id = ? AND usuario_id = ?', [cardId, users[0].id]);
-      return send(response, 200, { ok: true, message: 'Cartão excluído com sucesso.' });
+      return send(response, 200, { ok: true, message: 'CartÃ£o excluÃ­do com sucesso.' });
     } catch (error) {
-      return send(response, 500, { ok: false, message: 'Erro ao excluir o cartão.' });
+      return send(response, 500, { ok: false, message: 'Erro ao excluir o cartÃ£o.' });
     }
   }
 
-  // ===== ARQUIVOS ESTÁTICOS =====
+  // ===== ARQUIVOS ESTÃTICOS =====
   const legacyPageRedirects = {
     '/evento.html': '/events/evento.html',
     '/login.html': '/auth/login.html',
@@ -3070,7 +3546,7 @@ const server = http.createServer(async (request, response) => {
   try {
     requestedPath = decodeURIComponent(url.pathname);
   } catch {
-    return response.writeHead(400).end('Caminho inválido');
+    return response.writeHead(400).end('Caminho invÃ¡lido');
   }
 
   const filePath = requestedPath.startsWith('/app/')
@@ -3081,7 +3557,7 @@ const server = http.createServer(async (request, response) => {
   const normalizedRoot = path.resolve(root) + path.sep;
   const normalizedFilePath = path.resolve(filePath);
   if (!normalizedFilePath.startsWith(normalizedRoot) || !fs.existsSync(normalizedFilePath) || fs.statSync(normalizedFilePath).isDirectory()) {
-    return response.writeHead(404).end('Não encontrado');
+    return response.writeHead(404).end('NÃ£o encontrado');
   }
 
   response.writeHead(200, { 'Content-Type': mimeTypes[path.extname(normalizedFilePath).toLowerCase()] || 'application/octet-system' });
@@ -3090,7 +3566,7 @@ const server = http.createServer(async (request, response) => {
 
 server.on('error', error => {
   if (error.code === 'EADDRINUSE') {
-    console.error(`A porta ${port} já está em uso. Feche o servidor existente ou use outra porta com PORT=3010.`);
+    console.error(`A porta ${port} jÃ¡ estÃ¡ em uso. Feche o servidor existente ou use outra porta com PORT=3010.`);
     process.exitCode = 1;
     return;
   }

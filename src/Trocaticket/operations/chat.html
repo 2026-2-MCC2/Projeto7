@@ -80,9 +80,9 @@
             $('chat-conversation-count').textContent = state.conversations.length;
             $('chat-contact-list').innerHTML = visible.length ? visible.map(conversation => `
                 <button type="button" class="chat-contact ${state.selected?.key === conversation.key ? 'is-selected' : ''}" data-contact-key="${escapeHtml(conversation.key)}">
-                    <span class="chat-contact-avatar">${escapeHtml(initials(conversation.company))}</span>
+                    ${conversation.logoUrl ? `<img class="chat-contact-avatar chat-avatar-image" src="${escapeHtml(conversation.logoUrl)}" alt="Logo de ${escapeHtml(conversation.company)}">` : `<span class="chat-contact-avatar">${escapeHtml(initials(conversation.company))}</span>`}
                     <span class="chat-contact-copy"><strong>${escapeHtml(conversation.company)}</strong><small>${escapeHtml(conversation.title)}</small><em>${conversation.messages.length ? escapeHtml(conversation.messages[conversation.messages.length - 1].text) : 'Proposta enviada'}</em></span>
-                    <span class="chat-contact-time">${conversation.messages.length ? escapeHtml(conversation.messages[conversation.messages.length - 1].time) : ''}</span>
+                    <span class="chat-contact-meta"><span class="chat-contact-time">${conversation.messages.length ? escapeHtml(conversation.messages[conversation.messages.length - 1].time) : (conversation.lastMessageTime || '')}</span>${conversation.unreadCount ? '<span class="chat-card-unread-dot" aria-label="Mensagem não lida"></span>' : ''}</span>
                 </button>
             `).join('') : '<p class="chat-no-contacts">Nenhuma empresa encontrada.</p>';
             document.querySelectorAll('[data-contact-key]').forEach(button => button.addEventListener('click', () => selectConversation(button.dataset.contactKey)));
@@ -95,11 +95,12 @@
             }
             $('chat-empty-state').hidden = true;
             $('chat-active-conversation').hidden = false;
-            $('chat-active-avatar').textContent = initials(state.selected.company);
+            $('chat-active-avatar').innerHTML = state.selected.logoUrl ? `<img class="chat-avatar-image" src="${escapeHtml(state.selected.logoUrl)}" alt="Logo de ${escapeHtml(state.selected.company)}">` : escapeHtml(initials(state.selected.company));
             $('chat-active-company').textContent = state.selected.company;
             $('chat-active-context').textContent = `${state.selected.title} · ${state.selected.event}`;
             $('chat-message-list').innerHTML = state.selected.messages.length ? state.selected.messages.map(message => `
                 <div class="chat-bubble-row ${message.sender === 'organizador' ? 'is-mine' : ''}">
+                    ${message.sender !== 'organizador' && message.logoUrl ? `<img class="chat-message-avatar" src="${escapeHtml(message.logoUrl)}" alt="Logo do fornecedor">` : ''}
                     <div class="chat-bubble">${message.attachment ? (message.attachment.type?.startsWith('image/') ? `<a href="${escapeHtml(message.attachment.url)}" target="_blank"><img class="chat-attachment-image" src="${escapeHtml(message.attachment.url)}" alt="${escapeHtml(message.attachment.name)}"></a>` : `<a class="chat-attachment-link" href="${escapeHtml(message.attachment.url)}" target="_blank" download>${escapeHtml(message.attachment.name || 'Baixar arquivo')}</a>`) : ''}${message.text ? `<p>${escapeHtml(message.text)}</p>` : ''}<small>${escapeHtml(message.time)}</small></div>
                 </div>
             `).join('') : '<p class="chat-no-messages">Inicie a negociação com esta empresa.</p>';
@@ -107,7 +108,9 @@
         }
         async function loadMessages(conversation) {
             const data = await request(`/api/organizador/demandas/${conversation.demandId}/mensagens`);
-            conversation.messages = (data.messages || []).map(message => ({ sender: message.remetente, text: message.texto, attachment: message.anexo_url ? { url: message.anexo_url, name: message.anexo_nome, type: message.anexo_tipo } : null, time: message.enviado_em ? new Date(message.enviado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '' }));
+            conversation.messages = (data.messages || []).map(message => ({ sender: message.remetente, text: message.texto, logoUrl: message.remetente_logo_url || (message.remetente === 'fornecedor' ? conversation.logoUrl : ''), attachment: message.anexo_url ? { url: message.anexo_url, name: message.anexo_nome, type: message.anexo_tipo } : null, time: message.enviado_em ? new Date(message.enviado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '' }));
+            conversation.lastMessageTime = conversation.messages.length ? conversation.messages[conversation.messages.length - 1].time : (conversation.lastMessageTime || '');
+            conversation.lastMessageTimestamp = data.messages?.length ? new Date(data.messages[data.messages.length - 1].enviado_em).getTime() : (conversation.lastMessageTimestamp || 0);
         }
         async function refreshSelectedConversation() {
             if (document.hidden || !state.selected) return;
@@ -117,6 +120,7 @@
             const previousScrollTop = messageList.scrollTop;
             try {
                 await loadMessages(state.selected);
+                state.conversations.sort((a, b) => (b.lastMessageTimestamp || 0) - (a.lastMessageTimestamp || 0));
                 if (state.selected?.key === key) {
                     renderContacts();
                     renderMessages(false);
@@ -131,9 +135,30 @@
             if (!state.selected) return;
             renderContacts();
             renderMessages();
-            try { await loadMessages(state.selected); renderContacts(); renderMessages(); } catch (error) { alert(error.message); }
+            try {
+                await loadMessages(state.selected);
+                await request('/api/organizador/chat/marcar-lidas', { method: 'POST', body: JSON.stringify({ demanda_id: state.selected.demandId }) });
+                state.selected.unreadCount = 0;
+                renderContacts();
+                renderMessages();
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+        async function refreshUnreadConversations() {
+            try {
+                const data = await request('/api/organizador/chat/nao-lidas');
+                const unreadByDemand = data.unreadByDemand || {};
+                state.conversations.forEach(conversation => {
+                    conversation.unreadCount = Number(unreadByDemand[String(conversation.demandId)] || 0);
+                });
+                renderContacts();
+            } catch (error) {
+                console.warn('Não foi possível atualizar as notificações:', error.message);
+            }
         }
         async function loadDashboard() {
+            const unreadData = await request('/api/organizador/chat/nao-lidas');
             const data = await request('/api/organizador/chat');
             const conversations = (data.conversations || []).map(item => ({
                 key: `${item.demanda_id}-${item.proposta_id}`,
@@ -142,14 +167,15 @@
                 company: item.empresa || 'Fornecedor',
                 title: item.titulo || 'Proposta comercial',
                 event: item.evento_nome || 'Evento',
+                logoUrl: item.logo_url || '',
+                lastMessageTime: item.ultima_mensagem_em ? new Date(item.ultima_mensagem_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '',
+                lastMessageText: item.ultima_mensagem_texto || '',
+                unreadCount: Number((unreadData.unreadByDemand || {})[String(item.demanda_id)] || 0),
                 messages: []
             }));
             state.conversations = conversations;
             renderContacts();
-            const requestedDemand = params.get('demanda_id');
-            const initial = conversations.find(conversation => String(conversation.demandId) === requestedDemand) || conversations[0];
-            if (initial) await selectConversation(initial.key);
-            else renderMessages();
+            renderMessages();
         }
         $('chat-search-input').addEventListener('input', renderContacts);
         let pendingAttachment = null;
@@ -164,14 +190,14 @@
             if (!state.selected || (!$('chat-message-input').value.trim() && !pendingAttachment)) return;
             const input = $('chat-message-input');
             try {
-                await request(`/api/organizador/demandas/${state.selected.demandId}/mensagens`, { method: 'POST', body: JSON.stringify({ texto: input.value.trim(), anexo: pendingAttachment }) });
+                await request(`/api/organizador/demandas/${state.selected.demandId}/mensagens`, { method: 'POST', body: JSON.stringify({ texto: input.value.trim(), anexo: pendingAttachment, proposta_id: state.selected.proposalId }) });
                 input.value = '';
                 pendingAttachment = null; $('chat-attachment-input').value = ''; $('chat-attachment-name').textContent = '';
                 await selectConversation(state.selected.key);
             } catch (error) { alert(error.message); }
         });
         loadDashboard().catch(error => { $('chat-contact-list').innerHTML = `<p class="chat-no-contacts">${escapeHtml(error.message)}</p>`; });
-        window.setInterval(refreshSelectedConversation, 2500);
+        window.setInterval(() => { refreshSelectedConversation(); refreshUnreadConversations(); }, 2500);
     </script>
 </body>
 </html>
