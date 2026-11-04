@@ -301,13 +301,26 @@ IF OBJECT_ID(N'dbo.eventos', N'U') IS NOT NULL
 GO
 
 IF OBJECT_ID(N'dbo.eventos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.eventos', N'descricao') IS NULL
-    ALTER TABLE dbo.eventos ADD descricao varchar(max) NULL;
+    ALTER TABLE dbo.eventos ADD descricao nvarchar(max) NULL;
+IF OBJECT_ID(N'dbo.eventos', N'U') IS NOT NULL
+   AND COL_LENGTH(N'dbo.eventos', N'descricao') IS NOT NULL
+   AND EXISTS (
+       SELECT 1
+       FROM sys.columns c
+       INNER JOIN sys.types t ON t.user_type_id = c.user_type_id
+       WHERE c.object_id = OBJECT_ID(N'dbo.eventos')
+         AND c.name = N'descricao'
+         AND t.name <> N'nvarchar'
+   )
+    ALTER TABLE dbo.eventos ALTER COLUMN descricao nvarchar(max) NULL;
 IF OBJECT_ID(N'dbo.eventos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.eventos', N'nome_local') IS NULL
     ALTER TABLE dbo.eventos ADD nome_local varchar(200) NULL;
 IF OBJECT_ID(N'dbo.eventos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.eventos', N'banner_mobile') IS NULL
     ALTER TABLE dbo.eventos ADD banner_mobile varchar(max) NULL;
 IF OBJECT_ID(N'dbo.eventos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.eventos', N'banner_desktop') IS NULL
     ALTER TABLE dbo.eventos ADD banner_desktop varchar(max) NULL;
+IF OBJECT_ID(N'dbo.eventos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.eventos', N'mapa_evento') IS NULL
+    ALTER TABLE dbo.eventos ADD mapa_evento varchar(max) NULL;
 IF OBJECT_ID(N'dbo.eventos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.eventos', N'camarotes_quantidade') IS NULL
     ALTER TABLE dbo.eventos ADD camarotes_quantidade int NULL;
 IF OBJECT_ID(N'dbo.eventos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.eventos', N'camarote_capacidade') IS NULL
@@ -1077,6 +1090,9 @@ BEGIN
     CREATE INDEX idx_evento_documentos_evento ON dbo.evento_documentos(evento_id, status);
 END;
 GO
+IF COL_LENGTH('dbo.evento_documentos', 'categoria') IS NULL
+    ALTER TABLE dbo.evento_documentos ADD categoria varchar(120) NULL;
+GO
 
 IF OBJECT_ID(N'dbo.evento_tarefas', N'U') IS NULL
 BEGIN
@@ -1092,6 +1108,9 @@ BEGIN
     );
     CREATE INDEX idx_evento_tarefas_evento ON dbo.evento_tarefas(evento_id, concluida);
 END;
+GO
+IF COL_LENGTH('dbo.evento_tarefas', 'status') IS NULL
+    ALTER TABLE dbo.evento_tarefas ADD status varchar(30) NOT NULL CONSTRAINT df_evento_tarefas_status DEFAULT 'pendente';
 GO
 
 IF OBJECT_ID(N'dbo.fornecedor_colaboradores', N'U') IS NULL

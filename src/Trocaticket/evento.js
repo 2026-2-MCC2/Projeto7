@@ -21,12 +21,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     return String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
   }
 
+  function resolveImagePath(image) {
+    if (!image || typeof image !== 'string' || !image.trim()) return '';
+    const value = image.trim();
+    if (/^(data:|blob:|https?:\/\/|\/)/i.test(value)) return value;
+    return `/${value.replace(/^\.?\//, '')}`;
+  }
+
   function resolveEventImage(event) {
-    if (event.imagem && String(event.imagem).trim()) {
-      const image = String(event.imagem).trim();
-      if (/^(data:|blob:|https?:\/\/|\/)/i.test(image)) return image;
-      return `/${image.replace(/^\.?\//, '')}`;
-    }
+    const horizontalImage = event.imagem_horizontal || event.banner_desktop || event.bannerHorizontal;
+    const verticalImage = event.imagem || event.capaVertical;
+    const isDesktop = window.matchMedia('(min-width: 768px)').matches;
+    const preferredImage = isDesktop ? horizontalImage : verticalImage;
+    const fallbackImage = isDesktop ? verticalImage : horizontalImage;
+    if (resolveImagePath(preferredImage)) return resolveImagePath(preferredImage);
+    if (resolveImagePath(fallbackImage)) return resolveImagePath(fallbackImage);
     const eventName = String(event.name || '').toLowerCase();
     if (eventName.includes('arena')) return '/imagens/arena+.jpeg';
     if (eventName.includes('sea') || eventName.includes('club')) return '/imagens/sea club.jpeg';
@@ -134,6 +143,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const event = (data.events || []).find(item => String(item.id) === String(eventId));
     if (!response.ok || !event) throw new Error('Evento não encontrado.');
     renderEvent(event);
+    const imageMediaQuery = window.matchMedia('(min-width: 768px)');
+    const refreshEventImage = () => {
+      elements.cover.src = resolveEventImage(currentEvent);
+    };
+    if (imageMediaQuery.addEventListener) imageMediaQuery.addEventListener('change', refreshEventImage);
+    else imageMediaQuery.addListener(refreshEventImage);
   } catch (error) {
     elements.name.textContent = 'Evento não encontrado';
     elements.description.textContent = error.message;

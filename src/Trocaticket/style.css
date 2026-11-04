@@ -281,9 +281,12 @@ a {
   letter-spacing: -0.03em;
 }
 
-.carousel-controls {
-  display: flex;
-  gap: 6px;
+.carousel-stage {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 38px;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
 }
 
 .carousel-button {
@@ -305,8 +308,10 @@ a {
 }
 
 .event-carousel {
-  width: min(350px, 100%) !important;
-  margin: 0 auto;
+  width: 100% !important;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
   overflow: hidden;
   position: relative;
   border-radius: 10px;
@@ -314,34 +319,45 @@ a {
 
 .carousel-track {
   display: flex;
+  width: 100%;
   gap: 0 !important;
   transition: transform 0.45s ease;
 }
 
 .event-carousel-section .carousel-slide {
+  box-sizing: border-box;
   flex: 0 0 100% !important;
+  min-width: 100% !important;
   width: 100% !important;
-  max-width: 350px !important;
-  margin: 0 auto !important;
+  max-width: 100% !important;
+  margin: 0 !important;
   position: relative;
   overflow: hidden;
   border-radius: 10px;
+  background: #000;
+  aspect-ratio: 4 / 5;
 }
 
 .event-carousel-section .carousel-slide img {
   width: 100% !important;
-  height: min(438px, calc((100vw - 64px) * 1.25)) !important;
-  aspect-ratio: 4 / 5 !important;
-  object-fit: cover !important;
+  height: 100% !important;
+  aspect-ratio: auto !important;
+  object-fit: contain !important;
+  object-position: center;
   display: block;
   border-radius: 10px;
 }
 
 .event-carousel-section .carousel-slide-content {
   position: absolute;
-  inset: auto 16px 16px !important;
+  inset: 0 !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 52px 16px 16px;
   color: #fff;
   z-index: 2;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.82));
 }
 
 .carousel-slide-content span {
@@ -1523,7 +1539,71 @@ a {
   .carousel-heading h2 {
     font-size: 20px;
   }
+  .carousel-stage {
+    grid-template-columns: 32px minmax(0, 1fr) 32px;
+    gap: 6px;
+    width: 100%;
+    min-width: 0;
+  }
+  .carousel-button {
+    width: 32px;
+    height: 32px;
+  }
+  .event-carousel {
+    overflow: hidden;
+  }
+  .event-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .event-card {
+    min-width: 0;
+  }
+  .event-card img {
+    aspect-ratio: 4 / 5;
+  }
+  .event-card-body {
+    padding: 10px;
+    min-height: 150px;
+  }
+  .event-card-body h3 {
+    font-size: 15px;
+  }
+  .event-card-body .eyebrow {
+    font-size: 8px;
+  }
+  .event-card-body .event-meta {
+    font-size: 10px;
+  }
+  .event-card-foot .card-button {
+    padding: 7px 9px;
+    font-size: 11px;
+  }
   .form-row {
     grid-template-columns: 1fr;
   }
+}
+
+@media (min-width: 768px) {
+  .event-carousel-section {
+    width: min(1200px, calc(100% - 64px)) !important;
+  }
+
+  .event-carousel {
+    width: 100% !important;
+  }
+
+  .event-carousel-section .carousel-slide {
+    max-width: none !important;
+    aspect-ratio: 16 / 7;
+    background: #000;
+  }
+
+  .event-carousel-section .carousel-slide img {
+    width: 100% !important;
+    height: 100% !important;
+    aspect-ratio: auto !important;
+    object-fit: contain !important;
+  }
+
 }

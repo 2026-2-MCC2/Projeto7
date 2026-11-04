@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', async () => {
   const eventId = new URLSearchParams(window.location.search).get('id');
   const elements = {
-    cover: document.getElementById('checkout-cover'), kicker: document.getElementById('checkout-kicker'), name: document.getElementById('checkout-event-name'), lineup: document.getElementById('checkout-lineup'), classification: document.getElementById('classification'), location: document.getElementById('stay-location'), sectors: document.getElementById('sector-list'), summaryItems: document.getElementById('summary-items'), subtotal: document.getElementById('summary-total'), fees: document.getElementById('summary-fees'), buy: document.getElementById('buy-button'), countdownLabel: document.getElementById('countdown-label'), countdownValue: document.getElementById('countdown-value'), promoForm: document.getElementById('promo-form'), promoCode: document.getElementById('promo-code'), promoFeedback: document.getElementById('promo-feedback'), map: document.getElementById('map-modal'), mapButton: document.getElementById('map-button'), stayButton: document.getElementById('stay-button')
+    cover: document.getElementById('checkout-cover'), kicker: document.getElementById('checkout-kicker'), name: document.getElementById('checkout-event-name'), lineup: document.getElementById('checkout-lineup'), classification: document.getElementById('classification'), location: document.getElementById('stay-location'), sectors: document.getElementById('sector-list'), summaryItems: document.getElementById('summary-items'), subtotal: document.getElementById('summary-total'), fees: document.getElementById('summary-fees'), buy: document.getElementById('buy-button'), countdownLabel: document.getElementById('countdown-label'), countdownValue: document.getElementById('countdown-value'), promoForm: document.getElementById('promo-form'), promoCode: document.getElementById('promo-code'), promoFeedback: document.getElementById('promo-feedback'), map: document.getElementById('map-modal'), mapButton: document.getElementById('map-button'), mapImage: document.getElementById('event-map-image'), mapVisual: document.getElementById('event-map-visual'), stayButton: document.getElementById('stay-button')
   };
   let currentEvent = null;
   let ticketOptions = [];
@@ -9,12 +9,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   let discountRate = 0;
   let countdownTimer = null;
 
+  function resolveImagePath(image) {
+    if (!image || typeof image !== 'string' || !image.trim()) return '';
+    const value = image.trim();
+    if (/^(data:|blob:|https?:\/\/|\/)/i.test(value)) return value;
+    return `/${value.replace(/^\.?\//, '')}`;
+  }
+
   function resolveImage(event) {
-    if (event.imagem && String(event.imagem).trim()) {
-      const image = String(event.imagem).trim();
-      if (/^(data:|blob:|https?:\/\/|\/)/i.test(image)) return image;
-      return `/${image.replace(/^\.?\//, '')}`;
-    }
+    const horizontalImage = event.imagem_horizontal || event.banner_desktop || event.bannerHorizontal;
+    const verticalImage = event.imagem || event.capaVertical;
+    const preferredImage = window.matchMedia('(min-width: 768px)').matches ? horizontalImage : verticalImage;
+    const fallbackImage = window.matchMedia('(min-width: 768px)').matches ? verticalImage : horizontalImage;
+    if (resolveImagePath(preferredImage)) return resolveImagePath(preferredImage);
+    if (resolveImagePath(fallbackImage)) return resolveImagePath(fallbackImage);
     const name = String(event.name || '').toLowerCase();
     if (name.includes('sea') || name.includes('club')) return '/imagens/sea club.jpeg';
     if (name.includes('arena')) return '/imagens/arena+.jpeg';
@@ -159,7 +167,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   try {
     const response = await fetch(`/api/events/${encodeURIComponent(eventId)}`); const data = await response.json(); currentEvent = data.event; if (!response.ok || !currentEvent) throw new Error('Evento não encontrado.');
+    if (currentEvent.mapa_evento) {
+      elements.mapImage.src = resolveImagePath(currentEvent.mapa_evento);
+      elements.mapImage.hidden = false;
+      elements.mapVisual.hidden = true;
+    }
     elements.cover.src = resolveImage(currentEvent); elements.cover.alt = `Capa de ${currentEvent.name}`; elements.kicker.textContent = `${eventDate(currentEvent.date)} · ${currentEvent.location || 'Local a confirmar'}`; elements.name.textContent = currentEvent.artista ? `${currentEvent.name || 'Evento'} - ${currentEvent.artista}` : (currentEvent.name || 'Evento'); elements.lineup.textContent = ''; elements.classification.textContent = currentEvent.classification || 'Livre'; elements.location.textContent = currentEvent.location || 'a região do evento';
+    const imageMediaQuery = window.matchMedia('(min-width: 768px)');
+    const refreshCheckoutImage = () => { elements.cover.src = resolveImage(currentEvent); };
+    if (imageMediaQuery.addEventListener) imageMediaQuery.addEventListener('change', refreshCheckoutImage);
+    else imageMediaQuery.addListener(refreshCheckoutImage);
     const eventStart = new Date(currentEvent.date); const eventEnd = new Date(currentEvent.endDate || currentEvent.date); const formatTime = value => Number.isNaN(value.getTime()) ? 'A confirmar' : value.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); const eventLocation = currentEvent.location || 'A confirmar';
     document.getElementById('official-event-name').textContent = currentEvent.artista ? `${currentEvent.name || 'Evento'} - ${currentEvent.artista}` : (currentEvent.name || 'Evento'); document.getElementById('official-event-date').textContent = eventDate(currentEvent.date); document.getElementById('official-event-time').textContent = `${formatTime(eventStart)} às ${formatTime(eventEnd)}`; document.getElementById('official-event-venue').textContent = eventLocation; document.getElementById('official-event-address').textContent = currentEvent.address || eventLocation; document.getElementById('official-event-city').textContent = currentEvent.city || eventLocation; document.getElementById('official-event-style').textContent = currentEvent.genre || currentEvent.estilo || 'A confirmar'; document.getElementById('official-event-opening').textContent = formatTime(eventStart); document.title = `Checkout | ${currentEvent.name}`;
     ticketOptions = normalizedOptions(currentEvent); renderTicketOptions(); updateSummary(); updateCountdown(); countdownTimer = window.setInterval(updateCountdown, 1000);

@@ -102,10 +102,20 @@ document.addEventListener('DOMContentLoaded', () => {
   let carouselTrack = null;
   let autoPlayTimer = null;
 
+  function resolveImagePath(image) {
+    if (!image || typeof image !== 'string' || !image.trim()) return '';
+    const value = image.trim();
+    if (/^(data:|blob:|https?:\/\/|\/)/i.test(value)) return value;
+    return `/${value.replace(/^\.?\//, '')}`;
+  }
+
   function resolveEventImage(ev) {
-    if (ev.imagem && typeof ev.imagem === 'string' && ev.imagem.trim()) {
-      return ev.imagem.trim();
-    }
+    const horizontalImage = ev.imagem_horizontal || ev.banner_desktop || ev.bannerHorizontal;
+    const verticalImage = ev.imagem || ev.capaVertical;
+    const preferredImage = window.matchMedia('(min-width: 768px)').matches ? horizontalImage : verticalImage;
+    const fallbackImage = window.matchMedia('(min-width: 768px)').matches ? verticalImage : horizontalImage;
+    if (resolveImagePath(preferredImage)) return resolveImagePath(preferredImage);
+    if (resolveImagePath(fallbackImage)) return resolveImagePath(fallbackImage);
     const name = String(ev.name || ev.nome || '').toLowerCase();
     if (name.includes('arena')) return '/imagens/arena+.jpeg';
     if (name.includes('sea') || name.includes('club')) return '/imagens/sea club.jpeg';
@@ -114,6 +124,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (name.includes('terra')) return '/imagens/terra sp.jpeg';
     if (name.includes('chefe')) return '/imagens/festa do chefe.jpeg';
     return '/imagens/logo troca ticket.png';
+  }
+
+  function resolveEventCover(ev) {
+    const cover = ev.imagem || ev.capaVertical;
+    return resolveImagePath(cover) || resolveEventImage(ev);
   }
 
   function formatShortDate(dateStr) {
@@ -156,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="carousel-track" id="carousel-track">
         ${carouselEvents.map(ev => `
           <div class="carousel-slide" data-id="${ev.id}">
-            <img src="${resolveEventImage(ev)}" alt="${ev.name || 'Evento'}">
+            <img src="${resolveEventImage(ev)}" alt="${escapeHtml(ev.name || 'Evento')}">
             <div class="carousel-slide-content">
               <div style="margin-top: 24px;">
                 <h3>${ev.name || 'Evento'}</h3>
@@ -254,7 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     eventGrid.innerHTML = events.map(ev => `
       <article class="event-card" data-id="${ev.id}">
-        <img src="${resolveEventImage(ev)}" alt="${ev.name || 'Evento'}">
+        <img src="${resolveEventCover(ev)}" alt="${ev.name || 'Evento'}">
         <div class="event-card-body">
           <div style="margin-top: 12px;">
             <p class="eyebrow" style="margin-bottom: 6px;">${formatShortDate(ev.date)} · ${ev.location || 'Local a definir'}</p>
@@ -317,6 +332,17 @@ document.addEventListener('DOMContentLoaded', () => {
     .catch(err => {
       console.error('[index] Erro ao buscar eventos:', err);
     });
+
+  const imageMediaQuery = window.matchMedia('(min-width: 768px)');
+  const refreshCarouselImages = () => {
+    if (!carouselEvents.length || !carouselContainer) return;
+    carouselContainer.querySelectorAll('.carousel-slide img').forEach(image => {
+      const event = carouselEvents.find(item => String(item.id) === String(image.closest('.carousel-slide')?.dataset.id));
+      if (event) image.src = resolveEventImage(event);
+    });
+  };
+  if (imageMediaQuery.addEventListener) imageMediaQuery.addEventListener('change', refreshCarouselImages);
+  else imageMediaQuery.addListener(refreshCarouselImages);
 
   // ===== MODAL DE DETALHES E COMPRA =====
   const eventModal = document.getElementById('event-modal');

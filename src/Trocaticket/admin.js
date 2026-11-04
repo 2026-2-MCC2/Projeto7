@@ -631,21 +631,50 @@ class AdminPanel {
 
     listContainer.innerHTML = activities.map(activity => `
       <div class="activity-item">
-        <strong>${activity.actorName || 'Sistema'} (${this.translateUserType(activity.actorType || 'sistema')})</strong><br>
-        <span>${activity.description || this.formatAuditAction(activity.action)}</span><br>
-        <small>Item: ${this.translateAuditItem(activity.itemType, activity.itemId)} · ${this.formatDateTime(activity.timestamp || activity.createdAt)}</small>
+        <strong>${this.repairAuditText(activity.actorName || 'Sistema')} (${this.translateUserType(activity.actorType || 'sistema')})</strong><br>
+        <span>${this.formatAuditDescription(activity.description, activity.action, activity.itemType, activity.itemId)}</span><br>
+        <small>${this.translateAuditItem(activity.itemType, activity.itemId)} · ${this.formatDateTime(activity.timestamp || activity.createdAt)}</small>
       </div>
     `).join('');
   }
 
+  repairAuditText(value) {
+    let text = String(value || '');
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      text = text.replaceAll('ÃƒÂ', 'Ã').replaceAll('Ãƒ', 'Ã');
+      if (!/[ÃÂâ€™]/.test(text) || typeof TextDecoder === 'undefined') break;
+      const bytes = Uint8Array.from([...text].map(character => character.charCodeAt(0) & 0xff));
+      const decoded = new TextDecoder('utf-8').decode(bytes);
+      if (decoded === text || decoded.includes('\ufffd')) break;
+      text = decoded;
+    }
+    return text;
+  }
+
+  formatAuditDescription(description, action, itemType, itemId) {
+    const text = this.repairAuditText(description || '');
+    const generic = text.match(/^Ação\s+(GET|POST|PUT|PATCH|DELETE)\s+realizada em (.+)\.?$/i);
+    if (!generic) return text || this.formatAuditAction(this.repairAuditText(action));
+    const labels = {
+      GET: 'Consulta realizada',
+      POST: 'Cadastro realizado',
+      PUT: 'Atualização realizada',
+      PATCH: 'Atualização realizada',
+      DELETE: 'Exclusão realizada'
+    };
+    const item = this.translateAuditItem(itemType, itemId);
+    return `${labels[generic[1].toUpperCase()] || 'Atividade registrada'}: ${item}`;
+  }
+
   formatAuditAction(action) {
-    return String(action || '').replace(/_/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
+    return this.repairAuditText(action).replace(/_/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
   }
 
   translateAuditItem(type, id) {
-    if (type === 'ingresso') return `Ingresso: ${id || 'Código não identificado'}`;
-    const labels = { evento: 'Evento', ingresso: 'Ingresso', usuario: 'Usuário', pedido: 'Pedido' };
-    return id ? `${labels[type] || type || 'Item'}: ${id}` : (labels[type] || type || 'Item');
+    const normalizedType = this.repairAuditText(type).toLowerCase();
+    const labels = { evento: 'Evento', ingresso: 'Ingresso', usuario: 'Usuário', pedido: 'Pedido', registro: 'Registro', conta: 'Conta' };
+    const label = labels[normalizedType] || this.repairAuditText(type) || 'Item';
+    return id ? `${label}: ${this.repairAuditText(id)}` : label;
   }
 
   async fetchFeaturedEvents() {
@@ -686,7 +715,7 @@ class AdminPanel {
       const data = await response.json();
       const body = document.getElementById('audit-table-body');
       if (!body) return;
-      body.innerHTML = data.logs?.length ? data.logs.map(log => `<tr><td>${log.actorName || 'Sistema'}</td><td>${this.translateUserType(log.actorType || 'sistema')}</td><td>${this.formatAuditAction(log.action)}</td><td>${log.description}</td><td>${this.translateAuditItem(log.itemType, log.itemId)}</td><td>${this.formatDateTime(log.timestamp)}</td></tr>`).join('') : '<tr><td colspan="6" class="empty-state">Nenhuma atividade registrada</td></tr>';
+      body.innerHTML = data.logs?.length ? data.logs.map(log => `<tr><td>${this.repairAuditText(log.actorName || 'Sistema')}</td><td>${this.translateUserType(log.actorType || 'sistema')}</td><td>${this.formatAuditAction(log.action)}</td><td>${this.formatAuditDescription(log.description, log.action, log.itemType, log.itemId)}</td><td>${this.translateAuditItem(log.itemType, log.itemId)}</td><td>${this.formatDateTime(log.timestamp)}</td></tr>`).join('') : '<tr><td colspan="6" class="empty-state">Nenhuma atividade registrada</td></tr>';
     } catch { }
   }
 
