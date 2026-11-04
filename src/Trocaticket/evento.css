@@ -51,3 +51,7 @@ button { cursor: pointer; }
 .purchase-button:hover:not(:disabled) { background: #1d4ed8; }
 .purchase-button:disabled { cursor: wait; opacity: .5; }
 @media (min-width: 700px) { .event-content { width: min(760px, calc(100% - 72px)); } }
+@media (min-width: 768px) {
+  .event-hero { height: clamp(360px, 38vw, 620px); }
+  .event-cover { object-fit: cover; object-position: center; }
+}

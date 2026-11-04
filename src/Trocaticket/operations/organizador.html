@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="../admin.css">
-    <link rel="stylesheet" href="../organizador.css">
+    <link rel="stylesheet" href="../organizador.css?v=20261103-checklist-contrast">
     <title>Painel do Organizador | TrocaTicket</title>
 </head>
 <body class="organizer-body">
@@ -44,6 +44,7 @@
                 <div class="topbar-actions">
                     <span id="organizer-name" class="user-pill">Organizador</span>
                     <button type="button" id="btn-organizer-logout" class="btn-logout">Sair</button>
+                    <button type="button" id="btn-voltar-eventos" class="btn-back-events" data-close="event-editor-modal" hidden>← Voltar</button>
                 </div>
             </header>
 
@@ -131,13 +132,66 @@
                             <p class="section-kicker">Gestão</p>
                             <h2>Eventos e lotes</h2>
                         </div>
+                        <button type="button" id="btn-abrir-novo-evento" class="btn-primary">+ Novo Evento</button>
                     </div>
 
-                    <div class="two-column-layout">
-                        <form id="form-novo-evento" class="glass-form">
+                    <div id="event-editor-modal" class="event-editor-shell hidden" aria-hidden="true">
+                        <div class="event-editor-modal-card">
+                            <div class="modal-header">
+                                <div>
+                                    <span class="section-kicker">Configuração</span>
+                                    <h3 id="event-editor-title">Novo evento</h3>
+                                </div>
+                            </div>
+                            <form id="form-novo-evento" class="glass-form event-editor-form">
                             <div class="field-group">
                                 <label for="ev-nome">Nome do evento</label>
                                 <input type="text" id="ev-nome" required placeholder="Festival de Verão 2026">
+                            </div>
+
+                            <div class="field-group">
+                                <label for="ev-artista">Artista / atração principal</label>
+                                <input type="text" id="ev-artista" placeholder="Ex.: WIU, KayBlack, Ryu, The Runner">
+                            </div>
+
+                            <div class="field-group">
+                                <label for="ev-descricao">Descrição do evento para o consumidor</label>
+                                <textarea id="ev-descricao" rows="5" maxlength="5000" placeholder="Descreva a experiência, atrações, informações importantes e orientações para o público."></textarea>
+                                <small class="field-hint">Este texto será exibido na página pública do evento.</small>
+                            </div>
+
+                            <div class="event-images-grid">
+                                <div class="field-group event-image-field">
+                                    <label>Capa do evento</label>
+                                    <input type="hidden" id="ev-imagem">
+                                    <div id="ev-imagem-preview" class="event-image-preview" hidden>
+                                        <img id="ev-imagem-preview-image" src="" alt="Prévia da capa do evento">
+                                        <span id="ev-imagem-status">Imagem carregada</span>
+                                    </div>
+                                    <label class="event-image-replace" for="ev-imagem-file">Substituir capa (opcional)</label>
+                                    <input type="file" id="ev-imagem-file" accept="image/*">
+                                </div>
+
+                                <div class="field-group event-image-field">
+                                    <label for="ev-imagem-horizontal-file">Banner horizontal responsivo</label>
+                                    <input type="hidden" id="ev-imagem-horizontal">
+                                    <div id="ev-imagem-horizontal-preview" class="event-image-preview event-image-preview-horizontal" hidden>
+                                        <img id="ev-imagem-horizontal-preview-image" src="" alt="Prévia da imagem horizontal do evento">
+                                        <span id="ev-imagem-horizontal-status">Banner horizontal carregado</span>
+                                    </div>
+                                    <label class="event-image-replace" for="ev-imagem-horizontal-file">Substituir banner (opcional)</label>
+                                    <input type="file" id="ev-imagem-horizontal-file" accept="image/*">
+                                </div>
+                                <div class="field-group event-image-field">
+                                    <label for="ev-mapa-file">Mapa do evento</label>
+                                    <input type="hidden" id="ev-mapa">
+                                    <div id="ev-mapa-preview" class="event-image-preview event-image-preview-horizontal" hidden>
+                                        <img id="ev-mapa-preview-image" src="" alt="Prévia do mapa do evento">
+                                        <span id="ev-mapa-status">Mapa carregado</span>
+                                    </div>
+                                    <label class="event-image-replace" for="ev-mapa-file">Anexar ou substituir mapa (opcional)</label>
+                                    <input type="file" id="ev-mapa-file" accept="image/*">
+                                </div>
                             </div>
 
                             <div class="field-row two-columns">
@@ -205,13 +259,16 @@
                             </div>
 
                             <div class="event-form-actions">
-                                <button type="submit" class="btn-primary">Salvar evento</button>
+                                <button type="submit" class="btn-primary" id="btn-salvar-evento">Salvar evento</button>
                                 <button type="button" id="btn-novo-evento" class="btn-secondary">Novo Evento / Limpar</button>
                             </div>
                             <p id="event-form-message" class="form-message"></p>
-                        </form>
+                            </form>
+                        </div>
+                    </div>
 
-                        <div class="glass-panel">
+                    <div class="events-main-layout">
+                        <div class="glass-panel events-list-panel">
                             <div class="card-header-row">
                                 <h3>Eventos cadastrados</h3>
                                 <button type="button" id="btn-recarregar-eventos" class="btn-secondary small">Atualizar</button>
@@ -230,18 +287,6 @@
                                     <tbody id="eventos-org-table-body"></tbody>
                                 </table>
                             </div>
-                            <section id="operational-diagnosis" class="operational-diagnosis" aria-live="polite">
-                                <div class="diagnosis-header">
-                                    <div>
-                                        <span class="diagnosis-kicker">Controle operacional</span>
-                                        <h3>Diagnóstico Operacional: <span id="diagnosis-event-name">Nenhum evento selecionado</span></h3>
-                                    </div>
-                                    <strong id="readiness-label">0% Concluído</strong>
-                                </div>
-                                <div class="readiness-track"><span id="readiness-progress"></span></div>
-                                <div id="operational-checklist" class="operational-checklist"></div>
-                                <p id="capacity-alert" class="capacity-alert" hidden></p>
-                            </section>
                         </div>
                     </div>
                 </section>
@@ -271,16 +316,6 @@
                                     </select>
                                 </div>
                                 <div class="field-group">
-                                    <label for="sim-bebidas">Consumo médio de bebidas</label>
-                                    <input type="number" id="sim-bebidas" min="0" step="0.1" value="1.5">
-                                </div>
-                            </div>
-                            <div class="field-row two-columns">
-                                <div class="field-group">
-                                    <label for="sim-alimentos">Consumo médio de alimentos</label>
-                                    <input type="number" id="sim-alimentos" min="0" step="0.1" value="0.8">
-                                </div>
-                                <div class="field-group">
                                     <label for="sim-ticket">Preço médio do ingresso</label>
                                     <input type="number" id="sim-ticket" min="0" step="0.01" value="120">
                                 </div>
@@ -291,30 +326,27 @@
                                     <strong id="projection-revenue">R$ 0,00</strong>
                                 </div>
                                 <div>
-                                    <span>Margem estimada</span>
-                                    <strong id="projection-margin">0%</strong>
+                                    <span>Margem de erro</span>
+                                    <strong id="projection-margin">Calculando...</strong>
                                 </div>
                             </div>
                             <div class="price-engine-cards">
                                 <div><span>Custo operacional</span><strong id="price-total-cost">R$ 0,00</strong></div>
-                                <div><span>Preço mínimo de cobertura</span><strong id="price-break-even">R$ 0,00</strong></div>
-                                <div><span>Preço ideal sugerido</span><strong id="price-optimum">R$ 0,00</strong></div>
-                                <div><span>Preço teto de risco</span><strong id="price-risk-ceiling">R$ 0,00</strong></div>
                             </div>
                             <div class="finance-differential-card">
-                                <div class="card-header-row"><h3>Diagnóstico diferencial e otimização</h3><span id="finance-concavity" class="finance-chip">Aguardando simulação</span></div>
+                                <div class="card-header-row"><h3>Diagnóstico financeiro</h3><span id="finance-concavity" class="finance-chip">Modelo determinístico</span></div>
                                 <div class="finance-insights">
-                                    <div><span>Lucro máximo recomendado</span><strong id="finance-optimum">—</strong></div>
-                                    <div><span>Ponto de inflexão</span><strong id="finance-inflection">—</strong></div>
-                                    <div><span>Break-even</span><strong id="finance-break-even">—</strong></div>
+                                    <div><span>Break-even unitário</span><strong id="finance-break-even-diagnostic">—</strong></div>
+                                    <div><span>Ingressos esperados</span><strong id="finance-expected-tickets">—</strong></div>
+                                    <div><span>Custos cobertos</span><strong id="finance-cost-coverage">—</strong></div>
                                 </div>
-                                <p id="finance-diagnosis" class="finance-diagnosis">Ajuste os parâmetros para calcular a curva.</p>
-                                <canvas id="finance-profit-chart" height="180" aria-label="Curva de lucro projetada"></canvas>
+                                <p id="finance-diagnosis" class="finance-diagnosis">Ajuste os parâmetros para calcular a receita e os custos.</p>
+                                <canvas id="finance-profit-chart" height="180" aria-label="Curvas de receita e custos operacionais"></canvas>
                                 <div class="finance-chart-legend" aria-label="Legenda do gráfico">
+                                    <span><i class="legend-line revenue-line"></i>Receita projetada</span>
+                                    <span><i class="legend-line cost-line"></i>Custo operacional</span>
                                     <span><i class="legend-dot break-even-dot"></i>Break-even</span>
-                                    <span><i class="legend-dot inflection-dot"></i>Ponto de inflexão</span>
-                                    <span><i class="legend-dot maximum-dot"></i>Lucro máximo</span>
-                                    <span><i class="legend-line current-dot"></i>Preço atual</span>
+                                    <span><i class="legend-line current-price-line"></i>Preço atual do ingresso</span>
                                 </div>
                                 <div id="finance-chart-tooltip" class="finance-chart-tooltip" hidden></div>
                             </div>
@@ -380,7 +412,20 @@
                         <div>
                             <p class="section-kicker">Operação</p>
                             <h2>Checklist e cronograma</h2>
+                            <p class="panel-description">Acompanhe as exigências críticas e os marcos operacionais do evento em um único painel.</p>
                         </div>
+                    </div>
+
+                    <div class="checklist-progress-panel">
+                        <div class="checklist-progress-copy">
+                            <div>
+                                <span class="section-kicker">Prontidão do evento</span>
+                                <h3 id="checklist-progress-label">0% concluído</h3>
+                                <p id="checklist-progress-detail">0 de 0 exigências cumpridas</p>
+                            </div>
+                            <span id="checklist-progress-badge" class="badge badge-warning">Atenção necessária</span>
+                        </div>
+                        <div class="checklist-progress-track"><span id="checklist-progress-bar"></span></div>
                     </div>
 
                     <div class="checklist-grid">
@@ -393,9 +438,9 @@
                                 <thead>
                                     <tr>
                                         <th>Documento</th>
-                                        <th>Prazo</th>
+                                        <th>Prazo limite</th>
                                         <th>Status</th>
-                                        <th>Anexo</th>
+                                        <th>Ação</th>
                                     </tr>
                                 </thead>
                                 <tbody id="document-table-body"></tbody>
@@ -440,6 +485,7 @@
                 <h3>Solicitar cotação</h3>
                 <button type="button" class="modal-close" data-close="quote-modal">×</button>
             </div>
+
             <form id="quote-form">
                 <div class="field-group">
                     <label for="quote-title">Nome do serviço</label>
@@ -455,7 +501,7 @@
                         <input type="date" id="quote-deadline" required>
                     </div>
                     <div class="field-group">
-                        <label for="quote-value">Estimativa</label>
+                        <label for="quote-value">Valor da cotação (R$)</label>
                         <input type="number" id="quote-value" step="0.01" min="0" required>
                     </div>
                 </div>
@@ -500,6 +546,41 @@
         </div>
     </div>
 
+    <div id="document-modal" class="modal hidden" aria-hidden="true">
+        <div class="modal-card checklist-form-modal">
+            <div class="modal-header">
+                <div><span class="section-kicker">Checklist</span><h3 id="document-modal-title">Adicionar exigência documental</h3></div>
+                <button type="button" class="modal-close" data-close="document-modal">×</button>
+            </div>
+            <form id="document-form" class="modal-form">
+                <div class="field-group"><label for="document-name">Documento</label><input id="document-name" name="nome" required maxlength="180" placeholder="Ex.: AVCB do Corpo de Bombeiros"></div>
+                <div class="form-grid-two">
+                    <div class="field-group"><label for="document-category">Categoria</label><input id="document-category" name="categoria" maxlength="120" placeholder="Ex.: Segurança"></div>
+                    <div class="field-group"><label for="document-deadline">Prazo limite</label><input id="document-deadline" name="prazo" type="date" required></div>
+                </div>
+                <div class="field-group"><label for="document-status">Status inicial</label><select id="document-status" name="status"><option value="pendente">Pendente</option><option value="aprovado">Aprovado</option></select></div>
+                <div class="modal-form-actions"><button type="button" class="btn-secondary modal-cancel" data-close="document-modal">Cancelar</button><button type="submit" class="btn-primary" id="document-submit-label">Adicionar exigência</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div id="task-modal" class="modal hidden" aria-hidden="true">
+        <div class="modal-card checklist-form-modal">
+            <div class="modal-header">
+                <div><span class="section-kicker">Cronograma operacional</span><h3 id="task-modal-title">Adicionar marco do evento</h3></div>
+                <button type="button" class="modal-close" data-close="task-modal">×</button>
+            </div>
+            <form id="task-form" class="modal-form">
+                <div class="form-grid-two">
+                    <div class="field-group"><label for="task-time">Horário</label><input id="task-time" name="horario" type="time" required value="09:00"></div>
+                    <div class="field-group"><label for="task-responsible">Responsável</label><input id="task-responsible" name="responsavel" required maxlength="120" placeholder="Ex.: Produção"></div>
+                </div>
+                <div class="field-group"><label for="task-activity">Atividade ou marco</label><input id="task-activity" name="atividade" required maxlength="180" placeholder="Ex.: Abertura de portas"></div>
+                <div class="modal-form-actions"><button type="button" class="btn-secondary modal-cancel" data-close="task-modal">Cancelar</button><button type="submit" class="btn-primary" id="task-submit-label">Adicionar ao cronograma</button></div>
+            </form>
+        </div>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const user = JSON.parse(localStorage.getItem('trocaticket-user') || localStorage.getItem('usuario') || 'null');
@@ -517,6 +598,7 @@
                 avgTicket: 120,
                 eventList: [],
                 costItems: [],
+                salesMetrics: { soldTickets: 0, grossRevenue: 0 },
                 demands: [],
                 documents: [],
                 supplierDocuments: [],
@@ -566,6 +648,11 @@
                 return {
                     id: Number(rawEvent.id || 0),
                     name: rawEvent.name || rawEvent.nome || 'Evento',
+                    artist: rawEvent.artist || rawEvent.artista || '',
+                    description: rawEvent.description || rawEvent.descricao || '',
+                    image: rawEvent.image || rawEvent.imagem || '',
+                    horizontalImage: rawEvent.horizontalImage || rawEvent.imagem_horizontal || rawEvent.banner_desktop || '',
+                    mapImage: rawEvent.mapImage || rawEvent.mapa_evento || '',
                     date: rawEvent.date || rawEvent.data_evento || new Date().toISOString(),
                     endDate: rawEvent.endDate || rawEvent.data_fim || null,
                     address: rawEvent.location || rawEvent.local || rawEvent.address || 'Local não informado',
@@ -638,12 +725,39 @@
                 };
             }
 
+            function deduplicateDemands(rawDemands = []) {
+                const seenIds = new Set();
+                const seenBusinessKeys = new Set();
+                return rawDemands.filter((rawDemand) => {
+                    const rawId = Number(rawDemand?.id || rawDemand?.demanda_id || 0);
+                    const normalizeKeyPart = (value) => String(value || '')
+                        .normalize('NFD')
+                        .replace(/[\u0300-\u036f]/g, '')
+                        .toLowerCase()
+                        .replace(/\s+/g, ' ')
+                        .trim();
+                    const title = normalizeKeyPart(rawDemand?.titulo || rawDemand?.title);
+                    const service = normalizeKeyPart(rawDemand?.servico || rawDemand?.service || 'solicitacao');
+                    const businessKey = `${title}|${service}`;
+
+                    if (rawId > 0) {
+                        if (seenIds.has(rawId)) return false;
+                        seenIds.add(rawId);
+                    }
+                    if (title && seenBusinessKeys.has(businessKey)) return false;
+                    if (title) seenBusinessKeys.add(businessKey);
+                    return true;
+                }).map(normalizeDemand);
+            }
+
             function normalizeDocument(rawDocument = {}) {
                 return {
                     id: Number(rawDocument.id || Date.now() + Math.random()),
                     name: rawDocument.nome || rawDocument.name || 'Documento',
+                    category: rawDocument.categoria || rawDocument.category || 'Geral',
                     deadline: rawDocument.prazo || rawDocument.deadline || new Date().toISOString().slice(0, 10),
                     status: rawDocument.status || 'pendente',
+                    attachmentUrl: rawDocument.anexo_url || rawDocument.attachmentUrl || '',
                     hasAttachment: Boolean(rawDocument.anexo_url || rawDocument.hasAttachment)
                 };
             }
@@ -654,8 +768,85 @@
                     time: rawTask.horario || rawTask.time || '09:00',
                     activity: rawTask.atividade || rawTask.activity || 'Tarefa',
                     responsible: rawTask.responsavel || rawTask.responsible || 'Responsável',
+                    status: rawTask.status || (rawTask.concluida || rawTask.checked ? 'concluida' : 'pendente'),
                     checked: Boolean(rawTask.concluida || rawTask.checked)
                 };
+            }
+
+            const defaultChecklistDocuments = [
+                ['Alvará da Prefeitura', 'Licenças'],
+                ['AVCB do Corpo de Bombeiros', 'Segurança'],
+                ['Laudo Acústico', 'Operação'],
+                ['Contrato de Segurança Privada', 'Segurança'],
+                ['Equipe Médica / Ambulância', 'Saúde']
+            ];
+
+            function checklistStorageKey(eventId) {
+                return `trocaticket-checklist-${eventId}`;
+            }
+
+            function readLocalChecklist(eventId) {
+                try {
+                    return JSON.parse(localStorage.getItem(checklistStorageKey(eventId)) || 'null');
+                } catch (error) {
+                    return null;
+                }
+            }
+
+            function saveLocalChecklist(eventId) {
+                if (!eventId) return;
+                localStorage.setItem(checklistStorageKey(eventId), JSON.stringify({
+                    documents: organizerState.documents,
+                    tasks: organizerState.tasks
+                }));
+            }
+
+            function createDefaultChecklist(eventId) {
+                const event = organizerState.eventList.find(item => item.id === eventId);
+                const deadline = event?.date ? String(event.date).slice(0, 10) : new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+                if (!organizerState.documents.length) {
+                    organizerState.documents = defaultChecklistDocuments.map(([name, category], index) => normalizeDocument({
+                        id: -(index + 1),
+                        nome: name,
+                        categoria: category,
+                        prazo: deadline,
+                        status: 'pendente'
+                    }));
+                }
+                if (!organizerState.tasks.length) organizerState.tasks = [
+                    ['08:00', 'Montagem e vistoria técnica', 'Produção'],
+                    ['16:00', 'Soundcheck', 'Palco'],
+                    ['18:00', 'Abertura de portas', 'Operação'],
+                    ['20:00', 'Início do show principal', 'Produção']
+                ].map(([time, activity, responsible], index) => normalizeTask({
+                    id: -(index + 1),
+                    horario: time,
+                    atividade: activity,
+                    responsavel: responsible,
+                    status: 'pendente'
+                }));
+                saveLocalChecklist(eventId);
+            }
+
+            function mergeLocalChecklist(eventId) {
+                const local = readLocalChecklist(eventId);
+                if (local?.documents?.length) {
+                    const serverDocuments = new Map(organizerState.documents.map(document => [String(document.id), document]));
+                    organizerState.documents = local.documents.map(normalizeDocument).map(document => {
+                        const serverDocument = serverDocuments.get(String(document.id));
+                        return serverDocument ? { ...serverDocument, ...document } : document;
+                    });
+                    organizerState.documents.push(...Array.from(serverDocuments.values()).filter(document => !local.documents.some(item => String(item.id) === String(document.id))));
+                }
+                if (local?.tasks?.length) {
+                    const serverTasks = new Map(organizerState.tasks.map(task => [String(task.id), task]));
+                    organizerState.tasks = local.tasks.map(normalizeTask).map(task => {
+                        const serverTask = serverTasks.get(String(task.id));
+                        return serverTask ? { ...serverTask, ...task } : task;
+                    });
+                    organizerState.tasks.push(...Array.from(serverTasks.values()).filter(task => !local.tasks.some(item => String(item.id) === String(task.id))));
+                }
+                if (!organizerState.documents.length || !organizerState.tasks.length) createDefaultChecklist(eventId);
             }
 
             async function loadEventCatalog() {
@@ -669,6 +860,9 @@
                     capacity: event.capacity || event.publico_maximo || 0,
                     avgTicket: event.price || event.ticket_calculado || 0,
                     classification: event.classification,
+                    artist: event.artist || event.artista,
+                    image: event.image || event.imagem,
+                    horizontalImage: event.horizontalImage || event.imagem_horizontal || event.banner_desktop,
                     status: event.status,
                     destaque: event.destaque,
                     lots: []
@@ -693,6 +887,7 @@
             async function loadOrganizerDashboard() {
                 if (!organizerState.selectedEventId) {
                     organizerState.costItems = [];
+                    organizerState.salesMetrics = { soldTickets: 0, grossRevenue: 0 };
                     organizerState.demands = [];
                     organizerState.documents = [];
                     organizerState.tasks = [];
@@ -702,9 +897,12 @@
 
                 const payload = await fetchJson(`/api/organizador/dashboard?evento_id=${organizerState.selectedEventId}`);
                 const dashboard = payload.dashboard || {};
+                const catalogEvent = organizerState.eventList.find((item) => item.id === organizerState.selectedEventId) || {};
                 const event = normalizeDashboardEvent({
-                    ...organizerState.eventList.find((item) => item.id === organizerState.selectedEventId),
+                    ...catalogEvent,
                     ...dashboard.event,
+                    image: dashboard.event?.image || catalogEvent.image || '',
+                    horizontalImage: dashboard.event?.horizontalImage || catalogEvent.horizontalImage || '',
                     lots: dashboard.lots || [],
                     setores: dashboard.setores || dashboard.sectors || []
                 });
@@ -720,9 +918,14 @@
                 }
 
                 organizerState.costItems = (dashboard.costItems || []).map(normalizeCostItem);
-                organizerState.demands = (dashboard.demands || []).map(normalizeDemand);
+                organizerState.salesMetrics = {
+                    soldTickets: Number(dashboard.salesMetrics?.soldTickets || 0),
+                    grossRevenue: Number(dashboard.salesMetrics?.grossRevenue || 0)
+                };
+                organizerState.demands = deduplicateDemands(dashboard.demands || []);
                 organizerState.documents = (dashboard.documents || []).map(normalizeDocument);
                 organizerState.tasks = (dashboard.tasks || []).map(normalizeTask);
+                mergeLocalChecklist(organizerState.selectedEventId);
                 try {
                     organizerState.supplierDocuments = (await fetchJson('/api/organizador/fornecedor-documentos')).documents || [];
                     organizerState.supplierDocumentsError = '';
@@ -807,8 +1010,6 @@
 
             function refreshFinancialSimulation() {
                 organizerState.occupancy = parseDecimal(document.getElementById('sim-ocupacao')?.value, 75);
-                organizerState.beveragePerPerson = parseDecimal(document.getElementById('sim-bebidas')?.value, 0);
-                organizerState.foodPerPerson = parseDecimal(document.getElementById('sim-alimentos')?.value, 0);
                 organizerState.avgTicket = parseDecimal(document.getElementById('sim-ticket')?.value, 0);
                 renderOverview();
                 renderFinancialEngine();
@@ -1071,19 +1272,27 @@
                 return String(status || 'publicado').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-');
             }
 
+            function isConfirmedCost(item) {
+                return ['contratado', 'confirmado', 'confirmada', 'aprovado', 'aprovada', 'homologado', 'homologada']
+                    .includes(String(item.status || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
+            }
+
+            function getOperationalCost(item) {
+                return isConfirmedCost(item)
+                    ? converterMoedaParaFloat(item.contracted || item.estimated)
+                    : converterMoedaParaFloat(item.estimated);
+            }
+
             function calculateOverview() {
                 const event = getSelectedEvent();
-                const occupancyRate = parseDecimal(document.getElementById('sim-ocupacao')?.value, organizerState.occupancy);
-                const soldTickets = Math.round((event.capacity * occupancyRate) / 100);
-                const rawTicketPrice = converterMoedaParaFloat(document.getElementById('sim-ticket')?.value);
-                const ticketPrice = rawTicketPrice || parseDecimal(document.getElementById('sim-ticket')?.value, event.avgTicket || organizerState.avgTicket);
-                const barPerPerson = converterMoedaParaFloat(document.getElementById('sim-bebidas')?.value) * 18 + converterMoedaParaFloat(document.getElementById('sim-alimentos')?.value) * 25;
-                const grossRevenue = soldTickets * (ticketPrice + barPerPerson);
-                const totalEstimated = organizerState.costItems.reduce((sum, item) => sum + (item.status === 'contratado' ? 0 : converterMoedaParaFloat(item.estimated)), 0);
-                const totalConfirmed = organizerState.costItems.filter(item => item.status === 'contratado').reduce((sum, item) => sum + converterMoedaParaFloat(item.contracted || item.estimated), 0);
-                const economicModel = buildEconomicModel();
-                const netProjection = cubicValue(economicModel.coefficients, 0);
-                const breakEvenTickets = economicModel.netPerPerson > 0 ? Math.ceil(economicModel.fixedCost / economicModel.netPerPerson) : 0;
+                const soldTickets = Number(organizerState.salesMetrics.soldTickets || 0);
+                const grossRevenue = Number(organizerState.salesMetrics.grossRevenue || 0);
+                const occupancyRate = event.capacity > 0 ? Math.min((soldTickets / event.capacity) * 100, 100) : 0;
+                const totalEstimated = organizerState.costItems.reduce((sum, item) => sum + converterMoedaParaFloat(item.estimated), 0);
+                const totalConfirmed = organizerState.costItems.filter(isConfirmedCost).reduce((sum, item) => sum + converterMoedaParaFloat(item.contracted || item.estimated), 0);
+                const averageTicketPrice = soldTickets > 0 ? grossRevenue / soldTickets : Number(event.avgTicket || 0);
+                const netProjection = grossRevenue - totalConfirmed;
+                const breakEvenTickets = averageTicketPrice > 0 ? Math.ceil(totalConfirmed / averageTicketPrice) : 0;
                 const remainingBreakEven = Math.max(breakEvenTickets - soldTickets, 0);
                 const percentBreakEven = breakEvenTickets > 0 ? Math.min((soldTickets / breakEvenTickets) * 100, 100) : 0;
 
@@ -1107,7 +1316,7 @@
 
                 document.getElementById('kpi-revenue').textContent = formatCurrency(grossRevenue);
                 document.getElementById('kpi-revenue-detail').textContent = `${soldTickets} ingressos vendidos`;
-                document.getElementById('kpi-occupancy').textContent = `${occupancyRate}%`;
+                document.getElementById('kpi-occupancy').textContent = `${occupancyRate.toFixed(2)}%`;
                 document.getElementById('occupancy-fill').style.width = `${Math.min(occupancyRate, 100)}%`;
                 document.getElementById('kpi-occupancy-detail').textContent = `${soldTickets} / ${event.capacity} lotados`;
                 document.getElementById('kpi-confirmed-costs').textContent = formatCurrency(totalConfirmed);
@@ -1170,25 +1379,11 @@
                 const projectionRevenue = calculateOverview().grossRevenue;
                 const totalConfirmed = organizerState.costItems.filter(item => item.status === 'contratado').reduce((sum, item) => sum + converterMoedaParaFloat(item.contracted || item.estimated || 0), 0);
                 const totalEstimated = organizerState.costItems.filter(item => item.status !== 'contratado').reduce((sum, item) => sum + converterMoedaParaFloat(item.estimated || 0), 0);
-                const margin = ((projectionRevenue - totalConfirmed - totalEstimated * 0.35) / Math.max(projectionRevenue, 1)) * 100;
 
                 document.getElementById('projection-revenue').textContent = formatCurrency(projectionRevenue);
-                document.getElementById('projection-margin').textContent = `${margin.toFixed(1)}%`;
                 document.getElementById('cost-total-estimated').textContent = formatCurrency(organizerState.costItems.reduce((sum, item) => sum + converterMoedaParaFloat(item.estimated || 0), 0));
                 document.getElementById('cost-total-contracted').textContent = formatCurrency(organizerState.costItems.filter(item => item.status === 'contratado').reduce((sum, item) => sum + converterMoedaParaFloat(item.contracted || item.estimated || 0), 0));
                 renderFinancialEngine();
-            }
-
-            function solveQuadratic(a, b, c) {
-                if (Math.abs(a) < 1e-9) return Math.abs(b) < 1e-9 ? [] : [-c / b];
-                const delta = b * b - 4 * a * c;
-                if (delta < 0) return [];
-                const root = Math.sqrt(delta);
-                return [(-b - root) / (2 * a), (-b + root) / (2 * a)];
-            }
-
-            function cubicValue(coefficients, quantity) {
-                return coefficients.a * quantity ** 3 + coefficients.b * quantity ** 2 + coefficients.c * quantity + coefficients.d;
             }
 
             function buildEconomicModel() {
@@ -1196,104 +1391,99 @@
                 const capacity = Math.max(parseDecimal(document.getElementById('sim-capacidade')?.value, event?.capacity || 1), 1);
                 const price = Math.max(converterMoedaParaFloat(document.getElementById('sim-ticket').value) || parseDecimal(document.getElementById('sim-ticket').value, event?.avgTicket || 0), 0);
                 const occupancy = Math.max(0, Math.min(100, parseDecimal(document.getElementById('sim-ocupacao')?.value, 75)));
-                const beverage = Math.max(converterMoedaParaFloat(document.getElementById('sim-bebidas').value) || parseDecimal(document.getElementById('sim-bebidas').value, 0), 0);
-                const food = Math.max(converterMoedaParaFloat(document.getElementById('sim-alimentos').value) || parseDecimal(document.getElementById('sim-alimentos').value, 0), 0);
-                const fixedCost = organizerState.costItems.reduce((sum, item) => sum + converterMoedaParaFloat(item.estimated || 0), 0);
-                const barRevenuePerPerson = beverage * 18 + food * 25;
-                const cmvPerPerson = (barRevenuePerPerson * 0.40);
-                const netBarPerPerson = barRevenuePerPerson - cmvPerPerson;
+                const fixedCost = organizerState.costItems.reduce((sum, item) => sum + getOperationalCost(item), 0);
                 const demandAtBase = capacity * occupancy / 100;
-                const elasticity = 0.85;
-                const q1 = -demandAtBase * elasticity / Math.max(price, 1);
-                const q2 = demandAtBase * elasticity ** 2 / (2 * Math.max(price, 1) ** 2);
-                const q3 = -demandAtBase * elasticity ** 3 / (6 * Math.max(price, 1) ** 3);
-                const coefficients = {
-                    a: q2 + netBarPerPerson * q3,
-                    b: q1 + netBarPerPerson * q2 + demandAtBase * q2 * price,
-                    c: demandAtBase + netBarPerPerson * q1 + demandAtBase * q1 * price,
-                    d: (price + netBarPerPerson) * demandAtBase - fixedCost
-                };
-                return { capacity, price, occupancy, beverage, food, fixedCost, demandAtBase, netBarPerPerson, netPerPerson: price + netBarPerPerson, coefficients };
+                const coveragePrice = demandAtBase > 0 ? fixedCost / demandAtBase : 0;
+                const projectedRevenue = demandAtBase * price;
+                const totalEstimatedCost = organizerState.costItems.reduce((sum, item) => sum + converterMoedaParaFloat(item.estimated || 0), 0);
+                const unsettledCost = organizerState.costItems
+                    .filter(item => item.status !== 'contratado')
+                    .reduce((sum, item) => sum + converterMoedaParaFloat(item.estimated || 0), 0);
+                const unsettledCostShare = totalEstimatedCost > 0 ? unsettledCost / totalEstimatedCost : 0;
+                const costPressure = price > 0 ? Math.min(1, coveragePrice / price) : 1;
+                return { capacity, price, occupancy, fixedCost, demandAtBase, coveragePrice, projectedRevenue, unsettledCostShare, costPressure };
+            }
+
+            function calculatePredictiveErrorMargin(model) {
+                const occupancyRisk = (100 - model.occupancy) / 100;
+                const costUncertainty = model.unsettledCostShare;
+                const pricePressure = model.costPressure;
+                const rawMargin = 1.5 + (occupancyRisk * 4) + (costUncertainty * 6) + (pricePressure * 3);
+                return Math.min(15, Math.max(1.5, rawMargin));
             }
 
             function renderFinancialEngine() {
                 const model = buildEconomicModel();
-                const { price, coefficients } = model;
-                const derivativeAtBase = 3 * coefficients.a * 0 ** 2 + 2 * coefficients.b * 0 + coefficients.c;
-                const secondAtBase = 6 * coefficients.a * 0 + 2 * coefficients.b;
-                const criticalPoints = solveQuadratic(3 * coefficients.a, 2 * coefficients.b, coefficients.c);
-                const maximumOffset = criticalPoints.filter(point => 6 * coefficients.a * point + 2 * coefficients.b < 0).sort((left, right) => cubicValue(coefficients, right) - cubicValue(coefficients, left))[0] || 0;
-                const maximum = Math.max(0, price + maximumOffset);
-                const inflectionOffset = coefficients.a ? -coefficients.b / (3 * coefficients.a) : null;
-                const inflection = inflectionOffset === null ? null : price + inflectionOffset;
-                let breakEven = null;
-                for (let candidatePrice = 1; candidatePrice <= Math.max(price * 3, 500); candidatePrice += 1) {
-                    if (cubicValue(coefficients, candidatePrice - price) >= 0) { breakEven = candidatePrice; break; }
-                }
-                const currentProfit = cubicValue(coefficients, 0);
-                const currentRevenue = model.demandAtBase * (price + model.netBarPerPerson);
-                const margin = currentRevenue > 0 ? Math.max(0, Math.min(100, currentProfit / currentRevenue * 100)) : 0;
-                document.getElementById('projection-revenue').textContent = formatCurrency(currentRevenue);
-                document.getElementById('projection-margin').textContent = `${margin.toFixed(1)}%`;
-                document.getElementById('price-total-cost').textContent = formatCurrency(model.fixedCost);
-                document.getElementById('price-break-even').textContent = breakEven === null ? 'Não atingido' : formatCurrency(breakEven);
-                document.getElementById('price-optimum').textContent = formatCurrency(maximum);
-                document.getElementById('price-risk-ceiling').textContent = inflection !== null && inflection > price ? formatCurrency(inflection) : 'Sem ponto válido';
-                document.getElementById('finance-optimum').textContent = `${formatCurrency(maximum)} | ${formatCurrency(cubicValue(coefficients, maximum - price))}`;
-                document.getElementById('finance-inflection').textContent = inflection !== null && inflection > 0 ? formatCurrency(inflection) : 'Sem ponto válido';
-                document.getElementById('finance-break-even').textContent = breakEven === null ? 'Não atingido' : formatCurrency(breakEven);
-                document.getElementById('finance-concavity').textContent = secondAtBase < 0 ? 'Concavidade para baixo' : 'Retornos crescentes';
-                document.getElementById('finance-diagnosis').textContent = secondAtBase < 0
-                    ? `Preço base em regime de concavidade para baixo. Derivada no preço base: ${derivativeAtBase.toFixed(2)}.`
-                    : 'A curva ainda está em regime de expansão; monitore a sobrecarga operacional antes de ampliar a ocupação.';
-                drawProfitChart(coefficients, price, maximum, inflection, breakEven);
+                const { price, fixedCost, demandAtBase, coveragePrice, projectedRevenue, unsettledCostShare } = model;
+                const predictiveErrorMargin = calculatePredictiveErrorMargin(model);
+                document.getElementById('projection-revenue').textContent = formatCurrency(projectedRevenue);
+                document.getElementById('projection-margin').textContent = `± ${predictiveErrorMargin.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+                document.getElementById('price-total-cost').textContent = formatCurrency(fixedCost);
+                document.getElementById('finance-break-even-diagnostic').textContent = demandAtBase > 0 ? formatCurrency(coveragePrice) : 'Sem ingressos previstos';
+                document.getElementById('finance-expected-tickets').textContent = demandAtBase.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+                document.getElementById('finance-cost-coverage').textContent = demandAtBase > 0 && projectedRevenue >= fixedCost ? 'Sim' : 'Não';
+                document.getElementById('finance-concavity').textContent = 'Modelo linear';
+                document.getElementById('finance-diagnosis').textContent = demandAtBase > 0
+                    ? `Com ${demandAtBase.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} ingressos esperados, cada bilhete precisa custar ${formatCurrency(coveragePrice)} para cobrir exatamente ${formatCurrency(fixedCost)} em custos operacionais. A margem calculada é de ± ${predictiveErrorMargin.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%, considerando ${(unsettledCostShare * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% dos custos ainda não contratados e a pressão do break-even sobre o preço atual.`
+                    : 'Informe uma ocupação esperada maior que zero para calcular os indicadores.';
+                drawProfitChart(fixedCost, price, coveragePrice, demandAtBase);
             }
 
-            function drawProfitChart(coefficients, basePrice, maximum, inflection, breakEven) {
+            function drawProfitChart(fixedCost, basePrice, coveragePrice, expectedTickets) {
                 const canvas = document.getElementById('finance-profit-chart');
                 if (!canvas) return;
                 const context = canvas.getContext('2d');
-                const width = canvas.clientWidth || 620;
-                const height = canvas.height;
+                const bounds = canvas.getBoundingClientRect();
+                const width = Math.max(Math.round(bounds.width), 320);
+                const height = Math.max(Math.round(bounds.height), 180);
                 const ratio = window.devicePixelRatio || 1;
                 canvas.width = width * ratio;
                 canvas.height = height * ratio;
                 context.setTransform(1, 0, 0, 1, 0, 0);
                 context.scale(ratio, ratio);
                 context.clearRect(0, 0, width, height);
-                const chartMin = Math.max(0, basePrice * 0.25);
-                const chartMax = Math.max(basePrice * 2.5, maximum || 0, inflection || 0, breakEven || 0, 100);
-                const values = Array.from({ length: 61 }, (_, index) => { const candidate = chartMin + (chartMax - chartMin) * index / 60; return cubicValue(coefficients, candidate - basePrice); });
-                const min = Math.min(...values, 0);
-                const max = Math.max(...values, 0);
+                const safeBasePrice = Number.isFinite(basePrice) && basePrice >= 0 ? basePrice : 0;
+                const safeCoveragePrice = Number.isFinite(coveragePrice) && coveragePrice >= 0 ? coveragePrice : 0;
+                const safeFixedCost = Number.isFinite(fixedCost) && fixedCost >= 0 ? fixedCost : 0;
+                const safeExpectedTickets = Number.isFinite(expectedTickets) && expectedTickets > 0 ? expectedTickets : 0;
+                const lowerPrice = Math.min(safeBasePrice, safeCoveragePrice);
+                const upperPrice = Math.max(safeBasePrice, safeCoveragePrice, 1);
+                const chartMin = Math.max(0, lowerPrice > 0 ? lowerPrice * 0.5 : 0);
+                const chartMax = Math.max(chartMin + 1, upperPrice * 1.5);
+                const prices = Array.from({ length: 61 }, (_, index) => {
+                    const candidate = chartMin + (chartMax - chartMin) * index / 60;
+                    return candidate;
+                });
+                const revenueValues = prices.map(candidate => safeExpectedTickets * candidate);
+                const max = Math.max(...revenueValues, safeFixedCost, 1);
                 const x = candidatePrice => (candidatePrice - chartMin) / Math.max(chartMax - chartMin, 1) * (width - 24) + 12;
-                const y = value => height - 18 - ((value - min) / Math.max(max - min, 1)) * (height - 34);
+                const y = value => height - 18 - (value / max) * (height - 34);
                 context.font = '10px Segoe UI';
                 context.fillStyle = '#a3b4d3';
-                context.fillText('Lucro (R$)', 12, 12);
+                context.fillText('Valor (R$)', 12, 12);
                 context.fillText('Preço do ingresso (R$)', Math.max(width - 135, 12), height - 2);
-                context.strokeStyle = 'rgba(148,163,184,.2)';
-                context.beginPath(); context.moveTo(12, y(0)); context.lineTo(width - 12, y(0)); context.stroke();
                 context.fillText(formatCurrency(max), 12, 25);
                 context.fillText('0', 12, height - 20);
                 context.fillText(formatCurrency(chartMax), width - 58, height - 20);
                 context.strokeStyle = '#5ee7a8'; context.lineWidth = 2; context.beginPath();
-                values.forEach((value, index) => { const px = x(chartMin + (chartMax - chartMin) * index / 60); const py = y(value); index ? context.lineTo(px, py) : context.moveTo(px, py); });
+                revenueValues.forEach((value, index) => { const px = x(prices[index]); const py = y(value); index ? context.lineTo(px, py) : context.moveTo(px, py); });
                 context.stroke();
-                context.strokeStyle = 'rgba(76,201,240,.55)'; context.setLineDash([4, 4]); context.beginPath(); context.moveTo(x(basePrice), 18); context.lineTo(x(basePrice), height - 18); context.stroke(); context.setLineDash([]);
-                [[maximum, '#4cc9f0'], [inflection, '#f7c948'], [breakEven, '#c2bbff']].forEach(([candidatePrice, color]) => {
-                    if (candidatePrice === null || candidatePrice < chartMin || candidatePrice > chartMax) return;
-                    context.fillStyle = color; context.beginPath(); context.arc(x(candidatePrice), y(cubicValue(coefficients, candidatePrice - basePrice)), 4, 0, Math.PI * 2); context.fill();
-                });
+                context.strokeStyle = '#ffb86b'; context.lineWidth = 2; context.beginPath();
+                context.moveTo(12, y(safeFixedCost)); context.lineTo(width - 12, y(safeFixedCost)); context.stroke();
+                context.strokeStyle = 'rgba(76,201,240,.55)'; context.setLineDash([4, 4]); context.beginPath(); context.moveTo(x(safeBasePrice), 18); context.lineTo(x(safeBasePrice), height - 18); context.stroke(); context.setLineDash([]);
+                if (safeCoveragePrice >= chartMin && safeCoveragePrice <= chartMax) {
+                    context.fillStyle = '#c2bbff'; context.beginPath(); context.arc(x(safeCoveragePrice), y(safeFixedCost), 4, 0, Math.PI * 2); context.fill();
+                }
                 const tooltip = document.getElementById('finance-chart-tooltip');
                 canvas.onmousemove = event => {
-                    const bounds = canvas.getBoundingClientRect();
-                    const candidatePrice = Math.max(chartMin, Math.min(chartMax, chartMin + ((event.clientX - bounds.left) / bounds.width) * (chartMax - chartMin)));
-                    const profit = cubicValue(coefficients, candidatePrice - basePrice);
+                    const currentBounds = canvas.getBoundingClientRect();
+                    const pointerRatio = currentBounds.width > 0 ? (event.clientX - currentBounds.left) / currentBounds.width : 0;
+                    const candidatePrice = Math.max(chartMin, Math.min(chartMax, chartMin + pointerRatio * (chartMax - chartMin)));
+                    const revenue = safeExpectedTickets * candidatePrice;
                     tooltip.hidden = false;
-                    tooltip.textContent = `${formatCurrency(candidatePrice)} | Lucro: ${formatCurrency(profit)}`;
-                    tooltip.style.left = `${Math.min(event.clientX - bounds.left + 12, bounds.width - 170)}px`;
-                    tooltip.style.top = `${Math.max(event.clientY - bounds.top - 34, 4)}px`;
+                    tooltip.textContent = `${formatCurrency(candidatePrice)} | Receita: ${formatCurrency(revenue)} | Custo: ${formatCurrency(safeFixedCost)}`;
+                    tooltip.style.left = `${Math.min(event.clientX - currentBounds.left + 12, currentBounds.width - 170)}px`;
+                    tooltip.style.top = `${Math.max(event.clientY - currentBounds.top - 34, 4)}px`;
                 };
                 canvas.onmouseleave = () => { tooltip.hidden = true; };
             }
@@ -1402,7 +1592,7 @@
                 if (!modal || !body) return;
                 const services = supplier.services.length ? supplier.services.map(service => `<span class="supplier-service-tag">${escapeHtml(service)}</span>`).join('') : '<span class="supplier-muted">Nenhum serviço registrado</span>';
                 body.innerHTML = `<div class="supplier-detail-header"><div class="supplier-card-avatar">${supplier.logo_url ? `<img src="${escapeHtml(supplier.logo_url)}" alt="">` : escapeHtml(supplier.company_name.slice(0, 1).toUpperCase())}</div><div><span class="eyebrow">Dossiê operacional</span><h2>${escapeHtml(supplier.company_name)}</h2><p>${escapeHtml(supplier.category)} · ${escapeHtml(supplier.email || 'E-mail não informado')}</p></div><span class="supplier-performance-badge supplier-performance-good">${escapeHtml(supplier.compliance.status === 'homologado' ? 'Homologado ativo' : supplier.compliance.status === 'recusado' ? 'Com pendências' : 'Em análise')}</span></div>
-                    <div class="supplier-detail-metrics"><div><span>Serviços entregues</span><strong>${supplier.metrics.service_count}</strong></div><div><span>Atendimentos confirmados</span><strong>${supplier.metrics.confirmed_count}</strong></div><div><span>Prazo médio de entrega</span><strong>${supplier.metrics.average_delivery_days ? `${supplier.metrics.average_delivery_days} dias` : 'Sem histórico'}</strong></div><div><span>Tempo médio de resposta</span><strong>${supplier.metrics.response_hours ? `${supplier.metrics.response_hours} h` : 'Sem histórico'}</strong></div></div>
+                    <div class="supplier-detail-metrics"><div><span>Serviços entregues</span><strong>${supplier.metrics.service_count}</strong></div><div><span>Atendimentos confirmados</span><strong>${supplier.metrics.confirmed_count}</strong></div><div><span>Prazo médio de entrega</span><strong>${supplier.metrics.average_delivery_days ? `${supplier.metrics.average_delivery_days} dias` : 'Sem histórico'}</strong><small>${supplier.metrics.delivery_status || 'Sem histórico'}</small></div><div><span>Tempo médio de resposta</span><strong>${supplier.metrics.response_label || 'Sem histórico'}</strong></div></div>
                     <section class="supplier-detail-section"><h3>Produtos e serviços entregues</h3><div class="supplier-history-services"><div>${services}</div></div></section>
                     <section class="supplier-detail-section"><h3>Conformidade documental</h3><div class="supplier-compliance-progress"><span style="width:${supplier.compliance.score}%"></span></div><p>${supplier.compliance.score}% de conformidade · ${supplier.compliance.approved_documents} de ${supplier.compliance.total_documents} documentos aprovados.</p></section>`;
                 modal.classList.remove('hidden');
@@ -1411,28 +1601,72 @@
 
             function renderDocuments() {
                 const tableBody = document.getElementById('document-table-body');
-                tableBody.innerHTML = organizerState.documents.map(doc => `
-                    <tr>
-                        <td>${doc.name}</td>
-                        <td>${new Date(doc.deadline).toLocaleDateString('pt-BR')}</td>
-                        <td><span class="status-badge ${doc.status}">${doc.status}</span></td>
-                        <td>${doc.hasAttachment ? '<span class="attachment-tag">Arquivo</span>' : '—'}</td>
-                    </tr>
-                `).join('');
+                if (!tableBody) return;
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                tableBody.innerHTML = organizerState.documents.length ? organizerState.documents.map(doc => {
+                    const deadline = new Date(`${doc.deadline}T00:00:00`);
+                    const selectedStatus = String(doc.status || 'pendente').toLowerCase();
+                    const isOverdue = selectedStatus !== 'aprovado' && Number.isFinite(deadline.getTime()) && deadline < today;
+                    const displayStatus = isOverdue ? 'vencido' : selectedStatus;
+                    const label = displayStatus === 'aprovado' ? 'Aprovado' : displayStatus === 'vencido' ? 'Vencido' : displayStatus === 'rejeitado' ? 'Rejeitado' : displayStatus === 'analise' ? 'Em análise' : 'Pendente';
+                    const statusClass = displayStatus === 'aprovado' ? 'status-approved' : displayStatus === 'vencido' || displayStatus === 'rejeitado' ? 'status-critical' : displayStatus === 'analise' ? 'status-analysis' : 'status-pending';
+                    const action = doc.attachmentUrl ? `<a class="btn-secondary small" href="${escapeHtml(doc.attachmentUrl)}" target="_blank" rel="noopener noreferrer">Visualizar</a><button type="button" class="btn-secondary small" data-replace-document="${doc.id}">Substituir</button>` : `<button type="button" class="btn-secondary small" data-attach-document="${doc.id}">Anexar</button>`;
+                    const statusControl = `<select class="checklist-status-select ${statusClass}" data-document-status="${doc.id}" aria-label="Status de ${escapeHtml(doc.name)}"><option value="pendente"${selectedStatus === 'pendente' ? ' selected' : ''}>Pendente</option><option value="analise"${selectedStatus === 'analise' ? ' selected' : ''}>Em análise</option><option value="aprovado"${selectedStatus === 'aprovado' ? ' selected' : ''}>Aprovado</option><option value="rejeitado"${selectedStatus === 'rejeitado' ? ' selected' : ''}>Rejeitado</option></select>`;
+                    return `<tr><td><strong>${escapeHtml(doc.name)}</strong><small class="table-meta">${escapeHtml(doc.category)}</small></td><td>${Number.isFinite(deadline.getTime()) ? deadline.toLocaleDateString('pt-BR') : '—'}</td><td>${statusControl}</td><td><div class="table-actions">${action}<button type="button" class="btn-icon-action" data-edit-document="${doc.id}" aria-label="Editar ${escapeHtml(doc.name)}" title="Editar">✎</button></div></td></tr>`;
+                }).join('') : '<tr><td colspan="4"><p class="empty-state">Nenhuma exigência cadastrada para este evento.</p></td></tr>';
+                tableBody.querySelectorAll('[data-attach-document], [data-replace-document]').forEach(button => button.addEventListener('click', () => openDocumentAttachment(Number(button.dataset.attachDocument || button.dataset.replaceDocument))));
+                tableBody.querySelectorAll('[data-document-status]').forEach(select => select.addEventListener('change', async () => {
+                    const documentItem = organizerState.documents.find(item => String(item.id) === String(select.dataset.documentStatus));
+                    if (!documentItem) return;
+                    const previousStatus = documentItem.status;
+                    documentItem.status = select.value;
+                    if (documentItem.id > 0) {
+                        try {
+                            await fetchJson(`/api/organizador/documentos/${documentItem.id}`, {
+                                method: 'PATCH',
+                                body: JSON.stringify({
+                                    evento_id: organizerState.selectedEventId,
+                                    nome: documentItem.name,
+                                    categoria: documentItem.category,
+                                    prazo: documentItem.deadline,
+                                    status: documentItem.status
+                                })
+                            });
+                        } catch (error) {
+                            documentItem.status = previousStatus;
+                            alert(error.message || 'Não foi possível atualizar o status do documento.');
+                        }
+                    }
+                    saveLocalChecklist(organizerState.selectedEventId);
+                    renderDocuments();
+                    renderChecklistProgress();
+                }));
+                tableBody.querySelectorAll('[data-edit-document]').forEach(button => button.addEventListener('click', () => openDocumentEditor(Number(button.dataset.editDocument))));
             }
 
             function renderRunOfShow() {
                 const list = document.getElementById('runofshow-list');
-                list.innerHTML = organizerState.tasks.map(task => `
-                    <label class="timeline-item ${task.checked ? 'checked' : ''}">
-                        <input type="checkbox" data-task-id="${task.id}" ${task.checked ? 'checked' : ''}>
-                        <span class="time">${task.time}</span>
-                        <span class="task-copy">
-                            <strong>${task.activity}</strong>
-                            <small>${task.responsible}</small>
-                        </span>
-                    </label>
-                `).join('');
+                if (!list) return;
+                const statusLabels = { pendente: 'Pendente', andamento: 'Em andamento', concluida: 'Concluído' };
+                list.innerHTML = organizerState.tasks.length ? organizerState.tasks.map(task => {
+                    const status = task.status === 'concluida' || task.checked ? 'concluida' : task.status === 'andamento' ? 'andamento' : 'pendente';
+                    return `<div class="timeline-item ${status}"><span class="timeline-marker"></span><span class="time">${escapeHtml(task.time)}</span><span class="task-copy"><strong>${escapeHtml(task.activity)}</strong><small>${escapeHtml(task.responsible)}</small></span><select class="task-status-select" data-task-id="${task.id}" aria-label="Status de ${escapeHtml(task.activity)}"><option value="pendente"${status === 'pendente' ? ' selected' : ''}>Pendente</option><option value="andamento"${status === 'andamento' ? ' selected' : ''}>Em andamento</option><option value="concluida"${status === 'concluida' ? ' selected' : ''}>Concluído</option></select><button type="button" class="btn-icon-action" data-edit-task="${task.id}" aria-label="Editar ${escapeHtml(task.activity)}" title="Editar">✎</button></div>`;
+                }).join('') : '<p class="empty-state">Nenhum marco cadastrado para este evento.</p>';
+                list.querySelectorAll('[data-edit-task]').forEach(button => button.addEventListener('click', () => openTaskEditor(Number(button.dataset.editTask))));
+            }
+
+            function renderChecklistProgress() {
+                const items = [...organizerState.documents.map(document => document.status === 'aprovado'), ...organizerState.tasks.map(task => task.status === 'concluida' || task.checked)];
+                const completed = items.filter(Boolean).length;
+                const total = items.length;
+                const percentage = total ? Math.round((completed / total) * 100) : 0;
+                document.getElementById('checklist-progress-label').textContent = `${percentage}% concluído`;
+                document.getElementById('checklist-progress-detail').textContent = `${completed} de ${total} exigências cumpridas`;
+                document.getElementById('checklist-progress-bar').style.width = `${percentage}%`;
+                const badge = document.getElementById('checklist-progress-badge');
+                badge.textContent = percentage === 100 && total ? 'Evento apto' : percentage >= 70 ? 'Quase pronto' : 'Atenção necessária';
+                badge.className = `badge ${percentage === 100 && total ? 'badge-success' : percentage >= 70 ? 'badge-warning' : 'badge-danger'}`;
             }
 
             function renderEventTable() {
@@ -1476,63 +1710,72 @@
                 await loadOrganizerDashboard();
                 const selectedEvent = getSelectedEvent();
                 if (editForm) {
-                    populateEventForm(selectedEvent);
+                    openEventEditor(selectedEvent);
                     setActivePanel('events');
                 }
                 renderAll();
             }
 
-            function operationalStatus(value) {
-                const status = String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-                if (['regularizado', 'aprovado', 'aprovada', 'concluido', 'concluida', 'contratado'].includes(status)) return 'regularizado';
-                if (['em analise', 'em cotacao', 'em andamento'].includes(status)) return 'em-analise';
-                return 'pendente';
+            function updateEventImagePreview(image) {
+                const preview = document.getElementById('ev-imagem-preview');
+                const previewImage = document.getElementById('ev-imagem-preview-image');
+                const status = document.getElementById('ev-imagem-status');
+                if (!preview || !previewImage || !status) return;
+                if (!image) {
+                    preview.hidden = true;
+                    previewImage.removeAttribute('src');
+                    status.textContent = '';
+                    return;
+                }
+                previewImage.onerror = () => {
+                    preview.hidden = true;
+                    status.textContent = 'A capa cadastrada não pôde ser carregada';
+                };
+                previewImage.src = image.startsWith('data:') || image.startsWith('/') || image.startsWith('http')
+                    ? image
+                    : `data:image/jpeg;base64,${image}`;
+                status.textContent = 'Capa atual do evento';
+                preview.hidden = false;
             }
 
-            function findOperationalStatus(keywords) {
-                const sources = [
-                    ...organizerState.documents.map((item) => ({ name: item.name, status: item.status })),
-                    ...organizerState.demands.map((item) => ({ name: `${item.title} ${item.service}`, status: item.status }))
-                ];
-                const match = sources.find((item) => keywords.some((keyword) => item.name.toLowerCase().includes(keyword)));
-                return match ? operationalStatus(match.status) : 'pendente';
+            function updateHorizontalImagePreview(image) {
+                const preview = document.getElementById('ev-imagem-horizontal-preview');
+                const previewImage = document.getElementById('ev-imagem-horizontal-preview-image');
+                const status = document.getElementById('ev-imagem-horizontal-status');
+                if (!preview || !previewImage || !status) return;
+                if (!image) {
+                    preview.hidden = true;
+                    previewImage.removeAttribute('src');
+                    status.textContent = '';
+                    return;
+                }
+                previewImage.onerror = () => {
+                    preview.hidden = true;
+                    status.textContent = 'O banner cadastrado não pôde ser carregado';
+                };
+                previewImage.src = image.startsWith('data:') || image.startsWith('/') || image.startsWith('http')
+                    ? image
+                    : `data:image/jpeg;base64,${image}`;
+                status.textContent = 'Banner horizontal atual';
+                preview.hidden = false;
             }
 
-            function renderOperationalDiagnosis() {
-                const event = getSelectedEvent();
-                const nameElement = document.getElementById('diagnosis-event-name');
-                const checklist = document.getElementById('operational-checklist');
-                const progress = document.getElementById('readiness-progress');
-                const label = document.getElementById('readiness-label');
-                const capacityAlert = document.getElementById('capacity-alert');
-                if (!event || !checklist) return;
-
-                const lotTotal = event.setores.reduce((sum, sector) => sum + sector.lotes.reduce((sectorSum, lot) => sectorSum + Number(lot.quantidade || 0), 0), 0);
-                const capacityExceeded = lotTotal > Number(event.capacity || 0);
-                const checks = [
-                    { label: 'Alvará da Prefeitura / Licença de Funcionamento', status: findOperationalStatus(['alvara', 'licenca']) },
-                    { label: 'AVCB do Corpo de Bombeiros', status: findOperationalStatus(['avcb', 'bombeiros']) },
-                    { label: 'Liberação / Pagamento de ECAD', status: findOperationalStatus(['ecad']) },
-                    { label: 'Equipe Médica e Ambulância Contratadas', status: findOperationalStatus(['medica', 'ambulancia', 'ambulância']) },
-                    { label: 'Empresa de Segurança Privada Fechada', status: findOperationalStatus(['seguranca', 'segurança']) },
-                    { label: 'Validação de Lotação', status: capacityExceeded ? 'pendente' : 'regularizado' }
-                ];
-                const score = Math.round(checks.reduce((total, check) => total + (check.status === 'regularizado' ? 1 : check.status === 'em-analise' ? 0.5 : 0), 0) / checks.length * 100);
-
-                nameElement.textContent = event.name;
-                label.textContent = `${score}% Concluído`;
-                progress.style.width = `${score}%`;
-                checklist.innerHTML = checks.map((check) => `
-                    <article class="operational-item ${check.status}">
-                        <span>${check.label}</span>
-                        <strong>${check.status === 'regularizado' ? 'Regularizado' : check.status === 'em-analise' ? 'Em Análise' : 'Pendente'}</strong>
-                    </article>
-                `).join('');
-
-                capacityAlert.hidden = !capacityExceeded;
-                capacityAlert.textContent = capacityExceeded
-                    ? `A soma dos lotes (${lotTotal}) excede a lotação máxima cadastrada (${event.capacity}).`
-                    : '';
+            function updateMapImagePreview(image) {
+                const preview = document.getElementById('ev-mapa-preview');
+                const previewImage = document.getElementById('ev-mapa-preview-image');
+                const status = document.getElementById('ev-mapa-status');
+                if (!preview || !previewImage || !status) return;
+                if (!image) {
+                    preview.hidden = true;
+                    previewImage.removeAttribute('src');
+                    status.textContent = '';
+                    return;
+                }
+                previewImage.src = image.startsWith('data:') || image.startsWith('/') || image.startsWith('http')
+                    ? image
+                    : `data:image/jpeg;base64,${image}`;
+                status.textContent = 'Mapa atual do evento';
+                preview.hidden = false;
             }
 
             function populateEventForm(event) {
@@ -1540,7 +1783,18 @@
 
                 const form = document.getElementById('form-novo-evento');
                 form.dataset.eventId = String(event.id);
+                delete form.dataset.saveRequestId;
+                form.dataset.saving = 'false';
+                document.getElementById('btn-salvar-evento').disabled = false;
                 document.getElementById('ev-nome').value = event.name || '';
+                document.getElementById('ev-artista').value = event.artist || '';
+                document.getElementById('ev-descricao').value = event.description || '';
+                document.getElementById('ev-imagem').value = '';
+                updateEventImagePreview(event.image || '');
+                document.getElementById('ev-imagem-horizontal').value = '';
+                updateHorizontalImagePreview(event.horizontalImage || '');
+                document.getElementById('ev-mapa').value = '';
+                updateMapImagePreview(event.mapImage || '');
                 document.getElementById('ev-classificacao').value = event.classification || 'Livre';
                 document.getElementById('ev-status').value = event.status || 'publicado';
                 document.getElementById('ev-data-inicio').value = toLocalInputValue(event.date);
@@ -1561,7 +1815,6 @@
                 renderEventSelect();
                 renderDemandEventSelect();
                 renderEventTable();
-                renderOperationalDiagnosis();
                 renderOverview();
                 renderFinanceTable();
                 renderDemandList();
@@ -1569,6 +1822,130 @@
                 renderSupplierReview();
                 renderDocuments();
                 renderRunOfShow();
+                renderChecklistProgress();
+            }
+
+            function openModal(modalId) {
+                const modal = document.getElementById(modalId);
+                if (!modal) return;
+                modal.classList.remove('hidden');
+                modal.setAttribute('aria-hidden', 'false');
+            }
+
+            function closeModal(modalId) {
+                const modal = document.getElementById(modalId);
+                if (!modal) return;
+                modal.classList.add('hidden');
+                modal.setAttribute('aria-hidden', 'true');
+                if (modalId === 'event-editor-modal') {
+                    document.getElementById('panel-events')?.classList.remove('event-editor-active');
+                    document.getElementById('btn-voltar-eventos').hidden = true;
+                    document.querySelector('.organizer-main')?.classList.remove('event-editor-active');
+                }
+            }
+
+            function openEventEditor(event = null) {
+                const form = document.getElementById('form-novo-evento');
+                if (!form) return;
+                if (event) {
+                    populateEventForm(event);
+                    document.getElementById('event-editor-title').textContent = `Editar evento: ${event.name}`;
+                } else {
+                    form.reset();
+                    form.removeAttribute('data-event-id');
+                    delete form.dataset.saveRequestId;
+                    form.dataset.saving = 'false';
+                    document.getElementById('btn-salvar-evento').disabled = false;
+                    document.getElementById('ev-imagem').value = '';
+                    document.getElementById('ev-imagem-horizontal').value = '';
+                    updateEventImagePreview('');
+                    updateHorizontalImagePreview('');
+                    buildSectorMarkup([]);
+                    document.getElementById('event-form-message').textContent = 'Preencha os dados do novo evento.';
+                    document.getElementById('event-form-message').classList.remove('success');
+                    document.getElementById('event-editor-title').textContent = 'Novo evento';
+                }
+                document.getElementById('panel-events').classList.add('event-editor-active');
+                document.getElementById('btn-voltar-eventos').hidden = false;
+                document.querySelector('.organizer-main').classList.add('event-editor-active');
+                openModal('event-editor-modal');
+            }
+
+            function openDocumentEditor(documentId) {
+                const documentItem = organizerState.documents.find(item => item.id === documentId);
+                if (!documentItem) return;
+                const form = document.getElementById('document-form');
+                form.dataset.editId = documentId;
+                form.elements.nome.value = documentItem.name;
+                form.elements.categoria.value = documentItem.category;
+                form.elements.prazo.value = documentItem.deadline;
+                form.elements.status.value = documentItem.status === 'vencido' ? 'pendente' : documentItem.status;
+                document.getElementById('document-modal-title').textContent = 'Editar exigência documental';
+                document.getElementById('document-submit-label').textContent = 'Salvar alterações';
+                openModal('document-modal');
+            }
+
+            function openTaskEditor(taskId) {
+                const task = organizerState.tasks.find(item => item.id === taskId);
+                if (!task) return;
+                const form = document.getElementById('task-form');
+                form.dataset.editId = taskId;
+                form.elements.horario.value = task.time;
+                form.elements.atividade.value = task.activity;
+                form.elements.responsavel.value = task.responsible;
+                document.getElementById('task-modal-title').textContent = 'Editar marco do evento';
+                document.getElementById('task-submit-label').textContent = 'Salvar alterações';
+                openModal('task-modal');
+            }
+
+            function resetDocumentForm() {
+                const form = document.getElementById('document-form');
+                form.reset();
+                delete form.dataset.editId;
+                document.getElementById('document-deadline').value = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+                document.getElementById('document-modal-title').textContent = 'Adicionar exigência documental';
+                document.getElementById('document-submit-label').textContent = 'Adicionar exigência';
+            }
+
+            function resetTaskForm() {
+                const form = document.getElementById('task-form');
+                form.reset();
+                delete form.dataset.editId;
+                document.getElementById('task-time').value = '09:00';
+                document.getElementById('task-modal-title').textContent = 'Adicionar marco do evento';
+                document.getElementById('task-submit-label').textContent = 'Adicionar ao cronograma';
+            }
+
+            async function openDocumentAttachment(documentId) {
+                const documentItem = organizerState.documents.find(item => item.id === documentId);
+                if (!documentItem) return;
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.pdf,.png,.jpg,.jpeg,.webp,.txt,.csv,.xlsx';
+                input.addEventListener('change', async () => {
+                    const file = input.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = async () => {
+                        try {
+                            if (documentId > 0) {
+                                await fetchJson(`/api/organizador/documentos/${documentId}/anexo`, {
+                                    method: 'POST',
+                                    body: JSON.stringify({ evento_id: organizerState.selectedEventId, arquivo: { name: file.name, data: reader.result } })
+                                });
+                            }
+                            documentItem.attachmentUrl = String(reader.result);
+                            documentItem.hasAttachment = true;
+                            documentItem.attachmentName = file.name;
+                            saveLocalChecklist(organizerState.selectedEventId);
+                            renderDocuments();
+                        } catch (error) {
+                            if (documentId > 0) alert(error.message || 'Não foi possível anexar o documento.');
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                });
+                input.click();
             }
 
             function setActivePanel(panelId) {
@@ -1596,14 +1973,6 @@
                 refreshFinancialSimulation();
             });
 
-            document.getElementById('sim-bebidas').addEventListener('input', () => {
-                refreshFinancialSimulation();
-            });
-
-            document.getElementById('sim-alimentos').addEventListener('input', () => {
-                refreshFinancialSimulation();
-            });
-
             document.getElementById('sim-ticket').addEventListener('input', () => {
                 refreshFinancialSimulation();
             });
@@ -1612,13 +1981,115 @@
                 refreshFinancialSimulation();
             });
 
+            let financeResizeFrame = null;
+            window.addEventListener('resize', () => {
+                if (financeResizeFrame !== null) cancelAnimationFrame(financeResizeFrame);
+                financeResizeFrame = requestAnimationFrame(() => {
+                    financeResizeFrame = null;
+                    renderFinancialEngine();
+                });
+            });
+
             document.getElementById('btn-add-sector').addEventListener('click', addSector);
             handleFormLotEvents();
+
+            function optimizeEventImage(file, maxWidth, maxHeight) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.addEventListener('error', () => reject(new Error('Não foi possível ler a imagem selecionada.')));
+                    reader.addEventListener('load', () => {
+                        const image = new Image();
+                        image.onload = () => {
+                            const scale = Math.min(1, maxWidth / image.naturalWidth, maxHeight / image.naturalHeight);
+                            const width = Math.max(1, Math.round(image.naturalWidth * scale));
+                            const height = Math.max(1, Math.round(image.naturalHeight * scale));
+                            const canvas = document.createElement('canvas');
+                            canvas.width = width;
+                            canvas.height = height;
+                            const context = canvas.getContext('2d');
+                            if (!context) {
+                                reject(new Error('Não foi possível preparar a imagem para envio.'));
+                                return;
+                            }
+                            context.drawImage(image, 0, 0, width, height);
+                            resolve(canvas.toDataURL('image/jpeg', 0.84));
+                        };
+                        image.onerror = () => reject(new Error('O arquivo selecionado não contém uma imagem válida.'));
+                        image.src = String(reader.result || '');
+                    });
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            document.getElementById('ev-imagem-file').addEventListener('change', async (event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                if (!file.type.startsWith('image/')) {
+                    event.target.value = '';
+                    alert('Selecione um arquivo de imagem válido.');
+                    return;
+                }
+                try {
+                    const image = await optimizeEventImage(file, 1600, 2000);
+                    document.getElementById('ev-imagem').value = image;
+                    document.getElementById('ev-imagem-status').textContent = 'Nova capa selecionada';
+                    updateEventImagePreview(image);
+                } catch (error) {
+                    event.target.value = '';
+                    alert(error.message || 'Não foi possível carregar a imagem selecionada.');
+                }
+            });
+
+            document.getElementById('ev-imagem-horizontal-file').addEventListener('change', async (event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                if (!file.type.startsWith('image/')) {
+                    event.target.value = '';
+                    alert('Selecione um arquivo de imagem horizontal válido.');
+                    return;
+                }
+                try {
+                    const image = await optimizeEventImage(file, 2400, 1000);
+                    document.getElementById('ev-imagem-horizontal').value = image;
+                    updateHorizontalImagePreview(image);
+                } catch (error) {
+                    event.target.value = '';
+                    alert(error.message || 'Não foi possível carregar a imagem horizontal selecionada.');
+                }
+            });
+
+            document.getElementById('ev-mapa-file').addEventListener('change', async (event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                if (!file.type.startsWith('image/')) {
+                    event.target.value = '';
+                    alert('Selecione um arquivo de imagem válido para o mapa.');
+                    return;
+                }
+                try {
+                    const image = await optimizeEventImage(file, 2400, 1800);
+                    document.getElementById('ev-mapa').value = image;
+                    updateMapImagePreview(image);
+                } catch (error) {
+                    event.target.value = '';
+                    alert(error.message || 'Não foi possível carregar o mapa selecionado.');
+                }
+            });
+
+            document.getElementById('btn-abrir-novo-evento').addEventListener('click', () => {
+                openEventEditor();
+            });
 
             document.getElementById('btn-novo-evento').addEventListener('click', () => {
                 const form = document.getElementById('form-novo-evento');
                 form.reset();
                 form.removeAttribute('data-event-id');
+                document.getElementById('ev-imagem').value = '';
+                updateEventImagePreview('');
+                document.getElementById('ev-imagem-horizontal').value = '';
+                updateHorizontalImagePreview('');
+                document.getElementById('ev-mapa').value = '';
+                updateMapImagePreview('');
                 buildSectorMarkup([]);
                 const message = document.getElementById('event-form-message');
                 message.textContent = 'Pronto para cadastrar um novo evento.';
@@ -1628,8 +2099,21 @@
             document.getElementById('form-novo-evento').addEventListener('submit', async (event) => {
                 event.preventDefault();
                 const form = event.currentTarget;
+                const saveButton = document.getElementById('btn-salvar-evento');
+                if (form.dataset.saving === 'true') return;
+                form.dataset.saving = 'true';
+                saveButton.disabled = true;
                 const id = Number(form.dataset.eventId || 0);
+                const requestKey = form.dataset.saveRequestId || (globalThis.crypto?.randomUUID
+                    ? crypto.randomUUID()
+                    : `event-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+                form.dataset.saveRequestId = requestKey;
                 const nome = document.getElementById('ev-nome').value.trim();
+                const artista = document.getElementById('ev-artista').value.trim();
+                const descricao = document.getElementById('ev-descricao').value.trim();
+                const imagem = document.getElementById('ev-imagem').value;
+                const imagemHorizontal = document.getElementById('ev-imagem-horizontal').value;
+                const mapa = document.getElementById('ev-mapa').value;
                 const dataInicio = document.getElementById('ev-data-inicio').value;
                 const dataFim = document.getElementById('ev-data-fim').value;
                 const local = document.getElementById('ev-local').value.trim();
@@ -1638,6 +2122,8 @@
 
                 if (!nome || !dataInicio || !dataFim || !local || !capacidade) {
                     document.getElementById('event-form-message').textContent = 'Preencha todos os campos obrigatórios.';
+                    form.dataset.saving = 'false';
+                    saveButton.disabled = false;
                     return;
                 }
 
@@ -1645,6 +2131,8 @@
                 const sectorCapacity = setores.reduce((sum, sector) => sum + sector.capacidade, 0);
                 if (sectorCapacity > capacidade) {
                     document.getElementById('event-form-message').textContent = `A lotação dos setores (${sectorCapacity}) excede a lotação total (${capacidade}).`;
+                    form.dataset.saving = 'false';
+                    saveButton.disabled = false;
                     return;
                 }
                 const lots = setores.flatMap((sector) => sector.lotes.map((lot) => ({
@@ -1669,9 +2157,12 @@
                 try {
                     const payload = await fetchJson('/api/organizador/eventos', {
                         method: id ? 'PUT' : 'POST',
+                        headers: { 'Idempotency-Key': requestKey },
                         body: JSON.stringify({
                             id: id || undefined,
                             nome,
+                            artista,
+                            descricao,
                             local,
                             data_evento: dataInicio,
                             data_fim: dataFim,
@@ -1685,15 +2176,48 @@
                         })
                     });
 
+                    const savedEventId = Number(payload.evento_id || id);
+                    form.dataset.eventId = String(savedEventId);
+                    if (imagem) {
+                        await fetchJson(`/api/organizador/eventos/${savedEventId}/imagem`, {
+                            method: 'POST',
+                            body: JSON.stringify({ imagem, tipo: 'capa' })
+                        });
+                    }
+                    if (imagemHorizontal) {
+                        await fetchJson(`/api/organizador/eventos/${savedEventId}/imagem`, {
+                            method: 'POST',
+                            body: JSON.stringify({ imagem: imagemHorizontal, tipo: 'banner' })
+                        });
+                    }
+                    if (mapa) {
+                        await fetchJson(`/api/organizador/eventos/${savedEventId}/imagem`, {
+                            method: 'POST',
+                            body: JSON.stringify({ imagem: mapa, tipo: 'mapa' })
+                        });
+                    }
+
                     document.getElementById('event-form-message').textContent = payload.message || 'Evento salvo com sucesso.';
                     document.getElementById('event-form-message').classList.add('success');
+                    delete form.dataset.saveRequestId;
+                    form.dataset.saving = 'false';
+                    saveButton.disabled = false;
                     form.removeAttribute('data-event-id');
                     form.reset();
+                    document.getElementById('ev-imagem').value = '';
+                    updateEventImagePreview('');
+                    document.getElementById('ev-imagem-horizontal').value = '';
+                    updateHorizontalImagePreview('');
+                    document.getElementById('ev-mapa').value = '';
+                    updateMapImagePreview('');
                     buildSectorMarkup([]);
+                    closeModal('event-editor-modal');
                     await loadEventCatalog();
                 } catch (error) {
                     document.getElementById('event-form-message').textContent = error.message;
                     document.getElementById('event-form-message').classList.remove('success');
+                    form.dataset.saving = 'false';
+                    saveButton.disabled = false;
                 }
             });
 
@@ -1731,7 +2255,7 @@
                 document.getElementById('quote-title').value = item.item;
                 document.getElementById('quote-description').value = `Solicitação para ${item.category}: ${item.item}.`;
                 document.getElementById('quote-deadline').value = new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10);
-                document.getElementById('quote-value').value = item.estimated;
+                document.getElementById('quote-value').value = item.contracted || item.estimated;
                 document.getElementById('quote-modal').classList.remove('hidden');
                 document.getElementById('quote-modal').setAttribute('aria-hidden', 'false');
                 document.getElementById('quote-form').dataset.itemId = String(itemId);
@@ -1869,70 +2393,104 @@
                 }
             });
 
-            document.querySelectorAll('.modal-close').forEach(button => {
-                button.addEventListener('click', () => {
-                    const modalId = button.dataset.close;
-                    document.getElementById(modalId).classList.add('hidden');
-                    document.getElementById(modalId).setAttribute('aria-hidden', 'true');
-                });
-            });
+            document.addEventListener('click', (event) => {
+                const button = event.target.closest('[data-close]');
+                if (!button) return;
+                event.preventDefault();
+                event.stopPropagation();
+                closeModal(button.dataset.close);
+            }, true);
 
             document.getElementById('runofshow-list').addEventListener('change', async (event) => {
-                if (!event.target.matches('input[type="checkbox"]')) return;
-                const checkbox = event.target;
-                const taskId = Number(checkbox.dataset.taskId);
+                if (!event.target.matches('.task-status-select')) return;
+                const select = event.target;
+                const taskId = Number(select.dataset.taskId);
+                const status = select.value;
                 try {
-                    await fetchJson(`/api/organizador/tarefas/${taskId}/status`, {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            evento_id: organizerState.selectedEventId,
-                            concluida: checkbox.checked
-                        })
-                    });
+                    if (taskId > 0) {
+                        await fetchJson(`/api/organizador/tarefas/${taskId}/status`, {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                evento_id: organizerState.selectedEventId,
+                                status,
+                                concluida: status === 'concluida'
+                            })
+                        });
+                    }
                     const task = organizerState.tasks.find(item => item.id === taskId);
-                    if (task) task.checked = checkbox.checked;
-                    checkbox.closest('.timeline-item')?.classList.toggle('checked', checkbox.checked);
+                    if (task) {
+                        task.status = status;
+                        task.checked = status === 'concluida';
+                    }
+                    saveLocalChecklist(organizerState.selectedEventId);
+                    renderRunOfShow();
+                    renderChecklistProgress();
                 } catch (error) {
-                    checkbox.checked = !checkbox.checked;
                     alert(error.message || 'Não foi possível atualizar a tarefa.');
                 }
             });
 
-            document.getElementById('btn-add-document').addEventListener('click', async () => {
-                const name = window.prompt('Nome do documento:')?.trim();
-                if (!name) return;
-                const deadline = window.prompt('Prazo (AAAA-MM-DD):', new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10));
-                if (!deadline) return;
+            document.getElementById('btn-add-document').addEventListener('click', () => {
+                resetDocumentForm();
+                openModal('document-modal');
+            });
+
+            document.getElementById('document-form').addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const form = new FormData(event.currentTarget);
+                const formElement = event.currentTarget;
+                const editId = Number(formElement.dataset.editId);
+                const documentItem = organizerState.documents.find(item => item.id === editId);
                 try {
-                    await fetchJson('/api/organizador/documentos', {
-                        method: 'POST',
-                        body: JSON.stringify({ evento_id: organizerState.selectedEventId, nome: name, prazo: deadline })
-                    });
+                    const payload = { evento_id: organizerState.selectedEventId, nome: form.get('nome'), categoria: form.get('categoria'), prazo: form.get('prazo'), status: form.get('status') };
+                    if (documentItem) {
+                        if (editId > 0) await fetchJson(`/api/organizador/documentos/${editId}`, { method: 'PATCH', body: JSON.stringify(payload) });
+                        Object.assign(documentItem, { name: payload.nome, category: payload.categoria || 'Geral', deadline: payload.prazo, status: payload.status });
+                    } else {
+                        await fetchJson('/api/organizador/documentos', { method: 'POST', body: JSON.stringify(payload) });
+                    }
+                    saveLocalChecklist(organizerState.selectedEventId);
+                    closeModal('document-modal');
+                    resetDocumentForm();
                     await loadOrganizerDashboard();
                 } catch (error) {
-                    alert(error.message || 'Não foi possível salvar o documento.');
+                    if (documentItem) Object.assign(documentItem, { name: form.get('nome'), category: form.get('categoria') || 'Geral', deadline: form.get('prazo'), status: form.get('status') });
+                    else organizerState.documents.push(normalizeDocument({ id: -(Date.now()), nome: form.get('nome'), categoria: form.get('categoria'), prazo: form.get('prazo'), status: form.get('status') }));
+                    saveLocalChecklist(organizerState.selectedEventId);
+                    closeModal('document-modal');
+                    resetDocumentForm();
+                    renderAll();
                 }
             });
 
-            document.getElementById('btn-add-task').addEventListener('click', async () => {
-                const activity = window.prompt('Atividade da tarefa:')?.trim();
-                if (!activity) return;
-                const responsible = window.prompt('Responsável:')?.trim();
-                if (!responsible) return;
-                const time = window.prompt('Horário (HH:MM):', '09:00')?.trim() || '09:00';
+            document.getElementById('btn-add-task').addEventListener('click', () => {
+                resetTaskForm();
+                openModal('task-modal');
+            });
+
+            document.getElementById('task-form').addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const form = new FormData(event.currentTarget);
+                const formElement = event.currentTarget;
+                const editId = Number(formElement.dataset.editId);
+                const task = organizerState.tasks.find(item => item.id === editId);
                 try {
-                    await fetchJson('/api/organizador/tarefas', {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            evento_id: organizerState.selectedEventId,
-                            horario: time,
-                            atividade: activity,
-                            responsavel: responsible
-                        })
-                    });
+                    const payload = { evento_id: organizerState.selectedEventId, horario: form.get('horario'), atividade: form.get('atividade'), responsavel: form.get('responsavel') };
+                    if (task) {
+                        if (editId > 0) await fetchJson(`/api/organizador/tarefas/${editId}`, { method: 'PATCH', body: JSON.stringify(payload) });
+                        Object.assign(task, { time: payload.horario, activity: payload.atividade, responsible: payload.responsavel });
+                    } else await fetchJson('/api/organizador/tarefas', { method: 'POST', body: JSON.stringify(payload) });
+                    saveLocalChecklist(organizerState.selectedEventId);
+                    closeModal('task-modal');
+                    resetTaskForm();
                     await loadOrganizerDashboard();
                 } catch (error) {
-                    alert(error.message || 'Não foi possível salvar a tarefa.');
+                    if (task) Object.assign(task, { time: form.get('horario'), activity: form.get('atividade'), responsible: form.get('responsavel') });
+                    else organizerState.tasks.push(normalizeTask({ id: -(Date.now()), horario: form.get('horario'), atividade: form.get('atividade'), responsavel: form.get('responsavel'), status: 'pendente' }));
+                    saveLocalChecklist(organizerState.selectedEventId);
+                    closeModal('task-modal');
+                    resetTaskForm();
+                    renderAll();
                 }
             });
 
