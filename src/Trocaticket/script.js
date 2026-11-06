@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.removeItem('trocaticket-user');
       localStorage.removeItem('usuario');
       sessionStorage.removeItem('adminToken');
-      window.location.href = 'index.html';
+      window.location.href = window.location.pathname.includes('/account/') ? '../index.html' : 'index.html';
     }
   }
 
@@ -49,13 +49,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const currentUser = getSessionUser();
   const accountLink = document.getElementById('account-link');
   if (accountLink) {
+    const accountPath = window.location.pathname.includes('/account/') ? '../account/' : 'account/';
     if (currentUser && currentUser.email) {
-      accountLink.href = 'account/perfil.html';
+      accountLink.href = `${accountPath}perfil.html`;
       const accountSpan = accountLink.querySelector('span');
       if (accountSpan) accountSpan.textContent = 'Minha Conta';
       if (logoutLink) logoutLink.style.display = 'flex';
     } else {
-      accountLink.href = 'auth/login.html';
+      accountLink.href = window.location.pathname.includes('/account/') ? '../auth/login.html' : 'auth/login.html';
       const accountSpan = accountLink.querySelector('span');
       if (accountSpan) accountSpan.textContent = 'Entrar / Cadastrar';
       if (logoutLink) logoutLink.style.display = 'none';
