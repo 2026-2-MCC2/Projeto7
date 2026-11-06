@@ -8,12 +8,14 @@ const Events = lazy(() => import('./pages/Events.jsx'));
 const Orders = lazy(() => import('./pages/Orders.jsx'));
 const Ticket = lazy(() => import('./pages/Ticket.jsx'));
 const Login = lazy(() => import('./pages/Login.jsx'));
+const Resale = lazy(() => import('./pages/Resale.jsx'));
 
 function routeFor(pathname) {
   const path = pathname.replace(/\/+$/, '') || '/';
   if (path === '/events') return { page: 'events' };
   if (path === '/orders') return { page: 'orders' };
   if (path === '/login') return { page: 'login' };
+  if (path === '/resale') return { page: 'resale' };
   if (path.startsWith('/ticket/')) return { page: 'ticket', id: path.split('/').pop() };
   return { page: 'home' };
 }
@@ -34,6 +36,7 @@ function Shell({ children }) {
         <nav aria-label="Navegação principal">
           <a href="/events" onClick={(event) => { event.preventDefault(); navigate('/events'); }}>Eventos</a>
           <a href="/orders" onClick={(event) => { event.preventDefault(); navigate('/orders'); }}>Meus pedidos</a>
+          <a href="/resale" onClick={(event) => { event.preventDefault(); navigate('/resale'); }}>Revenda</a>
           {user ? (
             <button type="button" className="link-button" onClick={() => { api.logout(); navigate('/'); }}>Sair</button>
           ) : (
@@ -58,7 +61,8 @@ function App() {
     route.page === 'orders' ? <Orders /> :
     route.page === 'ticket' ? <Ticket id={route.id} /> :
     route.page === 'login' ? <Login /> : <Home />;
-  return <Shell><Suspense fallback={null}>{page}</Suspense></Shell>;
+  const resolvedPage = route.page === 'resale' ? <Resale /> : page;
+  return <Shell><Suspense fallback={null}>{resolvedPage}</Suspense></Shell>;
 }
 
 createRoot(document.getElementById('root')).render(<App />);

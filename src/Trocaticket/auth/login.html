@@ -257,9 +257,9 @@
                     localStorage.setItem('usuario', JSON.stringify(sessionUser));
 
                     const requestedRedirect = new URLSearchParams(window.location.search).get('redirect') || '';
-                    const safeRedirect = /^(meus-ingressos\.html|ingresso\.html(?:\?evento=[^&]*)?|\.{2}\/operations\/(?:organizador|fornecedor)\.html)$/.test(requestedRedirect)
+                    const safeRedirect = /^(?:\.\.\/)?(?:meus-ingressos\.html|ingresso\.html(?:\?evento=[^&]*)?|\.{2}\/operations\/(?:organizador|fornecedor)\.html)$/.test(requestedRedirect)
                         ? requestedRedirect
-                        : 'index.html';
+                        : '../index.html';
                     window.location.href = safeRedirect;
                 } catch (err) {
                     console.error('[login] Erro na requisição:', err);

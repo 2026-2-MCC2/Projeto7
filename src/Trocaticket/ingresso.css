@@ -185,6 +185,22 @@ body.ticket-page-body {
   border: 1px solid rgba(255, 198, 109, 0.45);
 }
 
+.ticket-qr-box.is-transferred {
+  background: #ffffff;
+}
+
+.ticket-qr-box.is-transferred .canvas-container {
+  display: none;
+}
+
+.ticket-qr-box.is-transferred .qr-refresh-status {
+  display: none !important;
+}
+
+.ticket-qr-box.is-transferred .ticket-used-overlay span {
+  display: none;
+}
+
 .ticket-qr-box.is-used .canvas-container img {
   filter: blur(3px);
   opacity: 0.22;
@@ -230,6 +246,11 @@ body.ticket-page-body {
 
 .ticket-qr-box.is-used .qr-refresh-status {
   display: none;
+}
+
+.qr-refresh-status.is-error {
+  color: #ff9a9a;
+  line-height: 1.45;
 }
 
 .ticket-used-overlay[hidden],

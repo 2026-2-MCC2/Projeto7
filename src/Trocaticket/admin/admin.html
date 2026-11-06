@@ -41,6 +41,10 @@
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7.5h14v9H5z"></path><path d="M8 7.5v9M11 10h5M11 13h3"></path></svg>
                 <span>Ingressos</span>
             </a>
+            <a href="#filas-revenda" class="nav-btn">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14M5 12h14M5 18h14"></path><circle cx="3" cy="6" r="1"></circle><circle cx="3" cy="12" r="1"></circle><circle cx="3" cy="18" r="1"></circle></svg>
+                <span>Filas de revenda</span>
+            </a>
             <a href="#relatorios" class="nav-btn">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"></path><path d="M6 14l3-3 3 3 5-7"></path><circle cx="8" cy="10" r="1"></circle></svg>
                 <span>Relatórios</span>
@@ -94,6 +98,11 @@
                             <span class="stat-value" id="total-revenue">R$ 0</span>
                         </div>
                     </div>
+                </div>
+                <div class="revenue-filters" aria-label="Filtros de receita">
+                    <div><strong>Receita exibida</strong><span>Escolha o período e a origem do valor.</span></div>
+                    <label>Período<select id="revenue-period"><option value="daily">Últimos 7 dias</option><option value="weekly">Últimas 7 semanas</option><option value="monthly">Últimos 12 meses</option><option value="yearly">Últimos 5 anos</option></select></label>
+                    <label>Tipo de receita<select id="revenue-type"><option value="general">Geral</option><option value="tickets">Ingressos</option><option value="administration">Taxas de administração</option><option value="priority">Taxas de prioridade</option></select></label>
                 </div>
 
                 <div class="dashboard-grid">
@@ -317,6 +326,21 @@
                             </tr>
                         </tbody>
                     </table>
+                </div>
+            </section>
+
+            <section id="section-filas-revenda" class="admin-section">
+                <div class="section-header">
+                    <h2>Filas de revenda</h2>
+                    <p class="section-subtitle">Acompanhe os ingressos anunciados e a posição de cada um</p>
+                </div>
+                <div class="resale-queue-filters" aria-label="Filtros das filas de revenda">
+                    <label>Evento<select id="resale-filter-event"><option value="">Todos os eventos</option></select></label>
+                    <label>Setor<select id="resale-filter-sector"><option value="">Todos os setores</option></select></label>
+                    <label>Modalidade<select id="resale-filter-category"><option value="">Todas as modalidades</option></select></label>
+                </div>
+                <div id="resale-queues-container" class="resale-queues-container">
+                    <div class="empty-state">Carregando filas de revenda...</div>
                 </div>
             </section>
 

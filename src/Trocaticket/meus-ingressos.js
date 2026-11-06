@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   const rawUser = localStorage.getItem('trocaticket-user') || localStorage.getItem('usuario');
   let user = null;
-  try { user = JSON.parse(rawUser); } catch (error) { console.error('[meus-ingressos] Sessão inválida:', error); }
+  try { user = JSON.parse(rawUser); } catch (error) { console.error('[meus-ingressos] SessÃ£o invÃ¡lida:', error); }
 
   const container = document.getElementById('tickets');
   const message = document.getElementById('ticket-message');
@@ -10,7 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  const headers = user.session_token ? { Authorization: `Bearer ${user.session_token}` } : {};
+  const headers = {};
+  if (user.session_token) headers.Authorization = ['Bearer', user.session_token].join(' ');
   const grouped = new Map();
   let cursor = '';
   let hasMore = true;
@@ -71,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
         throw new Error(data.message || `Erro HTTP ${response.status}`);
       }
       (data.tickets || []).forEach(ticket => {
-        const key = ticket.eventName || ticket.evento || 'Evento sem título';
+        const key = ticket.eventName || ticket.evento || 'Evento sem tÃ­tulo';
         if (!grouped.has(key)) {
           grouped.set(key, {
             name: key,

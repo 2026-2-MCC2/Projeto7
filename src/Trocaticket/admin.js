@@ -82,6 +82,7 @@ class AdminPanel {
     this.homologacaoFilter = 'pending';
     this.pendingHomologacaoRejection = null;
     this.pendingFinalHomologation = null;
+    this.resaleQueues = [];
   }
 
   init() {
@@ -170,6 +171,9 @@ class AdminPanel {
       case 'ingressos':
         this.loadTicketsData();
         break;
+      case 'filas-revenda':
+        this.loadResaleQueuesData();
+        break;
       case 'relatorios':
         this.loadReportsData();
         break;
@@ -186,6 +190,68 @@ class AdminPanel {
         this.loadDashboardData();
         break;
     }
+  }
+
+  async loadResaleQueuesData() {
+      const container = document.getElementById('resale-queues-container');
+      if (!container) return;
+      try {
+        const response = await fetch('/api/admin/revenda-filas');
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Não foi possível carregar as filas.');
+        this.resaleQueues = data.queues || [];
+        this.populateResaleQueueFilters(this.resaleQueues);
+        this.renderResaleQueues(this.resaleQueues);
+      } catch (error) {
+        container.innerHTML = `<div class="empty-state">${error.message}</div>`;
+      }
+  }
+
+  populateResaleQueueFilters(queues) {
+      const values = {
+        event: [...new Set(queues.map(queue => queue.evento).filter(Boolean))].sort(),
+        sector: [...new Set(queues.map(queue => queue.setor_nome).filter(Boolean))].sort(),
+        category: [...new Set(queues.map(queue => queue.categoria_ingresso).filter(Boolean))].sort()
+      };
+      [['event', values.event], ['sector', values.sector], ['category', values.category]].forEach(([name, options]) => {
+        const select = document.getElementById(`resale-filter-${name}`);
+        if (!select) return;
+        const current = select.value;
+        select.innerHTML = `<option value="">${name === 'event' ? 'Todos os eventos' : name === 'sector' ? 'Todos os setores' : 'Todas as modalidades'}</option>${options.map(value => `<option value="${this.escapeHtml(value)}">${this.escapeHtml(value)}</option>`).join('')}`;
+        if (options.includes(current)) select.value = current;
+        select.onchange = () => this.filterResaleQueues();
+      });
+  }
+
+  filterResaleQueues() {
+      const event = document.getElementById('resale-filter-event')?.value || '';
+      const sector = document.getElementById('resale-filter-sector')?.value || '';
+      const category = document.getElementById('resale-filter-category')?.value || '';
+      this.renderResaleQueues(this.resaleQueues.filter(queue =>
+        (!event || queue.evento === event)
+        && (!sector || (queue.setor_nome || '') === sector)
+        && (!category || (queue.categoria_ingresso || '') === category)
+      ));
+  }
+
+  renderResaleQueues(queues) {
+      const container = document.getElementById('resale-queues-container');
+      if (!container) return;
+      if (!queues.length) {
+        container.innerHTML = '<div class="empty-state">Nenhum ingresso foi anunciado na revenda.</div>';
+        return;
+      }
+      container.innerHTML = queues.map(queue => `
+        <article class="resale-queue-card">
+          <div class="resale-queue-heading">
+            <div><span class="queue-label">Fila de revenda</span><h3>${queue.evento || 'Evento'} · ${queue.setor_nome || 'Setor geral'}</h3><p>${queue.categoria_ingresso || 'Modalidade não identificada'}</p></div>
+            <strong>${queue.total_fila} anúncio${Number(queue.total_fila) === 1 ? '' : 's'}</strong>
+          </div>
+          <div class="table-container"><table class="data-table"><thead><tr><th>Posição</th><th>Ingresso</th><th>Pedido</th><th>Vendedor</th><th>Prioridade</th><th>Lote / vendedor</th><th>Lote vigente / comprador</th><th>Status</th></tr></thead><tbody>
+            ${queue.items.map(item => `<tr><td>${item.posicao}º de ${item.total_fila}</td><td>${item.numero_ingresso || 'N/A'}</td><td>${item.codigo_pedido || 'N/A'}</td><td>${item.vendedor_nome || 'N/A'}</td><td>${item.taxa_nome} · ${item.taxa_percentual}%</td><td>${this.formatCurrency(item.preco_original)}<small class="queue-price-detail">${this.escapeHtml(item.lote_original || 'Lote original')} · líquido: ${this.formatCurrency(item.valor_liquido_estimado)}</small></td><td>${this.formatCurrency(item.preco_vigente)}<small class="queue-price-detail">${this.escapeHtml(item.lote_vigente || item.lote_original || 'Lote original')}</small></td><td><span class="status-badge status-disponivel">Na fila</span></td></tr>`).join('')}
+          </tbody></table></div>
+        </article>
+      `).join('');
   }
 
   adminAuthHeaders() {
@@ -546,6 +612,8 @@ class AdminPanel {
       select.addEventListener('change', () => this.refreshCharts());
       document.getElementById('gmv-period')?.addEventListener('change', () => this.refreshCharts());
       document.getElementById('trend-period')?.addEventListener('change', () => this.refreshCharts());
+      document.getElementById('revenue-period')?.addEventListener('change', () => this.refreshCharts());
+      document.getElementById('revenue-type')?.addEventListener('change', () => this.refreshCharts());
       this.refreshCharts();
     } catch (error) {
       console.error('Erro ao carregar eventos dos gráficos:', error);
@@ -556,16 +624,18 @@ class AdminPanel {
     const eventId = document.getElementById('gmv-event')?.value || '';
     const gmvPeriod = document.getElementById('gmv-period')?.value || 'daily';
     const trendPeriod = document.getElementById('trend-period')?.value || 'daily';
-    this.fetchStats(eventId, gmvPeriod, trendPeriod).then(stats => {
+    const revenuePeriod = document.getElementById('revenue-period')?.value || 'daily';
+    const revenueType = document.getElementById('revenue-type')?.value || 'tickets';
+    this.fetchStats(eventId, gmvPeriod, trendPeriod, revenuePeriod, revenueType).then(stats => {
       this.updateStats(stats);
       this.renderBarChart(stats.gmvSeries || [], eventId);
       this.renderLineChart(stats.trendSeries || []);
     });
   }
 
-  async fetchStats(eventId = '', gmvPeriod = 'daily', trendPeriod = 'daily') {
+  async fetchStats(eventId = '', gmvPeriod = 'daily', trendPeriod = 'daily', revenuePeriod = 'daily', revenueType = 'tickets') {
     try {
-      const query = new URLSearchParams({ gmv_period: gmvPeriod, trend_period: trendPeriod });
+      const query = new URLSearchParams({ gmv_period: gmvPeriod, trend_period: trendPeriod, revenue_period: revenuePeriod, revenue_type: revenueType });
       if (eventId) query.set('event_id', eventId);
       const response = await fetch(`/api/admin/stats?${query}`);
       const data = await response.json();
@@ -589,6 +659,14 @@ class AdminPanel {
     if (elTickets) elTickets.textContent = stats.totalTickets ?? '0';
     if (elEvents) elEvents.textContent = stats.totalEvents ?? '0';
     if (elRevenue) elRevenue.textContent = this.formatCurrency(stats.totalRevenue || 0);
+    const revenueLabel = document.querySelector('#total-revenue')?.closest('.stat-info')?.querySelector('.stat-label');
+    const revenueType = document.getElementById('revenue-type')?.value || 'tickets';
+    if (revenueLabel) revenueLabel.textContent = {
+      general: 'Receita · geral',
+      tickets: 'Receita · ingressos',
+      administration: 'Receita · taxas de administração',
+      priority: 'Receita · taxas de prioridade'
+    }[revenueType] || 'Receita total';
     const cancellations = document.getElementById('pending-cancellations');
     if (cancellations) cancellations.textContent = stats.pendingCancellations ?? 0;
   }

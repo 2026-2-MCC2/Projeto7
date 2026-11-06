@@ -8,6 +8,10 @@ const nodemailer = require('nodemailer');
 const QRCode = require('qrcode');
 const jwt = require('jsonwebtoken');
 const db = require('./db');
+const {
+  RESALE_FEES,
+  calculateResalePayout
+} = require('./resale-calculations');
 
 const port = process.env.PORT || 3000;
 const root = __dirname;
@@ -92,6 +96,150 @@ async function sendVerificationEmail({ to, name, code }) {
   });
 
   return { sent: true };
+}
+
+async function sendTransferEmail({ to, recipientName, senderName, ticket, acceptanceUrl }) {
+  const transporter = getVerificationTransporter();
+  const eventName = escapeHtml(ticket.evento_nome || 'seu evento');
+  const holder = escapeHtml(recipientName || to);
+  const sender = escapeHtml(senderName || 'Um usuário');
+  const ticketCode = escapeHtml(ticket.codigo_original_bilheteria || ticket.numero_ingresso || 'A confirmar');
+  const orderCode = escapeHtml(ticket.codigo_pedido || ticket.pedido_id || 'A confirmar');
+  const eventDate = escapeHtml(formatEmailDateTime(ticket.data_evento));
+  const link = escapeHtml(acceptanceUrl);
+
+  if (!transporter) {
+    console.warn(`[transferencia] SMTP não configurado. Link de aceite para ${to}: ${acceptanceUrl}`);
+    return { sent: false, fallback: true };
+  }
+
+  await transporter.sendMail({
+    from: smtpFrom,
+    to,
+    subject: `TrocaTicket - aceite de transferência para ${ticket.evento_nome || 'seu ingresso'}`,
+    text: [
+      `Olá ${recipientName || to},`,
+      '',
+      `${senderName || 'Um usuário'} enviou uma solicitação de transferência de titularidade para o evento ${ticket.evento_nome || 'seu evento'}.`,
+      `Ingresso: ${ticketCode}`,
+      `Pedido: ${orderCode}`,
+      `Data: ${eventDate}`,
+      '',
+      `Aceite a transferência neste link: ${acceptanceUrl}`,
+      '',
+      'O link só pode ser usado uma vez. Após o aceite, um novo QR Code será gerado na sua conta.'
+    ].join('\n'),
+    html: `
+      <div style="font-family:Arial,sans-serif;line-height:1.55;color:#172033;max-width:640px;margin:auto;background:#ffffff">
+        <div style="background:#101827;color:#ffffff;padding:22px 26px;border-radius:14px 14px 0 0">
+          <strong style="font-size:22px">Troca<span style="background:linear-gradient(90deg,#27b7ff,#d946ef,#8b7cff);-webkit-background-clip:text;background-clip:text;color:transparent">Ticket</span></strong>
+        </div>
+        <div style="border:1px solid #e2e8f0;border-top:0;border-radius:0 0 14px 14px;padding:26px">
+        <p>Olá, <strong>${holder}</strong>.</p>
+        <p><strong>${sender}</strong> enviou uma solicitação para transferir a titularidade do ingresso do evento <strong>${eventName}</strong> para você.</p>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin:20px 0">
+          <p style="margin:0 0 6px"><strong>Ingresso:</strong> ${ticketCode}</p>
+          <p style="margin:0 0 6px"><strong>Pedido:</strong> ${orderCode}</p>
+          <p style="margin:0"><strong>Data:</strong> ${eventDate}</p>
+        </div>
+        <p style="margin:24px 0">
+          <a href="${link}" style="display:inline-block;background:linear-gradient(135deg,#27b7ff,#8b7cff 55%,#d946ef);color:#fff;padding:13px 20px;border-radius:8px;text-decoration:none;font-weight:bold">Aceitar transferência</a>
+        </p>
+        <p>Ao aceitar, o ingresso aparecerá na sua conta com seus dados de titularidade e um novo QR Code. O pedido e o código original do ingresso serão mantidos.</p>
+        <p style="font-size:12px;color:#64748b">Se você não esperava esta solicitação, ignore este email. O link só pode ser usado uma vez.</p>
+        </div>
+      </div>
+    `
+  });
+
+  return { sent: true };
+}
+
+async function sendTransferConfirmationEmail({ to, name, role, ticket, newTicketNumber }) {
+  const transporter = getVerificationTransporter();
+  const eventName = escapeHtml(ticket.evento_nome || 'seu evento');
+  const personName = escapeHtml(name || to);
+  const ticketCode = escapeHtml(ticket.codigo_original_bilheteria || 'A confirmar');
+  const orderCode = escapeHtml(ticket.codigo_pedido || ticket.pedido_id || 'A confirmar');
+  const newCode = escapeHtml(newTicketNumber || 'A confirmar');
+  const eventDate = escapeHtml(formatEmailDateTime(ticket.data_evento));
+  const roleText = role === 'sender' ? 'Sua solicitação de transferência foi aceita.' : 'A transferência foi concluída e o ingresso já está na sua conta.';
+  const counterpartLabel = role === 'sender' ? 'Destinatário' : 'Remetente';
+  const counterpartName = escapeHtml(role === 'sender'
+    ? (ticket.destinatario_nome || 'A confirmar')
+    : (ticket.remetente_nome || 'A confirmar'));
+
+  if (!transporter) {
+    console.warn(`[transferencia] SMTP não configurado. Confirmação não enviada para ${to}.`);
+    return { sent: false, fallback: true };
+  }
+
+  await transporter.sendMail({
+    from: smtpFrom,
+    to,
+    subject: `TrocaTicket - transferência concluída | ${ticket.evento_nome || 'Ingresso'}`,
+    text: [
+      `Olá ${name || to},`,
+      '',
+      roleText,
+      `Evento: ${ticket.evento_nome || 'A confirmar'}`,
+      `Ingresso: ${ticketCode}`,
+      `Pedido: ${orderCode}`,
+      ...(role === 'sender' ? [] : [`Novo código do ingresso: ${newCode}`]),
+      `${counterpartLabel}: ${counterpartName}`,
+      `Data: ${eventDate}`,
+      '',
+      role === 'sender'
+        ? 'O QR Code anterior foi invalidado e o ingresso agora pertence ao destinatário.'
+        : 'Acesse sua conta TrocaTicket para visualizar o novo QR Code e os dados de titularidade.'
+    ].join('\n'),
+    html: `
+      <div style="font-family:Arial,sans-serif;line-height:1.55;color:#172033;max-width:640px;margin:auto">
+        <div style="background:#101827;color:#fff;padding:22px 26px;border-radius:14px 14px 0 0">
+          <strong style="font-size:22px">Troca<span style="background:linear-gradient(90deg,#27b7ff,#d946ef,#8b7cff);-webkit-background-clip:text;background-clip:text;color:transparent">Ticket</span></strong>
+        </div>
+        <div style="border:1px solid #e5e7eb;border-top:0;border-radius:0 0 14px 14px;padding:26px">
+          <p>Olá, <strong>${personName}</strong>.</p>
+          <h1 style="font-size:24px;margin:12px 0;color:#111827">Transferência concluída</h1>
+          <p>${roleText}</p>
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin:20px 0">
+            <p style="margin:0 0 7px"><strong>Evento:</strong> ${eventName}</p>
+            <p style="margin:0 0 7px"><strong>Ingresso:</strong> ${ticketCode}</p>
+            ${role === 'sender' ? '' : `<p style="margin:0 0 7px"><strong>Novo código:</strong> ${newCode}</p>`}
+            <p style="margin:0 0 7px"><strong>Pedido:</strong> ${orderCode}</p>
+            <p style="margin:0 0 7px"><strong>${counterpartLabel}:</strong> ${counterpartName}</p>
+            <p style="margin:0"><strong>Data:</strong> ${eventDate}</p>
+          </div>
+          <p>${role === 'sender'
+            ? 'O QR Code anterior foi invalidado para manter a segurança do ingresso.'
+            : 'Entre na sua conta para visualizar o novo QR Code e os dados atualizados de titularidade.'}</p>
+          <p style="margin-top:24px;color:#64748b;font-size:12px">Este é um email automático do TrocaTicket.</p>
+        </div>
+      </div>
+    `
+  });
+
+  return { sent: true };
+}
+
+function transferResultPage({ success, title, message, eventName, ticketNumber, orderCode }) {
+  const details = success
+    ? `<div class="details"><span>Evento</span><strong>${escapeHtml(eventName)}</strong><span>Novo ingresso</span><strong>${escapeHtml(ticketNumber)}</strong><span>Pedido</span><strong>${escapeHtml(orderCode)}</strong></div>`
+    : '';
+  return `<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${escapeHtml(title)} | TrocaTicket</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#0b0f19;color:#f8fafc;font-family:Inter,Arial,sans-serif;display:grid;place-items:center;padding:24px}
+.card{width:min(100%,560px);background:#151b27;border:1px solid #283244;border-radius:22px;box-shadow:0 24px 70px #0008;padding:42px;text-align:center}
+.brand{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:32px}.brand img{display:block;width:30px;height:30px;object-fit:contain;border-radius:50%}.brand span{color:#fff;font-size:21px;font-weight:800;letter-spacing:-.7px}.brand span b{background:linear-gradient(90deg,#27b7ff,#d946ef,#8b7cff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.icon{width:68px;height:68px;border-radius:50%;display:grid;place-items:center;margin:0 auto 22px;background:${success ? '#123c32' : '#3d2429'};color:${success ? '#52e0b0' : '#ff8793'};font-size:36px}
+h1{font-size:28px;margin:0 0 12px}p{color:#aab5c7;line-height:1.6;margin:0 auto 24px}.details{display:grid;grid-template-columns:1fr 1fr;text-align:left;background:#0f1520;border-radius:14px;padding:17px;margin:22px 0;gap:8px 16px}.details span{color:#8491a6;font-size:12px}.details strong{font-size:14px;overflow-wrap:anywhere}.button{display:inline-block;background:linear-gradient(135deg,#27b7ff,#8b7cff 55%,#d946ef);color:#fff;text-decoration:none;padding:13px 22px;border-radius:9px;font-weight:800;box-shadow:0 8px 22px #5146b855}
+@media(max-width:480px){.card{padding:30px 20px}.details{grid-template-columns:1fr}}
+</style></head><body><main class="card"><div class="brand"><img src="/imagens/logo troca ticket.png" alt=""><span>Troca<b>Ticket</b></span></div>
+<div class="icon">${success ? '✓' : '!'}</div><h1>${escapeHtml(title)}</h1><p>${escapeHtml(message)}</p>${details}
+${success ? '<a class="button" href="/meus-ingressos.html">Acessar meus ingressos</a>' : '<a class="button" href="/">Voltar ao TrocaTicket</a>'}
+</main></body></html>`;
 }
 
 function base64Url(value) {
@@ -419,6 +567,11 @@ function safeHashEqual(expected, received) {
 }
 
 let ticketSecuritySchemaPromise;
+let resaleSchemaPromise;
+
+// Checkout currently applies a 14% administration fee (the simulator intentionally
+// keeps its independent 15% example as requested).
+const DEFAULT_ADMINISTRATION_FEE_PERCENT = 14;
 let supplierSchemaPromise;
 const eventCreationRequests = new Map();
 function ensureSupplierSchema() {
@@ -668,16 +821,185 @@ function ensureTicketSecuritySchema() {
       if (existing.lote_nome === null) await db.query('ALTER TABLE dbo.ingressos_emitidos ADD lote_nome varchar(120) NULL');
       if (existing.categoria_ingresso === null) await db.query('ALTER TABLE dbo.ingressos_emitidos ADD categoria_ingresso varchar(120) NULL');
       await db.query("UPDATE dbo.ingressos_emitidos SET bilheteria_origem = 'Troca Ticket' WHERE bilheteria_origem IS NULL AND bilheteria_id IS NULL");
+      await db.query(`
+        UPDATE i
+        SET categoria_ingresso = CASE
+          WHEN i.preco_original = lot.preco_meia THEN 'Meia-entrada'
+          WHEN i.preco_original = lot.preco_inteira THEN 'Inteira'
+          ELSE NULLIF(TRIM(lot.tipo_ingresso), '')
+        END
+        FROM dbo.ingressos_emitidos i
+        OUTER APPLY (
+          SELECT TOP (1) el.tipo_ingresso, el.preco_meia, el.preco_inteira
+          FROM dbo.evento_lotes el
+          WHERE el.evento_id = i.evento_id
+            AND (
+              LEFT(LTRIM(RTRIM(el.nome)), 1) = LEFT(LTRIM(RTRIM(i.lote_nome)), 1)
+              OR i.lote_nome IS NULL
+            )
+          ORDER BY CASE
+            WHEN i.preco_original = el.preco_meia OR i.preco_original = el.preco_inteira THEN 0
+            WHEN NULLIF(TRIM(el.nome), '') = NULLIF(TRIM(i.lote_nome), '') THEN 1
+            ELSE 2
+          END, el.id
+        ) lot
+        WHERE NULLIF(TRIM(i.categoria_ingresso), '') IS NULL
+      `);
       const [ticketsWithoutSecret] = await db.query("SELECT id FROM dbo.ingressos_emitidos WHERE secret_key IS NULL AND status IN ('ativo', 'valido')");
       for (const ticket of ticketsWithoutSecret) {
         await db.query('UPDATE dbo.ingressos_emitidos SET secret_key = ? WHERE id = ? AND secret_key IS NULL', [makeTicketSecret(), ticket.id]);
       }
+
     })().catch(error => {
       ticketSecuritySchemaPromise = null;
       throw error;
     });
   }
   return ticketSecuritySchemaPromise;
+}
+
+function ensureResaleSchema() {
+        if (!resaleSchemaPromise) {
+          resaleSchemaPromise = (async () => {
+            if (await db.query("SELECT OBJECT_ID('dbo.revendas', 'U') AS id").then(([rows]) => !rows[0]?.id)) {
+              await db.query(`
+                CREATE TABLE dbo.revendas (
+                  id int IDENTITY(1,1) NOT NULL CONSTRAINT pk_revendas PRIMARY KEY,
+                  ingresso_id int NOT NULL,
+                  vendedor_id int NOT NULL,
+                  evento_id int NOT NULL,
+                  preco_original decimal(10,2) NOT NULL,
+                  taxa_percentual decimal(5,2) NOT NULL,
+                  taxa_nome varchar(20) NOT NULL,
+                  prioridade int NOT NULL,
+                  taxa_administracao_percentual decimal(5,2) NOT NULL CONSTRAINT df_revendas_taxa_admin DEFAULT 14,
+                  taxa_administracao_valor decimal(10,2) NOT NULL CONSTRAINT df_revendas_valor_taxa_admin DEFAULT 0,
+                  status varchar(20) NOT NULL CONSTRAINT df_revendas_status DEFAULT 'disponivel',
+                  anunciado_em datetime2(0) NOT NULL CONSTRAINT df_revendas_anunciado DEFAULT SYSUTCDATETIME(),
+                  vendido_em datetime2(0) NULL,
+                  CONSTRAINT uq_revendas_ingresso_ativo UNIQUE (ingresso_id, status)
+                );
+                CREATE INDEX idx_revendas_fila ON dbo.revendas(evento_id, status, prioridade DESC, preco_original ASC, anunciado_em ASC, id ASC);
+                CREATE TABLE dbo.repasse_revendas (
+                  id int IDENTITY(1,1) NOT NULL CONSTRAINT pk_repasse_revendas PRIMARY KEY,
+                  revenda_id int NOT NULL,
+                  vendedor_id int NOT NULL,
+                  comprador_id int NOT NULL,
+                  ingresso_antigo_id int NOT NULL,
+                  ingresso_novo_id int NOT NULL,
+                  valor_bruto decimal(10,2) NOT NULL,
+                  taxa_percentual decimal(5,2) NOT NULL,
+                  valor_taxa decimal(10,2) NOT NULL,
+                  valor_taxa_administracao decimal(10,2) NOT NULL CONSTRAINT df_repasse_taxa_admin DEFAULT 0,
+                  valor_liquido decimal(10,2) NOT NULL,
+                  valor_cobranca decimal(10,2) NULL,
+                  lucro_empresa decimal(10,2) NULL,
+                  criado_em datetime2(0) NOT NULL CONSTRAINT df_repasse_revendas_criado DEFAULT SYSUTCDATETIME()
+                );
+              `);
+            }
+            if (await db.query("SELECT OBJECT_ID('dbo.wallet_lancamentos', 'U') AS id").then(([rows]) => !rows[0]?.id)) {
+              await db.query(`
+                CREATE TABLE dbo.wallet_lancamentos (
+                  id int IDENTITY(1,1) NOT NULL CONSTRAINT pk_wallet_lancamentos PRIMARY KEY,
+                  usuario_id int NOT NULL,
+                  tipo varchar(20) NOT NULL,
+                  status varchar(20) NOT NULL,
+                  valor decimal(10,2) NOT NULL,
+                  repasse_id int NULL,
+                  referencia varchar(80) NULL,
+                  criado_em datetime2(0) NOT NULL CONSTRAINT df_wallet_lancamentos_criado DEFAULT SYSUTCDATETIME(),
+                  disponibilizado_em datetime2(0) NULL,
+                  CONSTRAINT uq_wallet_lancamento_repasse UNIQUE (repasse_id, tipo)
+                );
+                CREATE INDEX idx_wallet_usuario_status ON dbo.wallet_lancamentos(usuario_id, status, criado_em DESC);
+              `);
+            }
+            if (await db.query("SELECT OBJECT_ID('dbo.saques_pix', 'U') AS id").then(([rows]) => !rows[0]?.id)) {
+              await db.query(`
+                CREATE TABLE dbo.saques_pix (
+                  id int IDENTITY(1,1) NOT NULL CONSTRAINT pk_saques_pix PRIMARY KEY,
+                  usuario_id int NOT NULL,
+                  valor decimal(10,2) NOT NULL,
+                  chave_cpf varchar(11) NOT NULL,
+                  status varchar(20) NOT NULL CONSTRAINT df_saques_pix_status DEFAULT 'solicitado',
+                  solicitado_em datetime2(0) NOT NULL CONSTRAINT df_saques_pix_solicitado DEFAULT SYSUTCDATETIME(),
+                  processado_em datetime2(0) NULL
+                );
+              `);
+            }
+            const [repasseColumns] = await db.query(`
+              SELECT COL_LENGTH('dbo.repasse_revendas', 'valor_cobranca') AS valor_cobranca,
+                     COL_LENGTH('dbo.repasse_revendas', 'lucro_empresa') AS lucro_empresa
+            `);
+            const repasseExisting = repasseColumns[0] || {};
+            if (repasseExisting.valor_cobranca == null) await db.query('ALTER TABLE dbo.repasse_revendas ADD valor_cobranca decimal(10,2) NULL');
+            if (repasseExisting.lucro_empresa == null) await db.query('ALTER TABLE dbo.repasse_revendas ADD lucro_empresa decimal(10,2) NULL');
+            const [resaleColumns] = await db.query(`
+              SELECT COL_LENGTH('dbo.revendas', 'taxa_administracao_percentual') AS taxa_admin_percentual,
+                     COL_LENGTH('dbo.revendas', 'taxa_administracao_valor') AS taxa_admin_valor,
+                     COL_LENGTH('dbo.repasse_revendas', 'valor_taxa_administracao') AS valor_taxa_admin
+            `);
+            const resaleExisting = resaleColumns[0] || {};
+            if (resaleExisting.taxa_admin_percentual == null) await db.query("ALTER TABLE dbo.revendas ADD taxa_administracao_percentual decimal(5,2) NOT NULL CONSTRAINT df_revendas_taxa_admin_migrated DEFAULT 14");
+            if (resaleExisting.taxa_admin_valor == null) await db.query("ALTER TABLE dbo.revendas ADD taxa_administracao_valor decimal(10,2) NOT NULL CONSTRAINT df_revendas_valor_taxa_admin_migrated DEFAULT 0");
+            if (resaleExisting.valor_taxa_admin == null) await db.query("ALTER TABLE dbo.repasse_revendas ADD valor_taxa_administracao decimal(10,2) NOT NULL CONSTRAINT df_repasse_taxa_admin_migrated DEFAULT 0");
+            await db.query(`
+              UPDATE r
+              SET r.taxa_administracao_percentual = ?
+              FROM dbo.revendas r
+              JOIN dbo.ingressos_emitidos i ON i.id = r.ingresso_id
+              WHERE i.bilheteria_origem IS NULL OR i.bilheteria_origem = 'Troca Ticket'
+            `, [DEFAULT_ADMINISTRATION_FEE_PERCENT]);
+            // Existing listings may have been created from the event average. Always restore
+            // the price paid for the ticket's lot and modality before displaying or selling it.
+            await db.query(`
+              UPDATE r
+              SET r.preco_original = lot.preco_lote,
+                  r.taxa_administracao_valor = lot.preco_lote
+                    * CASE WHEN i.bilheteria_origem IS NULL OR i.bilheteria_origem = 'Troca Ticket' THEN ? ELSE 0 END / 100
+              FROM dbo.revendas r
+              JOIN dbo.ingressos_emitidos i ON i.id = r.ingresso_id
+              OUTER APPLY (
+                SELECT TOP (1)
+                  CASE
+                    WHEN LOWER(COALESCE(i.categoria_ingresso, '')) LIKE '%meia%' THEN COALESCE(el.preco_meia, el.preco / 2)
+                    ELSE COALESCE(el.preco_inteira, el.preco)
+                  END AS preco_lote
+                FROM dbo.evento_lotes el
+                WHERE el.evento_id = i.evento_id
+                  AND (
+                    LEFT(LTRIM(RTRIM(el.nome)), 1) = LEFT(LTRIM(RTRIM(i.lote_nome)), 1)
+                    OR i.lote_nome IS NULL
+                  )
+                  AND (NULLIF(TRIM(el.setor_nome), '') = NULLIF(TRIM(i.setor_nome), '')
+                    OR NULLIF(TRIM(i.setor_nome), '') IS NULL)
+                ORDER BY CASE WHEN NULLIF(TRIM(el.nome), '') = NULLIF(TRIM(i.lote_nome), '') THEN 0 ELSE 1 END, el.id
+              ) lot
+              WHERE lot.preco_lote IS NOT NULL
+            `, [DEFAULT_ADMINISTRATION_FEE_PERCENT]);
+            const [columns] = await db.query(`
+              SELECT COL_LENGTH('dbo.ingressos_emitidos', 'preco_original') AS preco_original,
+                     COL_LENGTH('dbo.ingressos_emitidos', 'revoked') AS revoked,
+                     COL_LENGTH('dbo.ingressos_emitidos', 'revogado_em') AS revogado_em
+            `);
+            const existing = columns[0] || {};
+            if (existing.preco_original === null) {
+              await db.query('ALTER TABLE dbo.ingressos_emitidos ADD preco_original decimal(10,2) NULL');
+              await db.query(`
+                UPDATE i SET i.preco_original = COALESCE(e.ticket_calculado, 0)
+                FROM dbo.ingressos_emitidos i JOIN dbo.eventos e ON e.id = i.evento_id
+                WHERE i.preco_original IS NULL
+              `);
+            }
+            if (existing.revoked === null) await db.query("ALTER TABLE dbo.ingressos_emitidos ADD revoked bit NOT NULL CONSTRAINT df_ingressos_revoked DEFAULT 0");
+            if (existing.revogado_em === null) await db.query('ALTER TABLE dbo.ingressos_emitidos ADD revogado_em datetime2(0) NULL');
+          })().catch(error => {
+            resaleSchemaPromise = null;
+            throw error;
+          });
+        }
+  return resaleSchemaPromise;
 }
 
 async function getTicketSecret(ticketId) {
@@ -833,7 +1155,7 @@ function send(response, status, payload) {
   response.writeHead(status, {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Idempotency-Key',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, Idempotency-Key',
     'Content-Type': 'application/json; charset=utf-8'
   });
   response.end(JSON.stringify(payload));
@@ -1156,26 +1478,62 @@ const server = http.createServer(async (request, response) => {
       const requestedEmail = normalizeEmail(url.searchParams.get('email'));
       if (!session || session.email !== requestedEmail) return send(response, 403, { ok: false, message: 'SessÃƒÂ£o invÃƒÂ¡lida. Entre novamente para acessar seus ingressos.' });
       await ensureTicketSecuritySchema();
+      await ensureResaleSchema();
       const ticketId = url.pathname.match(/\/(\d+)$/)?.[1];
       const includeQr = url.searchParams.get('includeQr') === 'true';
       if (ticketId) {
         const [tickets] = await db.query(`
           SELECT TOP (1)
             i.id, i.numero_ingresso, i.qr_code_payload, i.setor_nome AS setor,
+            i.codigo_original_bilheteria AS codigo_ingresso,
             i.bilheteria_origem, i.status, i.utilizado_em AS checkinAt,
+            CAST(CASE WHEN EXISTS (
+              SELECT 1 FROM dbo.repasse_revendas rep
+              WHERE rep.ingresso_antigo_id = i.id AND rep.vendedor_id = u.id
+            ) THEN 1 ELSE 0 END AS bit) AS repassado,
             COALESCE(i.versao_titularidade, 1) AS versao_titularidade,
             p.codigo_pedido, e.nome AS evento, e.nome AS eventName, e.artista,
             e.[local] AS location, e.imagem, CONVERT(varchar(19), e.data_evento, 126) AS date,
             u.nome AS titular, u.cpf,
+            COALESCE(NULLIF(TRIM(i.categoria_ingresso), ''),
+              CASE WHEN i.preco_original = l.preco_meia THEN 'Meia-entrada'
+                   WHEN i.preco_original = l.preco_inteira THEN 'Inteira' END,
+              NULLIF(TRIM(l.tipo_ingresso), '')) AS ticketCategory,
             tp.id AS transferencia_pendente_id,
-            COALESCE(NULLIF(TRIM(u2.nome), ''), u2.email) AS destinatario_pendente_nome
+            COALESCE(NULLIF(TRIM(u2.nome), ''), u2.email) AS destinatario_pendente_nome,
+            CAST(CASE WHEN tr.id IS NULL THEN 0 ELSE 1 END AS bit) AS transferido,
+            COALESCE(NULLIF(TRIM(u3.nome), ''), u3.email) AS destinatario_transferencia_nome
           FROM dbo.ingressos_emitidos i
           JOIN dbo.usuarios u ON u.id = i.comprador_id
           JOIN dbo.eventos e ON e.id = i.evento_id
           LEFT JOIN dbo.pedidos p ON p.id = i.pedido_id
           LEFT JOIN dbo.transferencias_pendentes tp ON tp.ingresso_id = i.id AND tp.status = 'pendente'
           LEFT JOIN dbo.usuarios u2 ON u2.id = tp.destinatario_id
+          OUTER APPLY (
+            SELECT TOP (1) accepted.id, accepted.destinatario_id
+            FROM dbo.transferencias_pendentes accepted
+            WHERE accepted.ingresso_id = i.id AND accepted.status = 'aceita'
+            ORDER BY accepted.id DESC
+          ) tr
+          LEFT JOIN dbo.usuarios u3 ON u3.id = tr.destinatario_id
+          OUTER APPLY (
+            SELECT TOP (1) el.tipo_ingresso, el.preco_meia, el.preco_inteira
+            FROM dbo.evento_lotes el
+            WHERE el.evento_id = i.evento_id
+              AND (
+                LEFT(LTRIM(RTRIM(el.nome)), 1) = LEFT(LTRIM(RTRIM(i.lote_nome)), 1)
+                OR i.lote_nome IS NULL
+              )
+            ORDER BY CASE WHEN NULLIF(TRIM(el.nome), '') = NULLIF(TRIM(i.lote_nome), '') THEN 0 ELSE 1 END, el.id
+          ) l
           WHERE i.id = ? AND u.email = ? AND i.status NOT IN ('cancelado', 'bloqueado')
+            AND (
+              ISNULL(i.revoked, 0) = 0
+              OR EXISTS (
+                SELECT 1 FROM dbo.repasse_revendas rep
+                WHERE rep.ingresso_antigo_id = i.id AND rep.vendedor_id = u.id
+              )
+            )
         `, [Number(ticketId), requestedEmail]);
         if (!tickets.length) return send(response, 404, { ok: false, message: 'Ingresso nÃƒÂ£o encontrado.' });
         const ticket = tickets[0];
@@ -1213,22 +1571,72 @@ const server = http.createServer(async (request, response) => {
       const [tickets] = await db.query(`
         SELECT 
           TOP (?)
-          i.id, i.numero_ingresso, i.setor_nome AS setor, i.bilheteria_origem,
+          i.id, i.numero_ingresso, i.evento_id AS eventId,
+          i.codigo_original_bilheteria AS codigo_ingresso,
+          COALESCE(lot.preco_lote, i.preco_original, e.ticket_calculado) AS preco_original,
+          i.lote_nome, i.setor_nome AS setor, i.bilheteria_origem,
           i.status, i.utilizado_em AS checkinAt,
+          CAST(CASE WHEN EXISTS (
+            SELECT 1 FROM dbo.repasse_revendas rep
+            WHERE rep.ingresso_antigo_id = i.id AND rep.vendedor_id = u.id
+          ) THEN 1 ELSE 0 END AS bit) AS repassado,
           COALESCE(i.versao_titularidade, 1) AS versao_titularidade,
           p.codigo_pedido, e.nome AS evento, e.nome AS eventName, e.artista,
           e.[local] AS location, e.imagem,
           CONVERT(varchar(19), e.data_evento, 126) AS date,
           CONVERT(varchar(19), i.emitido_em, 126) AS emittedAt,
           u.nome AS titular, u.cpf, tp.id AS transferencia_pendente_id,
+          COALESCE(NULLIF(TRIM(i.categoria_ingresso), ''),
+            CASE WHEN COALESCE(i.preco_original, e.ticket_calculado) = l.preco_meia THEN 'Meia-entrada'
+                 WHEN COALESCE(i.preco_original, e.ticket_calculado) = l.preco_inteira THEN 'Inteira' END,
+            NULLIF(TRIM(l.tipo_ingresso), '')) AS ticketCategory,
           COALESCE(NULLIF(TRIM(u2.nome), ''), u2.email) AS destinatario_pendente_nome
+          ,CAST(CASE WHEN tr.id IS NULL THEN 0 ELSE 1 END AS bit) AS transferido,
+          COALESCE(NULLIF(TRIM(u3.nome), ''), u3.email) AS destinatario_transferencia_nome
         FROM dbo.ingressos_emitidos i
         JOIN dbo.usuarios u ON u.id = i.comprador_id
         JOIN dbo.eventos e ON e.id = i.evento_id
         LEFT JOIN dbo.pedidos p ON p.id = i.pedido_id
         LEFT JOIN dbo.transferencias_pendentes tp ON tp.ingresso_id = i.id AND tp.status = 'pendente'
         LEFT JOIN dbo.usuarios u2 ON u2.id = tp.destinatario_id
-        WHERE u.email = ? AND i.status NOT IN ('cancelado', 'bloqueado') ${cursorClause}
+        OUTER APPLY (
+          SELECT TOP (1) accepted.id, accepted.destinatario_id
+          FROM dbo.transferencias_pendentes accepted
+          WHERE accepted.ingresso_id = i.id AND accepted.status = 'aceita'
+          ORDER BY accepted.id DESC
+        ) tr
+        LEFT JOIN dbo.usuarios u3 ON u3.id = tr.destinatario_id
+        OUTER APPLY (
+          SELECT TOP (1) el.tipo_ingresso, el.preco_meia, el.preco_inteira
+          FROM dbo.evento_lotes el
+          WHERE el.evento_id = i.evento_id
+            AND (
+              LEFT(LTRIM(RTRIM(el.nome)), 1) = LEFT(LTRIM(RTRIM(i.lote_nome)), 1)
+              OR i.lote_nome IS NULL
+            )
+          ORDER BY CASE WHEN NULLIF(TRIM(el.nome), '') = NULLIF(TRIM(i.lote_nome), '') THEN 0 ELSE 1 END, el.id
+        ) l
+        OUTER APPLY (
+          SELECT TOP (1)
+            CASE
+              WHEN LOWER(COALESCE(i.categoria_ingresso, '')) LIKE '%meia%' THEN COALESCE(el.preco_meia, el.preco / 2)
+              ELSE COALESCE(el.preco_inteira, el.preco)
+            END AS preco_lote
+          FROM dbo.evento_lotes el
+          WHERE el.evento_id = i.evento_id
+            AND (NULLIF(TRIM(el.nome), '') = NULLIF(TRIM(i.lote_nome), '') OR i.lote_nome IS NULL)
+            AND (NULLIF(TRIM(el.setor_nome), '') = NULLIF(TRIM(i.setor_nome), '')
+              OR NULLIF(TRIM(i.setor_nome), '') IS NULL)
+          ORDER BY CASE WHEN NULLIF(TRIM(el.nome), '') = NULLIF(TRIM(i.lote_nome), '') THEN 0 ELSE 1 END, el.id
+        ) lot
+        WHERE u.email = ? AND i.status NOT IN ('cancelado', 'bloqueado')
+          AND (
+            ISNULL(i.revoked, 0) = 0
+            OR EXISTS (
+              SELECT 1 FROM dbo.repasse_revendas rep
+              WHERE rep.ingresso_antigo_id = i.id AND rep.vendedor_id = u.id
+            )
+          ) ${cursorClause}
         ORDER BY i.emitido_em DESC, i.id DESC
       `, queryParams);
       const last = tickets[tickets.length - 1];
@@ -1239,6 +1647,446 @@ const server = http.createServer(async (request, response) => {
     } catch (error) { 
       console.error('[usuario] Erro nos ingressos:', error.message); 
       return send(response, 500, { ok: false, message: 'Erro ao carregar ingressos.' }); 
+    }
+  }
+
+  // ===== REVENDA P2P =====
+  if (request.method === 'GET' && url.pathname === '/api/revenda/fila') {
+    try {
+      await ensureResaleSchema();
+      const eventId = Number(url.searchParams.get('evento_id'));
+      if (!Number.isInteger(eventId) || eventId <= 0) return send(response, 400, { ok: false, message: 'Evento inválido.' });
+      const [listings] = await db.query(`
+        SELECT r.id, r.ingresso_id, r.evento_id, r.preco_original, r.taxa_percentual,
+          r.taxa_nome, r.anunciado_em, i.lote_nome, i.setor_nome,
+          current_lot.nome AS lote_vigente,
+          CASE WHEN LOWER(COALESCE(i.categoria_ingresso, '')) LIKE '%meia%'
+            THEN COALESCE(current_lot.preco_meia, current_lot.preco / 2)
+            ELSE COALESCE(current_lot.preco_inteira, current_lot.preco)
+          END AS preco_vigente,
+          COALESCE(NULLIF(TRIM(i.categoria_ingresso), ''),
+            CASE WHEN i.preco_original = l.preco_meia THEN 'Meia-entrada'
+                 WHEN i.preco_original = l.preco_inteira THEN 'Inteira' END,
+            NULLIF(TRIM(l.tipo_ingresso), '')) AS categoria_ingresso
+        FROM dbo.revendas r
+        JOIN dbo.ingressos_emitidos i ON i.id = r.ingresso_id
+        OUTER APPLY (
+          SELECT TOP (1) el.nome, el.preco, el.preco_inteira, el.preco_meia
+          FROM dbo.evento_lotes el
+          WHERE el.evento_id = r.evento_id
+            AND (NULLIF(TRIM(el.setor_nome), '') = NULLIF(TRIM(i.setor_nome), '')
+              OR (NULLIF(TRIM(el.setor_nome), '') IS NULL AND NULLIF(TRIM(i.setor_nome), '') IS NULL))
+            AND (el.data_inicio IS NULL OR el.data_inicio <= SYSUTCDATETIME())
+            AND (el.data_fim IS NULL OR el.data_fim > SYSUTCDATETIME())
+          ORDER BY
+            CASE WHEN el.data_inicio IS NULL AND el.data_fim IS NULL AND el.data_virada IS NULL THEN 1 ELSE 0 END,
+            CASE WHEN el.data_inicio IS NULL AND el.data_fim IS NULL AND el.data_virada IS NULL
+              THEN TRY_CONVERT(int, LEFT(SUBSTRING(el.nome, PATINDEX('%[0-9]%', el.nome), 10), 1))
+              ELSE 0 END ASC,
+            COALESCE(el.data_inicio, el.criado_em) DESC, el.id DESC
+        ) current_lot
+        OUTER APPLY (
+          SELECT TOP (1) el.tipo_ingresso, el.preco_meia, el.preco_inteira
+          FROM dbo.evento_lotes el
+          WHERE el.evento_id = i.evento_id
+            AND (NULLIF(TRIM(el.nome), '') = NULLIF(TRIM(i.lote_nome), '') OR i.lote_nome IS NULL)
+          ORDER BY CASE WHEN NULLIF(TRIM(el.nome), '') = NULLIF(TRIM(i.lote_nome), '') THEN 0 ELSE 1 END, el.id
+        ) l
+        WHERE r.evento_id = ? AND r.status = 'disponivel'
+        ORDER BY i.setor_nome ASC, r.prioridade DESC, r.preco_original ASC, r.anunciado_em ASC, r.id ASC
+      `, [eventId]);
+      return send(response, 200, { ok: true, listings });
+    } catch (error) {
+      console.error('[revenda] Erro ao carregar fila:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível carregar a fila de revenda.' });
+    }
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/revenda/anunciar') {
+    try {
+      await ensureResaleSchema();
+      const session = readSessionToken(request);
+      if (!session) return send(response, 401, { ok: false, message: 'Entre na sua conta para anunciar um ingresso.' });
+      const body = await parseBody(request);
+      const feeKey = String(body.taxa || '').trim().toLowerCase();
+      const fee = RESALE_FEES[feeKey];
+      const ticketId = Number(body.ingresso_id);
+      if (!fee || !Number.isInteger(ticketId) || ticketId <= 0) {
+        return send(response, 400, { ok: false, message: 'Selecione um ingresso e uma taxa de repasse válida.' });
+      }
+      const [[ticket]] = await db.query(`
+        SELECT i.id, i.comprador_id, i.evento_id, i.status, i.revoked, i.bilheteria_origem,
+          COALESCE(lot.preco_lote, i.preco_original, e.ticket_calculado) AS preco_original,
+          COALESCE(NULLIF(TRIM(i.categoria_ingresso), ''),
+            CASE WHEN i.preco_original = l.preco_meia THEN 'Meia-entrada'
+                 WHEN i.preco_original = l.preco_inteira THEN 'Inteira' END,
+            NULLIF(TRIM(l.tipo_ingresso), '')) AS categoria_ingresso
+        FROM dbo.ingressos_emitidos i JOIN dbo.eventos e ON e.id = i.evento_id
+        OUTER APPLY (
+          SELECT TOP (1) el.tipo_ingresso, el.preco_meia, el.preco_inteira
+          FROM dbo.evento_lotes el
+          WHERE el.evento_id = i.evento_id
+            AND (NULLIF(TRIM(el.nome), '') = NULLIF(TRIM(i.lote_nome), '') OR i.lote_nome IS NULL)
+          ORDER BY CASE WHEN NULLIF(TRIM(el.nome), '') = NULLIF(TRIM(i.lote_nome), '') THEN 0 ELSE 1 END, el.id
+        ) l
+        OUTER APPLY (
+          SELECT TOP (1)
+            CASE
+              WHEN LOWER(COALESCE(i.categoria_ingresso, '')) LIKE '%meia%' THEN COALESCE(el.preco_meia, el.preco / 2)
+              ELSE COALESCE(el.preco_inteira, el.preco)
+            END AS preco_lote
+          FROM dbo.evento_lotes el
+          WHERE el.evento_id = i.evento_id
+            AND (NULLIF(TRIM(el.nome), '') = NULLIF(TRIM(i.lote_nome), '') OR i.lote_nome IS NULL)
+            AND (NULLIF(TRIM(el.setor_nome), '') = NULLIF(TRIM(i.setor_nome), '')
+              OR NULLIF(TRIM(i.setor_nome), '') IS NULL)
+          ORDER BY CASE WHEN NULLIF(TRIM(el.nome), '') = NULLIF(TRIM(i.lote_nome), '') THEN 0 ELSE 1 END, el.id
+        ) lot
+        WHERE i.id = ? AND i.comprador_id = ?
+      `, [ticketId, session.sub]);
+      if (!ticket || ticket.status !== 'ativo' || ticket.revoked) return send(response, 409, { ok: false, message: 'Este ingresso não está disponível para revenda.' });
+      if (!ticket.categoria_ingresso) return send(response, 409, { ok: false, message: 'A categoria deste ingresso não foi identificada. Ele precisa ser validado antes da revenda.' });
+      const [[existing]] = await db.query("SELECT id FROM dbo.revendas WHERE ingresso_id = ? AND status = 'disponivel'", [ticketId]);
+      if (existing) return send(response, 409, { ok: false, message: 'Este ingresso já está anunciado na revenda.' });
+      const administrationFeePercent = ticket.bilheteria_origem && ticket.bilheteria_origem !== 'Troca Ticket'
+        ? 0
+        : DEFAULT_ADMINISTRATION_FEE_PERCENT;
+      const administrationFee = Number(ticket.preco_original || 0) * administrationFeePercent / 100;
+      const [rows] = await db.query(`
+        INSERT INTO dbo.revendas
+          (ingresso_id, vendedor_id, evento_id, preco_original, taxa_percentual, taxa_nome, prioridade,
+           taxa_administracao_percentual, taxa_administracao_valor)
+        OUTPUT INSERTED.id
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [ticketId, session.sub, ticket.evento_id, Number(ticket.preco_original || 0), fee.percent, fee.label, fee.priority, administrationFeePercent, administrationFee]);
+      return send(response, 201, {
+        ok: true,
+        revenda_id: rows[0].id,
+        preco_original: Number(ticket.preco_original || 0),
+        categoria_ingresso: ticket.categoria_ingresso,
+        taxa: fee
+      });
+    } catch (error) {
+      console.error('[revenda] Erro ao anunciar:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível anunciar o ingresso.' });
+    }
+  }
+
+  if (request.method === 'GET' && url.pathname === '/api/revenda/meus-anuncios') {
+    try {
+      await ensureResaleSchema();
+      const session = readSessionToken(request);
+      if (!session) return send(response, 401, { ok: false, message: 'Sessão inválida.' });
+      const [listings] = await db.query(`
+        WITH fila AS (
+          SELECT r.id,
+            ROW_NUMBER() OVER (
+              PARTITION BY r.evento_id, i.setor_nome, i.categoria_ingresso
+              ORDER BY r.prioridade DESC, r.preco_original ASC, r.anunciado_em ASC, r.id ASC
+              ) AS posicao,
+              COUNT(*) OVER (PARTITION BY r.evento_id, i.setor_nome, i.categoria_ingresso) AS total_fila
+          FROM dbo.revendas r
+          JOIN dbo.ingressos_emitidos i ON i.id = r.ingresso_id
+          WHERE r.status = 'disponivel'
+        )
+        SELECT r.id, r.ingresso_id, r.evento_id,
+          COALESCE(paid_lot.preco_lote, r.preco_original) AS preco_original,
+          r.taxa_percentual,
+          r.taxa_nome, r.prioridade, r.status, r.anunciado_em, r.vendido_em,
+          CAST(CASE WHEN i.bilheteria_id IS NULL OR i.bilheteria_origem = 'Troca Ticket'
+            THEN 14 ELSE 0 END AS decimal(5,2)) AS taxa_administracao_percentual,
+          CAST(CASE WHEN i.bilheteria_id IS NULL OR i.bilheteria_origem = 'Troca Ticket'
+            THEN COALESCE(paid_lot.preco_lote, r.preco_original) * 14 / 100 ELSE 0 END AS decimal(10,2)) AS taxa_administracao_valor,
+          CAST(COALESCE(f.posicao, 1) AS int) AS posicao,
+          CAST(COALESCE(f.total_fila, 1) AS int) AS total_fila,
+          e.nome AS evento, i.numero_ingresso, i.lote_nome, i.setor_nome,
+          i.bilheteria_id, i.bilheteria_origem,
+          current_lot.nome AS lote_vigente,
+          CASE WHEN LOWER(COALESCE(i.categoria_ingresso, '')) LIKE '%meia%'
+            THEN COALESCE(current_lot.preco_meia, current_lot.preco / 2)
+            ELSE COALESCE(current_lot.preco_inteira, current_lot.preco)
+          END AS preco_vigente,
+          i.categoria_ingresso AS categoria_ingresso,
+          rr.valor_liquido, rr.valor_cobranca, rr.lucro_empresa, rr.criado_em AS repassado_em
+        FROM dbo.revendas r
+        JOIN dbo.eventos e ON e.id = r.evento_id
+        JOIN dbo.ingressos_emitidos i ON i.id = r.ingresso_id
+        LEFT JOIN fila f ON f.id = r.id
+        OUTER APPLY (
+          SELECT TOP (1)
+            CASE
+              WHEN LOWER(COALESCE(i.categoria_ingresso, '')) LIKE '%meia%'
+                THEN COALESCE(el.preco_meia, el.preco / 2)
+              ELSE COALESCE(el.preco_inteira, el.preco)
+            END AS preco_lote
+          FROM dbo.evento_lotes el
+          WHERE el.evento_id = i.evento_id
+            AND (NULLIF(TRIM(el.setor_nome), '') = NULLIF(TRIM(i.setor_nome), '')
+              OR NULLIF(TRIM(i.setor_nome), '') IS NULL)
+          ORDER BY CASE WHEN NULLIF(TRIM(el.nome), '') = NULLIF(TRIM(i.lote_nome), '') THEN 0 ELSE 1 END,
+            COALESCE(el.data_inicio, el.criado_em), el.id
+        ) paid_lot
+        OUTER APPLY (
+          SELECT TOP (1) el.nome, el.preco, el.preco_inteira, el.preco_meia
+          FROM dbo.evento_lotes el
+          WHERE el.evento_id = r.evento_id
+            AND (NULLIF(TRIM(el.setor_nome), '') = NULLIF(TRIM(i.setor_nome), '')
+              OR (NULLIF(TRIM(el.setor_nome), '') IS NULL AND NULLIF(TRIM(i.setor_nome), '') IS NULL))
+            AND (el.data_inicio IS NULL OR el.data_inicio <= SYSUTCDATETIME())
+            AND (el.data_fim IS NULL OR el.data_fim > SYSUTCDATETIME())
+          ORDER BY
+            CASE WHEN el.data_inicio IS NULL AND el.data_fim IS NULL AND el.data_virada IS NULL THEN 1 ELSE 0 END,
+            CASE WHEN el.data_inicio IS NULL AND el.data_fim IS NULL AND el.data_virada IS NULL
+              THEN TRY_CONVERT(int, LEFT(SUBSTRING(el.nome, PATINDEX('%[0-9]%', el.nome), 10), 1))
+              ELSE 0 END ASC,
+            COALESCE(el.data_inicio, el.criado_em) DESC, el.id DESC
+        ) current_lot
+        OUTER APPLY (
+          SELECT TOP (1) rep.valor_liquido, rep.valor_cobranca, rep.lucro_empresa, rep.criado_em
+          FROM dbo.repasse_revendas rep
+          WHERE rep.revenda_id = r.id
+          ORDER BY rep.id DESC
+        ) rr
+        WHERE r.vendedor_id = ?
+        ORDER BY CASE WHEN r.status = 'disponivel' THEN 0 ELSE 1 END,
+          COALESCE(r.vendido_em, r.anunciado_em) DESC, r.id DESC
+      `, [session.sub]);
+      return send(response, 200, { ok: true, listings });
+    } catch (error) {
+      console.error('[revenda] Erro ao carregar anúncios do usuário:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível carregar seus anúncios.' });
+    }
+  }
+
+  if (request.method === 'DELETE' && /^\/api\/revenda\/\d+$/.test(url.pathname)) {
+    try {
+      await ensureResaleSchema();
+      const session = readSessionToken(request);
+      if (!session) return send(response, 401, { ok: false, message: 'Sessão inválida.' });
+      const resaleId = Number(url.pathname.split('/').pop());
+      const [result] = await db.query("UPDATE dbo.revendas SET status = 'cancelada' WHERE id = ? AND vendedor_id = ? AND status = 'disponivel'", [resaleId, session.sub]);
+      if (!result.affectedRows) return send(response, 404, { ok: false, message: 'Anúncio não encontrado ou já processado.' });
+      return send(response, 200, { ok: true, message: 'Anúncio retirado da fila.' });
+    } catch (error) {
+      console.error('[revenda] Erro ao cancelar anúncio:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível retirar o anúncio.' });
+    }
+  }
+
+  if (request.method === 'PATCH' && /^\/api\/revenda\/\d+\/prioridade$/.test(url.pathname)) {
+    try {
+      await ensureResaleSchema();
+      const session = readSessionToken(request);
+      if (!session) return send(response, 401, { ok: false, message: 'Sessão inválida.' });
+      const resaleId = Number(url.pathname.split('/')[3]);
+      const body = await parseBody(request);
+      const requestedFee = body.taxa ?? body.prioridade ?? body.fee;
+      const nextFee = RESALE_FEES[String(requestedFee || '').trim().toLowerCase()];
+      if (!nextFee) return send(response, 400, { ok: false, message: 'Selecione uma prioridade válida.' });
+      const [[listing]] = await db.query(
+        'SELECT id, taxa_percentual, preco_original, status FROM dbo.revendas WHERE id = ? AND vendedor_id = ?',
+        [resaleId, session.sub]
+      );
+      if (!listing || listing.status !== 'disponivel') return send(response, 404, { ok: false, message: 'Anúncio ativo não encontrado.' });
+      const difference = Number(listing.preco_original) * (nextFee.percent - Number(listing.taxa_percentual)) / 100;
+      await db.query(`
+        UPDATE dbo.revendas
+        SET taxa_percentual = ?, taxa_nome = ?, prioridade = ?
+        WHERE id = ? AND status = 'disponivel'
+      `, [nextFee.percent, nextFee.label, nextFee.priority, resaleId]);
+      return send(response, 200, {
+        ok: true,
+        message: `Prioridade alterada para ${nextFee.label} (${nextFee.percent}%). O novo posicionamento já foi aplicado à fila.`,
+        diferenca_repasse: difference,
+        taxa: nextFee
+      });
+    } catch (error) {
+      console.error('[revenda] Erro ao alterar taxa:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível alterar a taxa.' });
+    }
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/revenda/comprar') {
+    const connection = await db.getConnection();
+    try {
+      await ensureResaleSchema();
+      const session = readSessionToken(request);
+      if (!session) return send(response, 401, { ok: false, message: 'Entre na sua conta para comprar.' });
+      const body = await parseBody(request);
+      const eventId = Number(body.evento_id);
+      const requestedSector = String(body.setor_nome || '').trim();
+      const requestedCategory = String(body.categoria_ingresso || '').trim();
+      if (!Number.isInteger(eventId) || eventId <= 0) return send(response, 400, { ok: false, message: 'Evento inválido.' });
+      await connection.beginTransaction();
+      const [[buyer]] = await connection.query('SELECT id, nome, cpf FROM dbo.usuarios WHERE id = ? AND email = ?', [session.sub, session.email]);
+      const [[listing]] = await connection.query(`
+        SELECT TOP (1) r.*, i.numero_ingresso, i.codigo_original_bilheteria, i.qr_code_payload,
+          i.secret_key, i.setor_nome, i.lote_nome, i.categoria_ingresso,
+          current_lot.nome AS lote_vigente,
+          CASE WHEN LOWER(COALESCE(i.categoria_ingresso, '')) LIKE '%meia%'
+            THEN COALESCE(current_lot.preco_meia, current_lot.preco / 2)
+            ELSE COALESCE(current_lot.preco_inteira, current_lot.preco)
+          END AS valor_cobranca
+        FROM dbo.revendas r WITH (UPDLOCK, ROWLOCK)
+        JOIN dbo.ingressos_emitidos i ON i.id = r.ingresso_id
+        OUTER APPLY (
+          SELECT TOP (1) el.nome, el.preco, el.preco_inteira, el.preco_meia
+          FROM dbo.evento_lotes el
+          WHERE el.evento_id = r.evento_id
+            AND (NULLIF(TRIM(el.setor_nome), '') = NULLIF(TRIM(i.setor_nome), '')
+              OR (NULLIF(TRIM(el.setor_nome), '') IS NULL AND NULLIF(TRIM(i.setor_nome), '') IS NULL))
+            AND (el.data_inicio IS NULL OR el.data_inicio <= SYSUTCDATETIME())
+            AND (el.data_fim IS NULL OR el.data_fim > SYSUTCDATETIME())
+          ORDER BY
+            CASE WHEN el.data_inicio IS NULL AND el.data_fim IS NULL AND el.data_virada IS NULL THEN 1 ELSE 0 END,
+            CASE WHEN el.data_inicio IS NULL AND el.data_fim IS NULL AND el.data_virada IS NULL
+              THEN TRY_CONVERT(int, LEFT(SUBSTRING(el.nome, PATINDEX('%[0-9]%', el.nome), 10), 1))
+              ELSE 0 END ASC,
+            COALESCE(el.data_inicio, el.criado_em) DESC, el.id DESC
+        ) current_lot
+        WHERE r.evento_id = ? AND r.status = 'disponivel' AND i.status = 'ativo' AND ISNULL(i.revoked, 0) = 0
+          AND (? = '' OR COALESCE(i.setor_nome, '') = ?)
+          AND (? = '' OR COALESCE(i.categoria_ingresso, '') = ?)
+        ORDER BY r.prioridade DESC, r.preco_original ASC, r.anunciado_em ASC, r.id ASC
+      `, [eventId, requestedSector, requestedSector, requestedCategory, requestedCategory]);
+      if (!buyer || !listing) {
+        await connection.rollback();
+        return send(response, 409, { ok: false, message: 'Não há ingressos disponíveis na fila de revenda para este evento.' });
+      }
+      if (Number(listing.vendedor_id) === Number(buyer.id)) {
+        await connection.rollback();
+        return send(response, 400, { ok: false, message: 'O vendedor não pode comprar o próprio anúncio.' });
+      }
+      const codigoPedido = makeCode('PED');
+      const [orderRows] = await connection.query(
+        `INSERT INTO dbo.pedidos (codigo_pedido, comprador_id, valor_total, status) OUTPUT INSERTED.id VALUES (?, ?, ?, 'aprovado')`,
+        [codigoPedido, buyer.id, Number(listing.valor_cobranca || listing.preco_original)]
+      );
+      const pedidoId = orderRows[0].id;
+      const newNumber = makeCode('TKT');
+      const newSecret = makeTicketSecret();
+      const newQr = makeActiveTicketPayload(newNumber, newSecret);
+      const [newTicketRows] = await connection.query(`
+        INSERT INTO dbo.ingressos_emitidos
+          (pedido_id, comprador_id, evento_id, bilheteria_id, bilheteria_origem, setor_nome, lote_nome, categoria_ingresso,
+           numero_ingresso, codigo_original_bilheteria, qr_code_payload, secret_key, preco_original, versao_titularidade, status, revoked)
+        OUTPUT INSERTED.id VALUES (?, ?, ?, NULL, 'Revenda P2P', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ativo', 0)
+      `, [pedidoId, buyer.id, eventId, listing.setor_nome, listing.lote_vigente || listing.lote_nome, listing.categoria_ingresso, newNumber,
+        listing.codigo_original_bilheteria, newQr, newSecret, Number(listing.valor_cobranca || listing.preco_original), Number(listing.versao_titularidade || 1) + 1]);
+      const newTicketId = newTicketRows[0].id;
+      await connection.query("UPDATE dbo.ingressos_emitidos SET status = 'revogado', revoked = 1, revogado_em = SYSUTCDATETIME() WHERE id = ? AND status = 'ativo'", [listing.ingresso_id]);
+      const payout = calculateResalePayout({
+        lotPrice: listing.preco_original,
+        priorityPercent: listing.taxa_percentual,
+        administrationFee: 0
+      });
+      await connection.query("UPDATE dbo.revendas SET status = 'vendida', vendido_em = SYSUTCDATETIME() WHERE id = ? AND status = 'disponivel'", [listing.id]);
+      const [repasseRows] = await connection.query(`
+        INSERT INTO dbo.repasse_revendas
+          (revenda_id, vendedor_id, comprador_id, ingresso_antigo_id, ingresso_novo_id, valor_bruto, taxa_percentual, valor_taxa, valor_taxa_administracao, valor_liquido, valor_cobranca, lucro_empresa)
+        OUTPUT INSERTED.id
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [listing.id, listing.vendedor_id, buyer.id, listing.ingresso_id, newTicketId, listing.preco_original, listing.taxa_percentual, payout.priorityFee, 0, payout.payout, Number(listing.valor_cobranca || listing.preco_original), Math.max(Number(listing.valor_cobranca || listing.preco_original) - Number(listing.preco_original) + payout.priorityFee, 0)]);
+      await connection.query(`
+        INSERT INTO dbo.wallet_lancamentos (usuario_id, tipo, status, valor, repasse_id, referencia)
+        SELECT vendedor_id, 'credito', 'pendente', valor_liquido, id, 'revenda'
+        FROM dbo.repasse_revendas WHERE id = ?
+      `, [repasseRows[0].id]);
+      await connection.commit();
+      return send(response, 201, {
+        ok: true, pedido_id: pedidoId, ingresso_id: newTicketId, valor: Number(listing.valor_cobranca || listing.preco_original), setor_nome: listing.setor_nome,
+        repasse: { vendedor_id: listing.vendedor_id, taxa: Number(listing.taxa_percentual), valor_liquido: payout.payout, taxa_administracao_devolvida: payout.administrationFee }
+      });
+    } catch (error) {
+      try { await connection.rollback(); } catch {}
+      console.error('[revenda] Erro na compra:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível concluir a compra de revenda.' });
+    } finally {
+      connection.release();
+    }
+  }
+
+  // ===== CARTEIRA E SAQUE PIX =====
+  if (request.method === 'GET' && url.pathname === '/api/wallet') {
+    try {
+      await ensureResaleSchema();
+      const session = readSessionToken(request);
+      if (!session) return send(response, 401, { ok: false, message: 'Sessão inválida.' });
+
+      // A liberação exige check-in confirmado e uma janela adicional de 24 horas.
+      await db.query(`
+        UPDATE w SET status = 'disponivel', disponibilizado_em = SYSUTCDATETIME()
+        FROM dbo.wallet_lancamentos w
+        JOIN dbo.repasse_revendas r ON r.id = w.repasse_id
+        JOIN dbo.ingressos_emitidos i ON i.id = r.ingresso_novo_id
+        JOIN dbo.eventos e ON e.id = i.evento_id
+        WHERE w.usuario_id = ? AND w.tipo = 'credito' AND w.status = 'pendente'
+          AND i.utilizado_em IS NOT NULL
+          AND e.data_fim IS NOT NULL
+          AND DATEADD(hour, 24, e.data_fim) <= SYSUTCDATETIME()
+      `, [session.sub]);
+      const [[summary]] = await db.query(`
+        SELECT
+          COALESCE(SUM(CASE WHEN tipo = 'credito' AND status = 'pendente' THEN valor ELSE 0 END), 0) AS pendente,
+          COALESCE(SUM(CASE WHEN tipo = 'credito' AND status = 'disponivel' THEN valor ELSE 0 END), 0)
+            - COALESCE(SUM(CASE WHEN tipo = 'debito' AND status IN ('solicitado', 'processado') THEN valor ELSE 0 END), 0) AS disponivel
+        FROM dbo.wallet_lancamentos WHERE usuario_id = ?
+      `, [session.sub]);
+      const [entries] = await db.query(`
+        SELECT TOP (50) id, tipo, status, valor, criado_em, disponibilizado_em
+        FROM dbo.wallet_lancamentos WHERE usuario_id = ?
+        ORDER BY criado_em DESC, id DESC
+      `, [session.sub]);
+      return send(response, 200, { ok: true, wallet: { pendente: Number(summary.pendente), disponivel: Number(summary.disponivel), entries } });
+    } catch (error) {
+      console.error('[wallet] Erro ao carregar carteira:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível carregar a carteira.' });
+    }
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/wallet/saques/pix') {
+    const connection = await db.getConnection();
+    try {
+      await ensureResaleSchema();
+      const session = readSessionToken(request);
+      if (!session) return send(response, 401, { ok: false, message: 'Sessão inválida.' });
+      const body = await parseBody(request);
+      const amount = Number(body.valor);
+      const cpfPix = normalizeCpf(body.cpf);
+      if (!Number.isFinite(amount) || amount <= 0 || !cpfPix) {
+        return send(response, 400, { ok: false, message: 'Informe um valor e o CPF da chave PIX.' });
+      }
+      await connection.beginTransaction();
+      const [[user]] = await connection.query('SELECT id, cpf FROM dbo.usuarios WHERE id = ?', [session.sub]);
+      if (!user || normalizeCpf(user.cpf) !== cpfPix) {
+        await connection.rollback();
+        return send(response, 403, { ok: false, message: 'A chave PIX deve ser um CPF da mesma titularidade da conta.' });
+      }
+      const [[balance]] = await connection.query(`
+        SELECT COALESCE(SUM(CASE WHEN tipo = 'credito' AND status = 'disponivel' THEN valor ELSE 0 END), 0)
+          - COALESCE(SUM(CASE WHEN tipo = 'debito' AND status IN ('solicitado', 'processado') THEN valor ELSE 0 END), 0) AS disponivel
+        FROM dbo.wallet_lancamentos WHERE usuario_id = ?
+      `, [session.sub]);
+      if (amount > Number(balance.disponivel)) {
+        await connection.rollback();
+        return send(response, 409, { ok: false, message: 'Saldo disponível insuficiente.' });
+      }
+      const [withdrawal] = await connection.query(`
+        INSERT INTO dbo.saques_pix (usuario_id, valor, chave_cpf)
+        OUTPUT INSERTED.id VALUES (?, ?, ?)
+      `, [session.sub, amount, cpfPix]);
+      await connection.query(`
+        INSERT INTO dbo.wallet_lancamentos (usuario_id, tipo, status, valor, referencia)
+        VALUES (?, 'debito', 'solicitado', ?, ?)
+      `, [session.sub, amount, `saque_pix:${withdrawal[0].id}`]);
+      await connection.commit();
+      return send(response, 201, { ok: true, saque_id: withdrawal[0].id, status: 'solicitado', message: 'Saque PIX solicitado para processamento.' });
+    } catch (error) {
+      try { await connection.rollback(); } catch {}
+      console.error('[wallet] Erro no saque PIX:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível solicitar o saque PIX.' });
+    } finally {
+      connection.release();
     }
   }
 
@@ -1347,6 +2195,7 @@ const server = http.createServer(async (request, response) => {
   // ===== COMPRA DE INGRESSO =====
   if (request.method === 'POST' && url.pathname === '/api/ingressos/comprar') {
     await ensureTicketSecuritySchema();
+    await ensureResaleSchema();
     const connection = await db.getConnection();
     try {
       const body = await parseBody(request);
@@ -1399,20 +2248,88 @@ const server = http.createServer(async (request, response) => {
       const pedidoId = orderRows[0].id;
 
       const tickets = [];
+      let actualTotal = 0;
       for (const item of purchaseItems) for (let index = 0; index < item.quantity; index += 1) {
+          const [[resale]] = await connection.query(`
+            SELECT TOP (1) r.*, i.codigo_original_bilheteria, i.setor_nome, i.lote_nome, i.categoria_ingresso,
+              current_lot.nome AS lote_vigente,
+              CASE WHEN LOWER(COALESCE(i.categoria_ingresso, '')) LIKE '%meia%'
+                THEN COALESCE(current_lot.preco_meia, current_lot.preco / 2)
+                ELSE COALESCE(current_lot.preco_inteira, current_lot.preco)
+              END AS valor_cobranca
+            FROM dbo.revendas r WITH (UPDLOCK, ROWLOCK)
+            JOIN dbo.ingressos_emitidos i ON i.id = r.ingresso_id
+            OUTER APPLY (
+              SELECT TOP (1) el.nome, el.preco, el.preco_inteira, el.preco_meia
+              FROM dbo.evento_lotes el
+              WHERE el.evento_id = r.evento_id
+                AND (NULLIF(TRIM(el.setor_nome), '') = NULLIF(TRIM(i.setor_nome), '')
+                  OR (NULLIF(TRIM(el.setor_nome), '') IS NULL AND NULLIF(TRIM(i.setor_nome), '') IS NULL))
+                AND (el.data_inicio IS NULL OR el.data_inicio <= SYSUTCDATETIME())
+                AND (el.data_fim IS NULL OR el.data_fim > SYSUTCDATETIME())
+              ORDER BY
+                CASE WHEN el.data_inicio IS NULL AND el.data_fim IS NULL AND el.data_virada IS NULL THEN 1 ELSE 0 END,
+                CASE WHEN el.data_inicio IS NULL AND el.data_fim IS NULL AND el.data_virada IS NULL
+                  THEN TRY_CONVERT(int, LEFT(SUBSTRING(el.nome, PATINDEX('%[0-9]%', el.nome), 10), 1))
+                  ELSE 0 END ASC,
+                COALESCE(el.data_inicio, el.criado_em) DESC, el.id DESC
+            ) current_lot
+            WHERE r.evento_id = ? AND r.vendedor_id <> ? AND r.status = 'disponivel' AND i.status = 'ativo' AND ISNULL(i.revoked, 0) = 0
+              AND (? IS NULL OR ? = '' OR COALESCE(i.setor_nome, '') = ?)
+              AND (? IS NULL OR ? = '' OR COALESCE(i.categoria_ingresso, '') = ?)
+            ORDER BY r.prioridade DESC, r.preco_original ASC, r.anunciado_em ASC, r.id ASC
+          `, [eventoId, user.id, item.sector || '', item.sector || '', item.sector || '', item.category || '', item.category || '', item.category || '']);
+          if (!resale && (item.sector || item.category)) {
+            const [[blockedOwnListing]] = await connection.query(`
+              SELECT TOP (1) r.id
+              FROM dbo.revendas r
+              JOIN dbo.ingressos_emitidos i ON i.id = r.ingresso_id
+              WHERE r.evento_id = ? AND r.vendedor_id = ? AND r.status = 'disponivel'
+                AND i.status = 'ativo' AND ISNULL(i.revoked, 0) = 0
+                AND (? = '' OR COALESCE(i.setor_nome, '') = ?)
+                AND (? = '' OR COALESCE(i.categoria_ingresso, '') = ?)
+            `, [eventoId, user.id, item.sector || '', item.sector || '', item.category || '', item.category || '']);
+            if (blockedOwnListing) {
+              await connection.rollback();
+              return send(response, 409, { ok: false, message: 'Você não pode comprar o próprio anúncio de revenda.' });
+            }
+          }
           const numero = makeCode('TKT');
           const secretKey = makeTicketSecret();
           const qrPayload = makeActiveTicketPayload(numero, secretKey);
+          const chargedPrice = Number(resale?.valor_cobranca ?? item.price);
+          actualTotal += chargedPrice;
           const [ticketRows] = await connection.query(
             `INSERT INTO dbo.ingressos_emitidos
-             (pedido_id, comprador_id, evento_id, numero_ingresso, codigo_original_bilheteria, qr_code_payload, secret_key, setor_nome, lote_nome, categoria_ingresso, bilheteria_origem, versao_titularidade, status)
+             (pedido_id, comprador_id, evento_id, numero_ingresso, codigo_original_bilheteria, qr_code_payload, secret_key, setor_nome, lote_nome, categoria_ingresso, bilheteria_origem, preco_original, versao_titularidade, status, revoked)
              OUTPUT INSERTED.id
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Troca Ticket', 1, 'ativo')`,
-            [pedidoId, user.id, eventoId, numero, numero, qrPayload, secretKey, item.sector, item.lotName, item.category]
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Troca Ticket', ?, 1, 'ativo', 0)`,
+            [pedidoId, user.id, eventoId, numero, numero, qrPayload, secretKey, resale?.setor_nome || item.sector, resale?.lote_vigente || resale?.lote_nome || item.lotName, resale?.categoria_ingresso || item.category, chargedPrice]
           );
-          tickets.push({ id: ticketRows[0].id, numero_ingresso: numero });
+          if (resale) {
+            await connection.query("UPDATE dbo.ingressos_emitidos SET status = 'revogado', revoked = 1, revogado_em = SYSUTCDATETIME() WHERE id = ?", [resale.ingresso_id]);
+            await connection.query("UPDATE dbo.revendas SET status = 'vendida', vendido_em = SYSUTCDATETIME() WHERE id = ? AND status = 'disponivel'", [resale.id]);
+            const payout = calculateResalePayout({
+              lotPrice: resale.preco_original,
+              priorityPercent: resale.taxa_percentual,
+              administrationFee: 0
+            });
+            const [repasseRows] = await connection.query(`
+              INSERT INTO dbo.repasse_revendas
+                (revenda_id, vendedor_id, comprador_id, ingresso_antigo_id, ingresso_novo_id, valor_bruto, taxa_percentual, valor_taxa, valor_taxa_administracao, valor_liquido, valor_cobranca, lucro_empresa)
+              OUTPUT INSERTED.id
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `, [resale.id, resale.vendedor_id, user.id, resale.ingresso_id, ticketRows[0].id, resale.preco_original, resale.taxa_percentual, payout.priorityFee, 0, payout.payout, chargedPrice, Math.max(chargedPrice - Number(resale.preco_original) + payout.priorityFee, 0)]);
+            await connection.query(`
+              INSERT INTO dbo.wallet_lancamentos (usuario_id, tipo, status, valor, repasse_id, referencia)
+              SELECT vendedor_id, 'credito', 'pendente', valor_liquido, id, 'revenda'
+              FROM dbo.repasse_revendas WHERE id = ?
+            `, [repasseRows[0].id]);
+          }
+          tickets.push({ id: ticketRows[0].id, numero_ingresso: numero, origem: resale ? 'revenda' : 'bilheteria' });
         }
 
+      await connection.query('UPDATE dbo.pedidos SET valor_total = ? WHERE id = ?', [actualTotal, pedidoId]);
       await connection.commit();
       return send(response, 201, { ok: true, pedido_id: pedidoId, codigo_pedido: codigoPedido, tickets });
     } catch (error) {
@@ -1428,6 +2345,8 @@ const server = http.createServer(async (request, response) => {
   if (request.method === 'POST' && url.pathname === '/api/ingressos/solicitar-transferencia') {
     const connection = await db.getConnection();
     try {
+      const session = readSessionToken(request);
+      if (!session) return send(response, 401, { ok: false, message: 'Sessão inválida. Entre novamente.' });
       const body = await parseBody(request);
       const { ingresso_id, destinatario_email } = body;
       const targetEmail = normalizeEmail(destinatario_email);
@@ -1435,38 +2354,49 @@ const server = http.createServer(async (request, response) => {
       await connection.beginTransaction();
 
       const [[ticket]] = await connection.query(
-        'SELECT i.*, u.nome AS remetente_nome, u.email AS remetente_email, e.nome AS evento_nome FROM ingressos_emitidos i JOIN usuarios u ON u.id = i.comprador_id JOIN eventos e ON e.id = i.evento_id WHERE i.id = ? FOR UPDATE',
+        `SELECT i.*, u.nome AS remetente_nome, u.email AS remetente_email,
+          e.nome AS evento_nome, e.data_evento, p.codigo_pedido
+         FROM ingressos_emitidos i
+         JOIN usuarios u ON u.id = i.comprador_id
+         JOIN eventos e ON e.id = i.evento_id
+         LEFT JOIN pedidos p ON p.id = i.pedido_id
+         WHERE i.id = ? FOR UPDATE`,
         [ingresso_id]
       );
 
-      if (!ticket || ticket.status !== 'valido') {
+      if (!ticket || !['ativo', 'valido'].includes(String(ticket.status).toLowerCase()) || Number(ticket.revoked) === 1) {
         await connection.rollback();
-        return send(response, 400, { ok: false, message: 'Ingresso indisponÃƒÂ­vel para transferÃƒÂªncia.' });
+        return send(response, 400, { ok: false, message: 'Ingresso indisponível para transferência.' });
+      }
+
+      if (ticket.remetente_email !== session.email) {
+        await connection.rollback();
+        return send(response, 403, { ok: false, message: 'Você não pode transferir este ingresso.' });
       }
 
       if (Number(ticket.versao_titularidade || 1) > 1) {
         await connection.rollback();
-        return send(response, 403, { ok: false, message: 'Este ingresso jÃƒÂ¡ foi transferido uma vez.' });
+        return send(response, 403, { ok: false, message: 'Este ingresso já foi transferido uma vez.' });
       }
 
       const [[hasPending]] = await connection.query(
-        'SELECT id FROM transferencias_pendentes WHERE ingresso_id = ? AND status = "pendente" LIMIT 1',
+        "SELECT TOP (1) id FROM dbo.transferencias_pendentes WHERE ingresso_id = ? AND status = 'pendente'",
         [ticket.id]
       );
       if (hasPending) {
         await connection.rollback();
-        return send(response, 400, { ok: false, message: 'JÃƒÂ¡ existe uma solicitaÃƒÂ§ÃƒÂ£o pendente.' });
+        return send(response, 400, { ok: false, message: 'Já existe uma solicitação pendente.' });
       }
 
       const [[destUser]] = await connection.query('SELECT id, nome, email FROM usuarios WHERE email = ? LIMIT 1', [targetEmail]);
       if (!destUser) {
         await connection.rollback();
-        return send(response, 404, { ok: false, message: 'DestinatÃƒÂ¡rio nÃƒÂ£o encontrado no TrocaTicket.' });
+        return send(response, 404, { ok: false, message: 'Destinatário não encontrado no TrocaTicket.' });
       }
 
       if (destUser.id === ticket.comprador_id) {
         await connection.rollback();
-        return send(response, 400, { ok: false, message: 'VocÃƒÂª nÃƒÂ£o pode transferir para si mesmo.' });
+        return send(response, 400, { ok: false, message: 'Você não pode transferir para si mesmo.' });
       }
 
       const nomeDestinatarioFinal = (destUser.nome && destUser.nome.trim()) ? destUser.nome.trim() : destUser.email;
@@ -1477,15 +2407,43 @@ const server = http.createServer(async (request, response) => {
       );
 
       await connection.commit();
+      const acceptanceUrl = `${String(process.env.TROCATICKET_PUBLIC_URL || `http://localhost:${port}`).replace(/\/$/, '')}/transferencia/aceitar?token=${encodeURIComponent(token)}`;
+      let emailResult;
+      try {
+        emailResult = await sendTransferEmail({
+          to: destUser.email,
+          recipientName: nomeDestinatarioFinal,
+          senderName: ticket.remetente_nome,
+          ticket: {
+            ...ticket,
+            codigo_pedido: ticket.codigo_pedido || ticket.pedido_id
+          },
+          acceptanceUrl
+        });
+      } catch (emailError) {
+        console.error('[transferencia] Falha ao enviar email de aceite:', emailError.message);
+        return send(response, 502, {
+          ok: false,
+          transferencia_id: insertResult.insertId,
+          message: 'A solicitação foi criada, mas não foi possível enviar o email ao destinatário.'
+        });
+      }
+
       return send(response, 200, { 
         ok: true, 
         transferencia_id: insertResult.insertId,
         destinatario_nome: nomeDestinatarioFinal,
-        message: `SolicitaÃƒÂ§ÃƒÂ£o enviada para ${nomeDestinatarioFinal}!`
+        email_sent: Boolean(emailResult?.sent),
+        message: emailResult?.sent
+          ? `Solicitação enviada por email para ${destUser.email}.`
+          : `Solicitação criada. Configure o SMTP para enviar o email ao destinatário.`
       });
     } catch (error) {
-      await connection.rollback();
-      return send(response, 500, { ok: false, message: 'Falha ao solicitar repasse.' });
+      try { await connection.rollback(); } catch (rollbackError) {
+        console.error('[transferencia] Falha ao desfazer transação:', rollbackError.message);
+      }
+      console.error('[transferencia] Falha ao solicitar transferência:', error.message);
+      return send(response, 500, { ok: false, message: 'Falha ao solicitar transferência.' });
     } finally {
       connection.release();
     }
@@ -1493,15 +2451,24 @@ const server = http.createServer(async (request, response) => {
 
   if (request.method === 'POST' && url.pathname === '/api/ingressos/cancelar-transferencia') {
     try {
+      const session = readSessionToken(request);
+      if (!session) return send(response, 401, { ok: false, message: 'Sessão inválida. Entre novamente.' });
       const body = await parseBody(request);
-      await db.query("UPDATE transferencias_pendentes SET status = 'cancelada' WHERE ingresso_id = ? AND status = 'pendente'", [body.ingresso_id]);
-      return send(response, 200, { ok: true, message: 'TransferÃƒÂªncia cancelada.' });
+      await db.query(`
+        UPDATE tp
+        SET status = 'cancelada'
+        FROM transferencias_pendentes tp
+        JOIN ingressos_emitidos i ON i.id = tp.ingresso_id
+        JOIN usuarios u ON u.id = i.comprador_id
+        WHERE tp.ingresso_id = ? AND tp.status = 'pendente' AND u.email = ?
+      `, [body.ingresso_id, session.email]);
+      return send(response, 200, { ok: true, message: 'Transferência cancelada.' });
     } catch (error) {
       return send(response, 500, { ok: false, message: 'Erro ao cancelar.' });
     }
   }
 
-  if (request.method === 'GET' && url.pathname === '/api/ingressos/confirmar-transferencia') {
+  if (request.method === 'GET' && ['/transferencia/aceitar', '/api/ingressos/confirmar-transferencia'].includes(url.pathname)) {
     await ensureTicketSecuritySchema();
     const token = url.searchParams.get('token');
     const connection = await db.getConnection();
@@ -1509,14 +2476,30 @@ const server = http.createServer(async (request, response) => {
     try {
       await connection.beginTransaction();
       const [[solicitacao]] = await connection.query(
-        'SELECT tp.*, i.evento_id, i.bilheteria_id, i.bilheteria_origem, i.setor_nome, i.codigo_original_bilheteria, i.versao_titularidade, i.qr_code_payload, i.pedido_id FROM transferencias_pendentes tp JOIN ingressos_emitidos i ON i.id = tp.ingresso_id WHERE tp.token = ? FOR UPDATE',
+        `SELECT tp.*, i.evento_id, i.bilheteria_id, i.bilheteria_origem, i.setor_nome,
+          i.lote_nome, i.categoria_ingresso, i.preco_original, i.codigo_original_bilheteria,
+          i.numero_ingresso, i.versao_titularidade, i.qr_code_payload, i.pedido_id,
+          p.codigo_pedido, e.nome AS evento_nome, e.data_evento,
+          sender.nome AS remetente_nome, sender.email AS remetente_email,
+          recipient.nome AS destinatario_nome, recipient.email AS destinatario_email
+         FROM transferencias_pendentes tp
+         JOIN ingressos_emitidos i ON i.id = tp.ingresso_id
+         LEFT JOIN pedidos p ON p.id = i.pedido_id
+         JOIN eventos e ON e.id = i.evento_id
+         JOIN usuarios sender ON sender.id = tp.remetente_id
+         JOIN usuarios recipient ON recipient.id = tp.destinatario_id
+         WHERE tp.token = ? FOR UPDATE`,
         [token]
       );
 
       if (!solicitacao || solicitacao.status !== 'pendente') {
         await connection.rollback();
         response.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
-        return response.end('<h1>Link expirado ou cancelado!</h1>');
+        return response.end(transferResultPage({
+          success: false,
+          title: 'Link indisponível',
+          message: 'Este convite já foi utilizado, cancelado ou não existe.'
+        }));
       }
 
       const revokedQr = `${solicitacao.qr_code_payload}_REVOGADO_${Date.now()}`;
@@ -1527,19 +2510,58 @@ const server = http.createServer(async (request, response) => {
       const novoQr = makeActiveTicketPayload(novoNumero, novaSecretKey);
 
       await connection.query(
-        `INSERT INTO ingressos_emitidos (pedido_id, comprador_id, evento_id, bilheteria_id, bilheteria_origem, setor_nome, numero_ingresso, codigo_original_bilheteria, qr_code_payload, secret_key, versao_titularidade, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ativo')`,
-        [solicitacao.pedido_id, solicitacao.destinatario_id, solicitacao.evento_id, solicitacao.bilheteria_id || null, solicitacao.bilheteria_origem || 'Troca Ticket', solicitacao.setor_nome || null, novoNumero, solicitacao.codigo_original_bilheteria || novoNumero, novoQr, novaSecretKey, Number(solicitacao.versao_titularidade || 1) + 1]
+        `INSERT INTO ingressos_emitidos
+          (pedido_id, comprador_id, evento_id, bilheteria_id, bilheteria_origem, setor_nome,
+           lote_nome, categoria_ingresso, preco_original, numero_ingresso,
+           codigo_original_bilheteria, qr_code_payload, secret_key, versao_titularidade, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ativo')`,
+        [solicitacao.pedido_id, solicitacao.destinatario_id, solicitacao.evento_id,
+          solicitacao.bilheteria_id || null, solicitacao.bilheteria_origem || 'Troca Ticket',
+          solicitacao.setor_nome || null, solicitacao.lote_nome || null,
+          solicitacao.categoria_ingresso || null, solicitacao.preco_original || null,
+          novoNumero, solicitacao.codigo_original_bilheteria || novoNumero, novoQr,
+          novaSecretKey, Number(solicitacao.versao_titularidade || 1) + 1]
       );
 
       await connection.query("UPDATE transferencias_pendentes SET status = 'aceita' WHERE id = ?", [solicitacao.id]);
       await connection.commit();
 
+      const confirmationEmails = [
+        { to: solicitacao.remetente_email, name: solicitacao.remetente_nome, role: 'sender' },
+        { to: solicitacao.destinatario_email, name: solicitacao.destinatario_nome, role: 'recipient' }
+      ];
+      const emailResults = await Promise.allSettled(confirmationEmails.map(email =>
+        sendTransferConfirmationEmail({
+          ...email,
+          ticket: solicitacao,
+          newTicketNumber: novoNumero
+        })
+      ));
+      emailResults.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          console.error(`[transferencia] Falha ao enviar confirmação para ${confirmationEmails[index].to}:`, result.reason.message);
+        }
+      });
+
       response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-      return response.end('<h1>Ingresso Aceito com Sucesso!</h1><a href="/meus-ingressos.html">Ver Meus Ingressos</a>');
+      return response.end(transferResultPage({
+        success: true,
+        title: 'Transferência concluída!',
+        message: 'O ingresso foi atualizado com um novo QR Code e já está disponível na conta do novo titular.',
+        eventName: solicitacao.evento_nome,
+        ticketNumber: novoNumero,
+        orderCode: solicitacao.codigo_pedido || solicitacao.pedido_id
+      }));
     } catch (error) {
-      await connection.rollback();
+      try { await connection.rollback(); } catch (rollbackError) {
+        console.error('[transferencia] Falha ao desfazer aceite:', rollbackError.message);
+      }
       response.writeHead(500, { 'Content-Type': 'text/html; charset=utf-8' });
-      return response.end('<h1>Erro ao confirmar transferÃƒÂªncia.</h1>');
+      return response.end(transferResultPage({
+        success: false,
+        title: 'Não foi possível concluir',
+        message: 'Ocorreu um erro ao processar a transferência. Tente novamente ou solicite um novo convite.'
+      }));
     } finally {
       connection.release();
     }
@@ -3143,6 +4165,83 @@ const server = http.createServer(async (request, response) => {
     }
   }
 
+  if (request.method === 'GET' && url.pathname === '/api/admin/revenda-filas') {
+    try {
+      await ensureResaleSchema();
+      const [rows] = await db.query(`
+        WITH filas AS (
+          SELECT
+            r.id, r.preco_original, r.taxa_percentual, r.taxa_nome,
+            r.anunciado_em, r.evento_id, r.ingresso_id,
+            i.numero_ingresso, i.setor_nome, i.categoria_ingresso,
+            e.nome AS evento, u.nome AS vendedor_nome,
+            p.codigo_pedido,
+            i.lote_nome AS lote_original,
+            current_lot.nome AS lote_vigente,
+            CAST(COALESCE(current_lot.preco_lote, r.preco_original) AS decimal(10,2)) AS preco_vigente,
+            CAST(r.preco_original * (1 - r.taxa_percentual / 100.0) AS decimal(10,2)) AS valor_liquido_estimado,
+            CAST(COALESCE(current_lot.preco_lote, r.preco_original) - r.preco_original AS decimal(10,2)) AS diferenca_lote,
+            ROW_NUMBER() OVER (
+              PARTITION BY r.evento_id, i.setor_nome, i.categoria_ingresso
+              ORDER BY r.prioridade DESC, r.preco_original ASC, r.anunciado_em ASC, r.id ASC
+            ) AS posicao,
+            COUNT(*) OVER (
+              PARTITION BY r.evento_id, i.setor_nome, i.categoria_ingresso
+            ) AS total_fila
+          FROM dbo.revendas r
+          JOIN dbo.ingressos_emitidos i ON i.id = r.ingresso_id
+          JOIN dbo.eventos e ON e.id = r.evento_id
+          LEFT JOIN dbo.usuarios u ON u.id = r.vendedor_id
+          LEFT JOIN dbo.pedidos p ON p.id = i.pedido_id
+          OUTER APPLY (
+            SELECT TOP (1)
+              el.nome,
+              CASE WHEN LOWER(COALESCE(i.categoria_ingresso, '')) LIKE '%meia%'
+                THEN COALESCE(el.preco_meia, el.preco / 2)
+                ELSE COALESCE(el.preco_inteira, el.preco)
+              END AS preco_lote
+            FROM dbo.evento_lotes el
+            WHERE el.evento_id = r.evento_id
+              AND (NULLIF(TRIM(el.setor_nome), '') = NULLIF(TRIM(i.setor_nome), '')
+                OR (NULLIF(TRIM(el.setor_nome), '') IS NULL AND NULLIF(TRIM(i.setor_nome), '') IS NULL))
+              AND (el.data_inicio IS NULL OR el.data_inicio <= SYSUTCDATETIME())
+              AND (el.data_fim IS NULL OR el.data_fim > SYSUTCDATETIME())
+            ORDER BY
+              CASE WHEN el.data_inicio IS NULL AND el.data_fim IS NULL AND el.data_virada IS NULL THEN 1 ELSE 0 END,
+              CASE WHEN el.data_inicio IS NULL AND el.data_fim IS NULL AND el.data_virada IS NULL
+                THEN TRY_CONVERT(int, LEFT(SUBSTRING(el.nome, PATINDEX('%[0-9]%', el.nome), 10), 1))
+                ELSE 0 END ASC,
+              COALESCE(el.data_inicio, el.criado_em) DESC, el.id DESC
+          ) current_lot
+          WHERE r.status = 'disponivel'
+        )
+        SELECT * FROM filas
+        ORDER BY evento, setor_nome, categoria_ingresso, posicao
+      `);
+      const queues = [];
+      const queueMap = new Map();
+      rows.forEach(row => {
+        const key = `${row.evento_id}|${row.setor_nome || ''}|${row.categoria_ingresso || ''}`;
+        if (!queueMap.has(key)) {
+          const queue = {
+            evento: row.evento,
+            setor_nome: row.setor_nome,
+            categoria_ingresso: row.categoria_ingresso,
+            total_fila: Number(row.total_fila),
+            items: []
+          };
+          queueMap.set(key, queue);
+          queues.push(queue);
+        }
+        queueMap.get(key).items.push(row);
+      });
+      return send(response, 200, { ok: true, queues });
+    } catch (error) {
+      console.error('[admin] Erro ao carregar filas de revenda:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível carregar as filas de revenda.' });
+    }
+  }
+
   // ===== PAINEL ADMIN STATS =====
   if (request.method === 'GET' && url.pathname === '/api/admin/stats') {
     try {
@@ -3151,21 +4250,25 @@ const server = http.createServer(async (request, response) => {
           (SELECT COUNT(*) FROM dbo.usuarios) AS totalUsers,
           (SELECT COUNT(*) FROM dbo.eventos WHERE status = 'publicado') AS totalEvents
       `);
-      const [objects] = await db.query("SELECT name FROM sys.tables WHERE schema_id = SCHEMA_ID('dbo') AND name IN ('ingressos_emitidos', 'pedidos')");
+      const [objects] = await db.query("SELECT name FROM sys.tables WHERE schema_id = SCHEMA_ID('dbo') AND name IN ('ingressos_emitidos', 'pedidos', 'repasse_revendas')");
       const tableNames = new Set(objects.map(object => object.name));
       let totalTickets = 0;
       let totalRevenue = 0;
       let pendingCancellations = 0;
       let gmvSeries = [];
       let trendSeries = [];
+      const revenueType = ['general', 'tickets', 'administration', 'priority'].includes(url.searchParams.get('revenue_type'))
+        ? url.searchParams.get('revenue_type')
+        : 'general';
+      const revenuePeriod = ['daily', 'weekly', 'monthly', 'yearly'].includes(url.searchParams.get('revenue_period'))
+        ? url.searchParams.get('revenue_period')
+        : 'daily';
 
       if (tableNames.has('ingressos_emitidos')) {
         const [ticketRows] = await db.query('SELECT COUNT(*) AS totalTickets FROM dbo.ingressos_emitidos');
         totalTickets = Number(ticketRows[0]?.totalTickets || 0);
       }
       if (tableNames.has('pedidos')) {
-        const [revenueRows] = await db.query("SELECT COALESCE(SUM(valor_total), 0) AS totalRevenue FROM dbo.pedidos WHERE status = 'aprovado'");
-        totalRevenue = Number(revenueRows[0]?.totalRevenue || 0);
         const eventId = Number(url.searchParams.get('event_id') || 0);
         const gmvPeriod = ['daily', 'weekly', 'monthly'].includes(url.searchParams.get('gmv_period')) ? url.searchParams.get('gmv_period') : 'daily';
         const trendPeriod = ['daily', 'weekly', 'monthly', 'yearly'].includes(url.searchParams.get('trend_period')) ? url.searchParams.get('trend_period') : 'daily';
@@ -3195,6 +4298,117 @@ const server = http.createServer(async (request, response) => {
           SELECT ${trendBucket} AS bucket, valor_total FROM dbo.pedidos p WHERE p.status = 'aprovado' AND p.criado_em >= ${trendSince}
         ) sales GROUP BY bucket ORDER BY bucket`);
         trendSeries = trendRows.map(row => ({ label: row.label, value: Number(row.value || 0) }));
+
+        const revenueSince = revenuePeriod === 'yearly'
+          ? 'DATEADD(year, -4, CAST(SYSUTCDATETIME() AS date))'
+          : revenuePeriod === 'monthly'
+            ? 'DATEADD(month, -11, CAST(SYSUTCDATETIME() AS date))'
+            : revenuePeriod === 'weekly'
+              ? 'DATEADD(week, -7, CAST(SYSUTCDATETIME() AS date))'
+              : 'DATEADD(day, -6, CAST(SYSUTCDATETIME() AS date))';
+        const revenueBucket = revenuePeriod === 'yearly'
+          ? "DATEFROMPARTS(YEAR(source.created_at), 1, 1)"
+          : revenuePeriod === 'monthly'
+            ? "DATEFROMPARTS(YEAR(source.created_at), MONTH(source.created_at), 1)"
+            : revenuePeriod === 'weekly'
+              ? "DATEADD(week, DATEDIFF(week, 0, source.created_at), 0)"
+              : "CAST(source.created_at AS date)";
+        if (revenueType === 'general') {
+          const eventClause = eventId ? 'AND source.evento_id = ?' : '';
+          const params = eventId ? [eventId] : [];
+          const [revenueRows] = await db.query(`
+            SELECT COALESCE(SUM(source.amount), 0) AS totalRevenue
+            FROM (
+              SELECT DISTINCT p.id, p.valor_total AS amount, p.criado_em AS created_at, i.evento_id
+              FROM dbo.pedidos p
+              JOIN dbo.ingressos_emitidos i ON i.pedido_id = p.id
+              WHERE p.status = 'aprovado'
+              UNION ALL
+              SELECT rep.id, COALESCE(rep.valor_taxa, 0) + COALESCE(rep.valor_taxa_administracao, 0),
+                rep.criado_em, r.evento_id
+              FROM dbo.repasse_revendas rep
+              JOIN dbo.revendas r ON r.id = rep.revenda_id
+            ) source
+            WHERE source.created_at >= ${revenueSince} ${eventClause}
+          `, params);
+          totalRevenue = Number(revenueRows[0]?.totalRevenue || 0);
+          const [revenueSeriesRows] = await db.query(`
+            SELECT CONVERT(varchar(10), bucket, 103) AS label, SUM(amount) AS value
+            FROM (
+              SELECT ${revenueBucket} AS bucket, source.amount
+              FROM (
+                SELECT DISTINCT p.id, p.valor_total AS amount, p.criado_em AS created_at, i.evento_id
+                FROM dbo.pedidos p
+                JOIN dbo.ingressos_emitidos i ON i.pedido_id = p.id
+                WHERE p.status = 'aprovado'
+                UNION ALL
+                SELECT rep.id, COALESCE(rep.valor_taxa, 0) + COALESCE(rep.valor_taxa_administracao, 0),
+                  rep.criado_em, r.evento_id
+                FROM dbo.repasse_revendas rep
+                JOIN dbo.revendas r ON r.id = rep.revenda_id
+              ) source
+              WHERE source.created_at >= ${revenueSince} ${eventClause}
+            ) values_by_period
+            GROUP BY bucket ORDER BY bucket
+          `, params);
+          trendSeries = revenueSeriesRows.map(row => ({ label: row.label, value: Number(row.value || 0) }));
+        } else if (revenueType === 'tickets') {
+          const eventClause = eventId ? 'AND i.evento_id = ?' : '';
+          const params = eventId ? [eventId] : [];
+          const [revenueRows] = await db.query(`
+            SELECT COALESCE(SUM(source.amount), 0) AS totalRevenue
+            FROM (
+              SELECT DISTINCT p.id, p.valor_total AS amount
+              FROM dbo.pedidos p
+              JOIN dbo.ingressos_emitidos i ON i.pedido_id = p.id
+              WHERE p.status = 'aprovado' AND p.criado_em >= ${revenueSince} ${eventClause}
+            ) source
+          `, params);
+          totalRevenue = Number(revenueRows[0]?.totalRevenue || 0);
+          const [revenueSeriesRows] = await db.query(`
+            SELECT CONVERT(varchar(10), bucket, 103) AS label, SUM(amount) AS value
+            FROM (
+              SELECT ${revenueBucket} AS bucket, source.amount
+              FROM (
+                SELECT DISTINCT p.id, p.valor_total AS amount, p.criado_em AS created_at, i.evento_id
+                FROM dbo.pedidos p
+                JOIN dbo.ingressos_emitidos i ON i.pedido_id = p.id
+                WHERE p.status = 'aprovado' AND p.criado_em >= ${revenueSince} ${eventClause}
+              ) source
+            ) values_by_period
+            GROUP BY bucket ORDER BY bucket
+          `, params);
+          trendSeries = revenueSeriesRows.map(row => ({ label: row.label, value: Number(row.value || 0) }));
+        } else if (tableNames.has('repasse_revendas')) {
+          const column = revenueType === 'priority' ? 'valor_taxa' : 'valor_taxa_administracao';
+          const revenueRepasseBucket = revenuePeriod === 'yearly'
+            ? "DATEFROMPARTS(YEAR(rep.criado_em), 1, 1)"
+            : revenuePeriod === 'monthly'
+              ? "DATEFROMPARTS(YEAR(rep.criado_em), MONTH(rep.criado_em), 1)"
+              : revenuePeriod === 'weekly'
+                ? "DATEADD(week, DATEDIFF(week, 0, rep.criado_em), 0)"
+                : "CAST(rep.criado_em AS date)";
+          const eventClause = eventId ? 'AND r.evento_id = ?' : '';
+          const params = eventId ? [eventId] : [];
+          const [revenueRows] = await db.query(`
+            SELECT COALESCE(SUM(rep.${column}), 0) AS totalRevenue
+            FROM dbo.repasse_revendas rep
+            JOIN dbo.revendas r ON r.id = rep.revenda_id
+            WHERE rep.criado_em >= ${revenueSince} ${eventClause}
+          `, params);
+          totalRevenue = Number(revenueRows[0]?.totalRevenue || 0);
+          const [revenueSeriesRows] = await db.query(`
+            SELECT CONVERT(varchar(10), bucket, 103) AS label, SUM(amount) AS value
+            FROM (
+              SELECT ${revenueRepasseBucket} AS bucket, rep.${column} AS amount
+              FROM dbo.repasse_revendas rep
+              JOIN dbo.revendas r ON r.id = rep.revenda_id
+              WHERE rep.criado_em >= ${revenueSince} ${eventClause}
+            ) values_by_period
+            GROUP BY bucket ORDER BY bucket
+          `, params);
+          trendSeries = revenueSeriesRows.map(row => ({ label: row.label, value: Number(row.value || 0) }));
+        }
       }
 
       const [cancelObjects] = await db.query("SELECT name FROM sys.tables WHERE schema_id = SCHEMA_ID('dbo') AND name = 'cancelamentos'");
@@ -3735,6 +4949,7 @@ const server = http.createServer(async (request, response) => {
     '/editar-telefone.html': '/account/editar-telefone.html',
     '/cartoes.html': '/account/cartoes.html',
     '/revenda.html': '/account/revenda.html',
+    '/revenda/anunciar': '/account/revenda.html',
     '/admin.html': '/admin/admin.html',
     '/bilheteria.html': '/operations/bilheteria.html',
     '/organizador.html': '/operations/organizador.html',
