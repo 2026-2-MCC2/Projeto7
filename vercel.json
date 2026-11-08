@@ -1,0 +1,19 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npm ci",
+  "buildCommand": "npm run build",
+  "outputDirectory": "src/Trocaticket/public",
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "src/Trocaticket/**/*.{html,css,js,png,jpg,jpeg,webp,gif,svg}",
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api"
+    }
+  ]
+}

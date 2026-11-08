@@ -7,7 +7,9 @@ const bcrypt = require('bcrypt');
 const nodemailer = require('nodemailer');
 const QRCode = require('qrcode');
 const jwt = require('jsonwebtoken');
+const { waitUntil } = require('@vercel/functions');
 const db = require('./db');
+const { MAX_UPLOAD_BYTES, salvarArquivo } = require('./armazenamento');
 const {
   RESALE_FEES,
   calculateResalePayout
@@ -21,8 +23,6 @@ if (process.env.VERCEL && !String(process.env.TROCATICKET_SESSION_SECRET || '').
 const sessionTokenSecret = process.env.TROCATICKET_SESSION_SECRET
   || process.env.DB_PASSWORD
   || crypto.createHash('sha256').update(path.join(__dirname, 'trocaticket-session')).digest('hex');
-const uploadDir = path.join(root, 'public', 'uploads', 'avatars');
-const eventUploadDir = path.join(root, 'public', 'uploads', 'events');
 const smtpHost = String(process.env.SMTP_HOST || '').trim();
 const smtpPort = Number(process.env.SMTP_PORT || 587);
 const smtpSecure = String(process.env.SMTP_SECURE || 'false').toLowerCase() === 'true';
@@ -31,9 +31,6 @@ const smtpPass = String(process.env.SMTP_PASS || '').trim();
 const smtpFrom = String(process.env.SMTP_FROM || smtpUser).trim();
 
 let verificationTransporter = null;
-
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-if (!fs.existsSync(eventUploadDir)) fs.mkdirSync(eventUploadDir, { recursive: true });
 
 const mimeTypes = {
   '.html': 'text/html; charset=utf-8',
@@ -46,6 +43,8 @@ const mimeTypes = {
   '.gif': 'image/gif',
   '.svg': 'image/svg+xml'
 };
+const serverFiles = /^(server|db|generate-admin-token|fix-name-once|inserir_evento|resale-calculations(?:\.test)?)\.js$/i;
+const serverDirectories = /^(data|sql|node_modules|frontend|\.vscode|\.git)(\/|$)/i;
 
 function normalizeEmail(value) { return String(value || '').trim().toLowerCase(); }
 function normalizeCpf(value) { return String(value || '').replace(/\D/g, ''); }
@@ -726,14 +725,16 @@ async function saveChatAttachment(attachment) {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf', 'text/plain', 'text/csv', 'application/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
     if (!allowedTypes.includes(mimeType)) throw new Error('Formato nÃƒÂ£o permitido. Use imagem, PDF ou TXT.');
     const fileData = Buffer.from(match[2], 'base64');
-    if (fileData.length > 50 * 1024 * 1024) throw new Error('O arquivo deve ter atÃƒÂ© 50 MB.');
+    if (fileData.length > MAX_UPLOAD_BYTES) {
+      const error = new Error('O arquivo deve ter no máximo 4,5 MB.');
+      error.statusCode = 413;
+      throw error;
+    }
     const extension = mimeType.split('/')[1].replace('jpeg', 'jpg');
     const safeName = String(attachment.name || `anexo.${extension}`).replace(/[^a-z0-9._-]/gi, '_').slice(0, 120);
     const storedName = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}-${safeName}`;
-    const attachmentDir = path.join(root, 'public', 'uploads', 'chat-attachments');
-    fs.mkdirSync(attachmentDir, { recursive: true });
-    fs.writeFileSync(path.join(attachmentDir, storedName), fileData);
-    return { url: `/uploads/chat-attachments/${storedName}`, name: safeName, type: mimeType };
+    const url = await salvarArquivo('chat-attachments', storedName, fileData, mimeType);
+    return { url, name: safeName, type: mimeType };
 }
 
 async function getSupplierUser(request) {
@@ -1164,6 +1165,10 @@ function send(response, status, payload) {
   response.end(JSON.stringify(payload));
 }
 
+function uploadErrorStatus(error) {
+  return error?.statusCode === 413 ? 413 : 500;
+}
+
 function parseBody(request) {
   return new Promise((resolve, reject) => {
     let body = '';
@@ -1232,7 +1237,7 @@ function parseMultipart(request) {
   });
 }
 
-const server = http.createServer(async (request, response) => {
+async function handler(request, response) {
   const url = new URL(request.url, `http://${request.headers.host}`);
 
   const originalEnd = response.end.bind(response);
@@ -1241,7 +1246,10 @@ const server = http.createServer(async (request, response) => {
     const isApi = url.pathname.startsWith('/api/');
     if (isMutation && isApi && !shouldSkipGenericAudit(url.pathname) && !request._genericAuditQueued) {
       request._genericAuditQueued = true;
-      setImmediate(() => auditGenericRequest(request, url));
+      const auditPromise = auditGenericRequest(request, url).catch(error => {
+        console.error('[auditoria] Falha ao registrar auditoria:', error.message);
+      });
+      if (process.env.VERCEL) waitUntil(auditPromise);
     }
     return originalEnd(chunk, encoding, callback);
   };
@@ -1267,15 +1275,16 @@ const server = http.createServer(async (request, response) => {
 
       const ext = path.extname(file.filename).toLowerCase() || '.png';
       const uniqueName = `avatar-${Date.now()}-${crypto.randomBytes(4).toString('hex')}${ext}`;
-      fs.writeFileSync(path.join(uploadDir, uniqueName), file.data);
+      if (file.data.length > MAX_UPLOAD_BYTES) {
+        return send(response, 413, { ok: false, message: 'A imagem deve ter no máximo 4,5 MB.' });
+      }
+      const avatarUrl = await salvarArquivo('avatars', uniqueName, file.data, file.mimetype || 'image/png');
+      await db.query('UPDATE usuarios SET foto_perfil = ? WHERE email = ?', [avatarUrl, email]);
 
-      const relativeUrl = `public/uploads/avatars/${uniqueName}`;
-      await db.query('UPDATE usuarios SET foto_perfil = ? WHERE email = ?', [relativeUrl, email]);
-
-      return send(response, 200, { ok: true, avatarUrl: relativeUrl, message: 'Foto atualizada com sucesso!' });
+      return send(response, 200, { ok: true, avatarUrl, message: 'Foto atualizada com sucesso!' });
     } catch (error) {
       console.error('[usuario] Erro no upload:', error.message);
-      return send(response, 500, { ok: false, message: 'Falha ao salvar a imagem no servidor.' });
+      return send(response, uploadErrorStatus(error), { ok: false, message: error.statusCode === 413 ? error.message : 'Falha ao salvar a imagem no servidor.' });
     }
   }
 
@@ -2838,8 +2847,10 @@ const server = http.createServer(async (request, response) => {
       if (!events.length) return send(response, 404, { ok: false, message: 'Evento não encontrado.' });
 
       const fileName = `evento-${eventoId}-${imageType}-${Date.now()}-${crypto.randomBytes(4).toString('hex')}.jpg`;
-      fs.writeFileSync(path.join(eventUploadDir, fileName), imageBuffer);
-      const imageUrl = `/uploads/events/${fileName}`;
+      if (imageBuffer.length > MAX_UPLOAD_BYTES) {
+        return send(response, 413, { ok: false, message: 'A imagem deve ter no máximo 4,5 MB.' });
+      }
+      const imageUrl = await salvarArquivo('events', fileName, imageBuffer, 'image/jpeg');
       await db.query(`UPDATE dbo.eventos SET ${imageType} = ? WHERE id = ?`, [imageUrl, eventoId]);
       return send(response, 200, { ok: true, imageUrl, message: 'Imagem salva com sucesso.' });
     } catch (error) {
@@ -3239,7 +3250,7 @@ const server = http.createServer(async (request, response) => {
       return send(response, 201, { ok: true, documento_id: result[0]?.id || result.insertId });
     } catch (error) {
       console.error('[fornecedor] anexar documento ÃƒÂ  proposta:', error.message);
-      return send(response, 500, { ok: false, message: 'NÃƒÂ£o foi possÃƒÂ­vel anexar o documento ÃƒÂ  proposta.' });
+      return send(response, uploadErrorStatus(error), { ok: false, message: error.statusCode === 413 ? error.message : 'NÃƒÂ£o foi possÃƒÂ­vel anexar o documento ÃƒÂ  proposta.' });
     }
   }
 
@@ -3275,19 +3286,18 @@ const server = http.createServer(async (request, response) => {
       const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg'];
       if (!allowedTypes.includes(match[1].toLowerCase())) return send(response, 400, { ok: false, message: 'Envie um PDF, PNG ou JPG.' });
       const fileData = Buffer.from(match[2], 'base64');
-      if (!fileData.length || fileData.length > 10 * 1024 * 1024) return send(response, 400, { ok: false, message: 'O documento deve ter atÃƒÂ© 10 MB.' });
+      if (!fileData.length) return send(response, 400, { ok: false, message: 'O documento está vazio.' });
+      if (fileData.length > MAX_UPLOAD_BYTES) return send(response, 413, { ok: false, message: 'O documento deve ter no máximo 4,5 MB.' });
       const safeName = nomeArquivo.replace(/[^a-z0-9._-]/gi, '_');
-      const documentDir = path.join(root, 'public', 'uploads', 'supplier-documents');
-      if (!fs.existsSync(documentDir)) fs.mkdirSync(documentDir, { recursive: true });
       const storedName = `${ownerId}-${crypto.randomUUID()}-${safeName}`;
-      fs.writeFileSync(path.join(documentDir, storedName), fileData);
+      const documentUrl = await salvarArquivo('supplier-documents', storedName, fileData, match[1].toLowerCase());
       await db.query(`
         MERGE dbo.fornecedor_documentos AS target
         USING (SELECT ? AS fornecedor_usuario_id, ? AS nome) AS source
         ON target.fornecedor_usuario_id = source.fornecedor_usuario_id AND target.nome = source.nome
         WHEN MATCHED THEN UPDATE SET nome_arquivo = ?, caminho = ?, status = 'em analise', motivo_recusa = NULL, atualizado_em = SYSUTCDATETIME()
         WHEN NOT MATCHED THEN INSERT (fornecedor_usuario_id, nome, nome_arquivo, caminho, status) VALUES (?, ?, ?, ?, 'em analise');
-      `, [ownerId, nome, safeName, `/uploads/supplier-documents/${storedName}`, ownerId, nome, safeName, `/uploads/supplier-documents/${storedName}`]);
+      `, [ownerId, nome, safeName, documentUrl, ownerId, nome, safeName, documentUrl]);
       return send(response, 201, { ok: true, message: 'Documento enviado para validaÃƒÂ§ÃƒÂ£o.' });
     } catch (error) {
       console.error('[fornecedor] upload documento:', error.message);
@@ -3702,7 +3712,7 @@ const server = http.createServer(async (request, response) => {
       return send(response, 201, { ok: true, mensagem_id: result[0]?.id || result.insertId });
     } catch (error) {
       console.error('[fornecedor] enviar mensagem:', error.message);
-      return send(response, 500, { ok: false, message: 'NÃƒÂ£o foi possÃƒÂ­vel enviar a mensagem.' });
+      return send(response, uploadErrorStatus(error), { ok: false, message: error.statusCode === 413 ? error.message : 'NÃƒÂ£o foi possÃƒÂ­vel enviar a mensagem.' });
     }
   }
 
@@ -3840,7 +3850,7 @@ const server = http.createServer(async (request, response) => {
       return send(response, 201, { ok: true, mensagem_id: result[0]?.id || result.insertId });
     } catch (error) {
       console.error('[organizador] mensagem:', error.message);
-      return send(response, 500, { ok: false, message: error.message });
+      return send(response, uploadErrorStatus(error), { ok: false, message: error.message });
     }
   }
 
@@ -3904,7 +3914,7 @@ const server = http.createServer(async (request, response) => {
       return send(response, 200, { ok: true, url: attachment.url });
     } catch (error) {
       console.error('[organizador] anexo de documento:', error.message);
-      return send(response, 500, { ok: false, message: 'NÃ£o foi possÃ­vel anexar o documento.' });
+      return send(response, uploadErrorStatus(error), { ok: false, message: error.statusCode === 413 ? error.message : 'NÃ£o foi possÃ­vel anexar o documento.' });
     }
   }
 
@@ -3961,7 +3971,7 @@ const server = http.createServer(async (request, response) => {
       return send(response, 201, { ok: true, documento_id: result[0]?.id || result.insertId });
     } catch (error) {
       console.error('[organizador] upload de documento da demanda:', error.message);
-      return send(response, 500, { ok: false, message: 'NÃƒÂ£o foi possÃƒÂ­vel salvar o documento da cotaÃƒÂ§ÃƒÂ£o.' });
+      return send(response, uploadErrorStatus(error), { ok: false, message: error.statusCode === 413 ? error.message : 'NÃƒÂ£o foi possÃƒÂ­vel salvar o documento da cotaÃƒÂ§ÃƒÂ£o.' });
     }
   }
 
@@ -4989,21 +4999,36 @@ const server = http.createServer(async (request, response) => {
       : path.join(root, requestedPath === '/' ? 'index.html' : requestedPath.replace(/^\/+/, ''));
   const normalizedRoot = path.resolve(root) + path.sep;
   const normalizedFilePath = path.resolve(filePath);
-  if (!normalizedFilePath.startsWith(normalizedRoot) || !fs.existsSync(normalizedFilePath) || fs.statSync(normalizedFilePath).isDirectory()) {
+  const relativePath = path.relative(root, normalizedFilePath).split(path.sep).join('/');
+  const hiddenPath = relativePath.split('/').some(segment => segment.startsWith('.'));
+  const extension = path.extname(normalizedFilePath).toLowerCase();
+  if (
+    !normalizedFilePath.startsWith(normalizedRoot)
+    || !fs.existsSync(normalizedFilePath)
+    || fs.statSync(normalizedFilePath).isDirectory()
+    || !mimeTypes[extension]
+    || serverFiles.test(relativePath)
+    || serverDirectories.test(relativePath)
+    || hiddenPath
+  ) {
     return response.writeHead(404).end('NÃƒÂ£o encontrado');
   }
 
   response.writeHead(200, { 'Content-Type': mimeTypes[path.extname(normalizedFilePath).toLowerCase()] || 'application/octet-system' });
   fs.createReadStream(normalizedFilePath).pipe(response);
-});
+}
 
-server.on('error', error => {
-  if (error.code === 'EADDRINUSE') {
-    console.error(`A porta ${port} já está em uso. Feche o servidor existente ou use outra porta com PORT=3010.`);
-    process.exitCode = 1;
-    return;
-  }
-  throw error;
-});
+module.exports = handler;
 
-server.listen(port, () => console.log(`TrocaTicket rodando em http://localhost:${port}`));
+if (require.main === module) {
+  const server = http.createServer(handler);
+  server.on('error', error => {
+    if (error.code === 'EADDRINUSE') {
+      console.error(`A porta ${port} já está em uso. Feche o servidor existente ou use outra porta com PORT=3010.`);
+      process.exitCode = 1;
+      return;
+    }
+    throw error;
+  });
+  server.listen(port, () => console.log(`TrocaTicket rodando em http://localhost:${port}`));
+}

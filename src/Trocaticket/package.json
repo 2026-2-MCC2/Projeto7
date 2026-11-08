@@ -8,6 +8,8 @@
     "test": "node --test resale-calculations.test.js"
   },
   "dependencies": {
+    "@vercel/blob": "^2.8.2",
+    "@vercel/functions": "^3.11.0",
     "bcrypt": "^6.0.0",
     "dotenv": "^17.4.2",
     "jsonwebtoken": "^9.0.3",
