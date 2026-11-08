@@ -189,16 +189,24 @@ body.ticket-page-body {
   background: #ffffff;
 }
 
+.ticket-qr-box.is-resale {
+  background: #171a24;
+  border: 1px solid rgba(255, 198, 109, 0.45);
+}
+
+.ticket-qr-box.is-resale .canvas-container,
 .ticket-qr-box.is-transferred .canvas-container {
   display: none;
 }
 
+.ticket-qr-box.is-resale .qr-refresh-status,
 .ticket-qr-box.is-transferred .qr-refresh-status {
   display: none !important;
 }
 
+.ticket-qr-box.is-resale .ticket-used-overlay span,
 .ticket-qr-box.is-transferred .ticket-used-overlay span {
-  display: none;
+  display: block;
 }
 
 .ticket-qr-box.is-used .canvas-container img {

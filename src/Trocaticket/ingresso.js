@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const data = await response.json();
     if (response.status === 401 || response.status === 403) {
       redirectToLogin();
-      throw new Error('Sua sessÃ£o expirou. Entre novamente.');
+      throw new Error('Sua sessão expirou. Entre novamente.');
     }
     if (!response.ok || !data.ok) throw new Error(data.message || `Erro HTTP ${response.status}`);
     return data;
@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function checkinDateTime(value) {
     const parsed = new Date(value);
-    return Number.isNaN(parsed.getTime()) ? 'horÃ¡rio nÃ£o disponÃ­vel' : parsed.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+    return Number.isNaN(parsed.getTime()) ? 'horário não disponível' : parsed.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
   }
 
   function openExternalUrl(url) {
@@ -110,11 +110,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (Number.isNaN(parsed.getTime())) return 'A definir';
     const day = parsed.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
     const time = parsed.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    return `${day} Ã s ${time}`;
+    return `${day} às ${time}`;
   }
 
   function getFirstName(fullName) {
-    if (!fullName) return 'destinatÃ¡rio';
+    if (!fullName) return 'destinatário';
     const cleaned = String(fullName).trim();
     if (cleaned.includes('@')) {
       return cleaned.split('@')[0];
@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const image = document.getElementById('qr-code-image');
     const status = document.getElementById('qr-refresh-status');
     if (!image) return;
-    image.alt = 'QR dinÃ¢mico do ingresso';
+    image.alt = 'QR dinâmico do ingresso';
     image.hidden = false;
     image.style.display = '';
     if (status) status.hidden = false;
@@ -148,17 +148,12 @@ document.addEventListener('DOMContentLoaded', () => {
       image.removeAttribute('src');
       image.hidden = true;
       image.alt = '';
-      status.textContent = 'Repassado, conferir em Revenda.';
       return;
     }
     if (ticket.emRevenda) {
       image.removeAttribute('src');
       image.hidden = true;
       image.alt = '';
-      if (status) {
-        status.textContent = 'Ingresso em revenda. Cancele o anúncio para voltar a usar o QR Code.';
-        status.hidden = false;
-      }
       return;
     }
     if (isTicketTransferred(ticket)) {
@@ -186,13 +181,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!ticket.qr_code_payload) {
       image.removeAttribute('src');
       image.hidden = true;
-      if (status) status.textContent = 'Este ingresso nÃ£o possui um QR ativo.';
+      if (status) status.textContent = 'Este ingresso não possui um QR ativo.';
       return;
     }
     if (!ticket.qr_code_image) {
       image.removeAttribute('src');
       image.hidden = true;
-      if (status) status.textContent = 'NÃ£o foi possÃ­vel carregar o QR. Atualize o ingresso.';
+      if (status) status.textContent = 'Não foi possível carregar o QR. Atualize o ingresso.';
       return;
     }
     image.src = ticket.qr_code_image;
@@ -262,9 +257,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await response.json();
         if (response.status === 401 || response.status === 403) {
           redirectToLogin();
-          throw new Error('Sua sessÃ£o expirou. Entre novamente.');
+          throw new Error('Sua sessão expirou. Entre novamente.');
         }
-        if (!response.ok || !data.ok || !data.ticket) throw new Error(data.message || 'NÃ£o foi possÃ­vel carregar o QR Code.');
+        if (!response.ok || !data.ok || !data.ticket) throw new Error(data.message || 'Não foi possível carregar o QR Code.');
         Object.assign(ticket, data.ticket);
         return ticket;
       }).catch(error => {
@@ -301,23 +296,26 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('ticket-time-text').textContent = dateTimePill(ticket.date);
     document.getElementById('ticket-serial-label').textContent = `INGRESSO: #${ticket.codigo_ingresso || ticket.numero_ingresso}`;
     document.getElementById('ticket-order-label').textContent = `PEDIDO: #${ticket.codigo_pedido || 'N/A'}`;
-    document.getElementById('ticket-resale-badge').hidden = !emRevenda;
-    document.getElementById('ticket-resale-notice').hidden = !emRevenda;
     document.getElementById('ticket-cover-img').src = resolveEventImage(ticket);
     const qrBox = document.querySelector('.ticket-qr-box');
     qrBox.classList.toggle('is-used', used);
     qrBox.classList.toggle('is-transferred', transferred);
-    document.getElementById('ticket-used-overlay').hidden = !used && !resold && !transferred;
+    qrBox.classList.toggle('is-resale', emRevenda);
+    document.getElementById('ticket-used-overlay').hidden = !used && !resold && !transferred && !emRevenda;
     document.querySelector('#ticket-used-overlay strong').textContent = transferred
       ? 'INGRESSO TRANSFERIDO'
-      : resold ? 'INGRESSO REPASSADO' : 'INGRESSO UTILIZADO';
+      : resold ? 'INGRESSO REPASSADO'
+        : emRevenda ? 'INGRESSO EM REVENDA'
+          : 'INGRESSO UTILIZADO';
     document.querySelector('#ticket-used-overlay span').textContent = transferred
       ? ''
-      : resold ? 'Confira em Revenda.' : 'Este acesso já foi consumido.';
+      : resold ? 'Confira em Revenda.'
+        : emRevenda ? 'Cancele o anúncio para voltar a usar o QR Code.'
+          : 'Este acesso já foi consumido.';
     const usedNotice = document.getElementById('ticket-used-notice');
     usedNotice.hidden = !used;
     usedNotice.textContent = used
-      ? `Este ingresso jÃ¡ foi validado na portaria do evento em ${checkinDateTime(ticket.checkinAt)}.`
+      ? `Este ingresso já foi validado na portaria do evento em ${checkinDateTime(ticket.checkinAt)}.`
       : '';
 
     // Controles do Carrossel Manual
@@ -346,7 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
       btnResell.classList.add('btn-disabled-state');
 
       const primeiroNome = getFirstName(ticket.destinatario_pendente_nome);
-      alertMsg.textContent = `Aguardando confirmaÃ§Ã£o de ${primeiroNome}`;
+      alertMsg.textContent = `Aguardando confirmação de ${primeiroNome}`;
       alertMsg.style.color = '#ff9f43';
     } else if (jaTransferido) {
       btnTransfer.disabled = true;
@@ -374,6 +372,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('ticket-digital-actions').hidden = used || resold || transferred || emRevenda;
     document.querySelector('.ticket-actions-group').hidden = used || resold || transferred;
+    btnTransfer.hidden = emRevenda;
+    btnResell.hidden = used || transferred;
     btnTransfer.disabled = btnTransfer.disabled || emRevenda;
     btnResell.disabled = used || resold;
     btnResell.textContent = emRevenda ? 'VER ANÚNCIO NA REVENDA' : '🏷️ ANUNCIAR EM REVENDA';
@@ -407,7 +407,7 @@ document.addEventListener('DOMContentLoaded', () => {
       currentIndex = nextIndex;
       await renderTicket();
     } catch (error) {
-      showActionToast(error.message || 'NÃ£o foi possÃ­vel carregar o QR Code.', true);
+      showActionToast(error.message || 'Não foi possível carregar o QR Code.', true);
     }
   }
 
@@ -422,16 +422,16 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const data = await postTicketAction('/api/ingresso/download-offline', ticket);
       const deliveryMessage = data.mock
-        ? 'Ingresso offline aberto. O envio por e-mail estÃ¡ em modo de demonstraÃ§Ã£o.'
+        ? 'Ingresso offline aberto. O envio por e-mail está em modo de demonstração.'
         : `E-mail enviado para ${data.email}. O ingresso offline foi aberto em uma nova aba.`;
       const packageOpened = openOfflinePackage(data.offlineHtml, deliveryMessage);
       showActionToast(packageOpened
         ? deliveryMessage
         : data.mock
-          ? 'Pacote offline preparado em modo de demonstraÃ§Ã£o.'
+          ? 'Pacote offline preparado em modo de demonstração.'
           : `E-mail enviado para ${data.email}. O ingresso offline foi anexado ao e-mail.`);
     } catch (error) {
-      showActionToast(error.message || 'NÃ£o foi possÃ­vel preparar o pacote offline.', true);
+      showActionToast(error.message || 'Não foi possível preparar o pacote offline.', true);
     } finally {
       setDigitalActionLoading(button, false, '', 'Baixar para Acesso Offline (Enviar por E-mail)');
     }
@@ -441,14 +441,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const button = event.currentTarget;
     const ticket = groupTickets[currentIndex];
     if (!ticket || isTicketUsed(ticket)) return;
-    setDigitalActionLoading(button, true, 'Preparando carteira...', 'Adicionar Ã  Carteira do Google');
+    setDigitalActionLoading(button, true, 'Preparando carteira...', 'Adicionar à Carteira do Google');
     try {
       const data = await postTicketAction('/api/ingresso/google-wallet-jwt', ticket);
       const destination = data.mock ? data.mockUrl : data.walletUrl;
       openExternalUrl(destination);
-      if (data.mock) showActionToast('PrÃ©via da Carteira do Google aberta em modo de demonstraÃ§Ã£o. Configure as credenciais do emissor para ativar a emissÃ£o real.');
+      if (data.mock) showActionToast('Prévia da Carteira do Google aberta em modo de demonstração. Configure as credenciais do emissor para ativar a emissão real.');
     } catch (error) {
-      showActionToast(error.message || 'NÃ£o foi possÃ­vel preparar o passe da carteira.', true);
+      showActionToast(error.message || 'Não foi possível preparar o passe da carteira.', true);
     } finally {
       setDigitalActionLoading(button, false, '', 'Adicionar Ã  Carteira do Google');
     }
@@ -461,7 +461,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!ticket || isTicketUsed(ticket)) return;
 
     if (ticket.transferencia_pendente_id) {
-      if (!confirm('Deseja realmente cancelar o repasse deste ingresso? O convite por e-mail serÃ¡ invalidado.')) {
+      if (!confirm('Deseja realmente cancelar o repasse deste ingresso? O convite por e-mail será invalidado.')) {
         return;
       }
 
