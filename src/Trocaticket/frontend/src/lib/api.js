@@ -34,7 +34,7 @@ export const api = {
   },
   async orders({ cursor = '', signal } = {}) {
     const user = readUser();
-    if (!user?.email) throw Object.assign(new Error('FaÃ§a login para ver seus pedidos.'), { status: 401 });
+    if (!user?.email) throw Object.assign(new Error('Faça login para ver seus pedidos.'), { status: 401 });
     const params = new URLSearchParams({ email: user.email, limit: '20' });
     if (cursor) params.set('cursor', cursor);
     return request(`/api/usuario/meus-ingressos?${params}`, { signal });
@@ -58,7 +58,7 @@ export const api = {
   },
   async ticket(id, signal) {
     const user = readUser();
-    if (!user?.email) throw Object.assign(new Error('FaÃ§a login para ver seu ingresso.'), { status: 401 });
+    if (!user?.email) throw Object.assign(new Error('Faça login para ver seu ingresso.'), { status: 401 });
     const params = new URLSearchParams({ email: user.email, includeQr: 'true' });
     return request(`/api/usuario/meus-ingressos/${encodeURIComponent(id)}?${params}`, { signal });
   },

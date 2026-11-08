@@ -450,7 +450,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (error) {
       showActionToast(error.message || 'Não foi possível preparar o passe da carteira.', true);
     } finally {
-      setDigitalActionLoading(button, false, '', 'Adicionar Ã  Carteira do Google');
+      setDigitalActionLoading(button, false, '', 'Adicionar à Carteira do Google');
     }
   });
 
