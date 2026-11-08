@@ -1178,7 +1178,10 @@
                     const capacity = Number(card.querySelector('.sector-capacity')?.value || 0);
                     card.querySelector('.sector-summary').textContent = `Total de bilhetes alocados: ${quantity} / ${capacity} | Receita potencial: ${formatCurrency(revenue)}`;
                     const half = Array.from(card.querySelectorAll('.lot-half')).reduce((sum, input) => sum + Number(input.value || 0), 0);
-                    card.querySelector('.lot-summary').textContent = `Total alocado: ${quantity.toLocaleString('pt-BR')} / ${quantity.toLocaleString('pt-BR')} ingressos | Cota de meia: ${half.toLocaleString('pt-BR')} (40%) garantida`;
+                    const lotSummary = card.querySelector('.lot-summary');
+                    if (lotSummary) {
+                        lotSummary.textContent = `Total alocado: ${quantity.toLocaleString('pt-BR')} / ${quantity.toLocaleString('pt-BR')} ingressos | Cota de meia: ${half.toLocaleString('pt-BR')} (40%) garantida`;
+                    }
                     weightedQuantity += quantity;
                     weightedRevenue += revenue;
                 });
