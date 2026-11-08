@@ -151,6 +151,16 @@ document.addEventListener('DOMContentLoaded', () => {
       status.textContent = 'Repassado, conferir em Revenda.';
       return;
     }
+    if (ticket.emRevenda) {
+      image.removeAttribute('src');
+      image.hidden = true;
+      image.alt = '';
+      if (status) {
+        status.textContent = 'Ingresso em revenda. Cancele o anúncio para voltar a usar o QR Code.';
+        status.hidden = false;
+      }
+      return;
+    }
     if (isTicketTransferred(ticket)) {
       image.removeAttribute('src');
       image.hidden = true;
@@ -191,11 +201,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function scheduleQrRefresh() {
     window.clearTimeout(qrRefreshTimer);
+    if (groupTickets[currentIndex]?.emRevenda) {
+      qrRefreshTimer = null;
+      return;
+    }
     const millisecondsToNextStep = 60000 - (Date.now() % 60000) + 150;
     qrRefreshTimer = window.setTimeout(async () => {
       try { await refreshActiveQr(); }
       catch (error) { console.warn('[ingresso] Falha ao atualizar QR:', error.message); }
-      scheduleQrRefresh();
+      if (!groupTickets[currentIndex]?.emRevenda) scheduleQrRefresh();
     }, millisecondsToNextStep);
   }
 
@@ -232,6 +246,8 @@ document.addEventListener('DOMContentLoaded', () => {
     currentTicket.checkinAt = latestTicket.checkinAt;
     currentTicket.qr_code_payload = latestTicket.qr_code_payload;
     currentTicket.qr_code_image = latestTicket.qr_code_image;
+    currentTicket.emRevenda = latestTicket.emRevenda;
+    currentTicket.revendaId = latestTicket.revendaId;
     currentTicket.transferido = latestTicket.transferido;
     currentTicket.destinatario_transferencia_nome = latestTicket.destinatario_transferencia_nome;
     await renderTicket();
@@ -265,6 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const used = isTicketUsed(ticket);
     const resold = isTicketResold(ticket);
     const transferred = isTicketTransferred(ticket);
+    const emRevenda = Boolean(ticket.emRevenda);
 
     document.getElementById('ticket-event-name').textContent = ticket.eventName || ticket.evento || 'EVENTO';
     
@@ -284,6 +301,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('ticket-time-text').textContent = dateTimePill(ticket.date);
     document.getElementById('ticket-serial-label').textContent = `INGRESSO: #${ticket.codigo_ingresso || ticket.numero_ingresso}`;
     document.getElementById('ticket-order-label').textContent = `PEDIDO: #${ticket.codigo_pedido || 'N/A'}`;
+    document.getElementById('ticket-resale-badge').hidden = !emRevenda;
+    document.getElementById('ticket-resale-notice').hidden = !emRevenda;
     document.getElementById('ticket-cover-img').src = resolveEventImage(ticket);
     const qrBox = document.querySelector('.ticket-qr-box');
     qrBox.classList.toggle('is-used', used);
@@ -353,15 +372,20 @@ document.addEventListener('DOMContentLoaded', () => {
       alertMsg.textContent = '';
     }
 
-    document.getElementById('ticket-digital-actions').hidden = used || resold || transferred;
+    document.getElementById('ticket-digital-actions').hidden = used || resold || transferred || emRevenda;
     document.querySelector('.ticket-actions-group').hidden = used || resold || transferred;
-    if (used || resold || transferred) {
+    btnTransfer.disabled = btnTransfer.disabled || emRevenda;
+    btnResell.disabled = used || resold;
+    btnResell.textContent = emRevenda ? 'VER ANÚNCIO NA REVENDA' : '🏷️ ANUNCIAR EM REVENDA';
+    if (used || resold || transferred || emRevenda) {
       btnTransfer.disabled = true;
       btnResell.disabled = used || resold;
       btnTransfer.classList.remove('btn-cancel-state');
       btnTransfer.classList.add('btn-disabled-state');
       btnResell.classList.toggle('btn-disabled-state', used || resold);
-      alertMsg.textContent = transferred
+      alertMsg.textContent = emRevenda
+        ? 'Ingresso em revenda. Cancele o anúncio para voltar a usar o QR Code.'
+        : transferred
         ? `Transferido para ${ticket.destinatario_transferencia_nome || 'novo titular'}.`
         : resold ? 'Repassado, conferir em Revenda.' : '';
     }
@@ -589,7 +613,7 @@ document.addEventListener('DOMContentLoaded', () => {
       groupTickets.forEach(ticket => {
         if (String(ticket.id) !== String(data.detail.id)) loadTicketDetail(ticket).catch(() => undefined);
       });
-      scheduleQrRefresh();
+      if (!groupTickets[currentIndex]?.emRevenda) scheduleQrRefresh();
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden) refreshActiveQr().catch(error => console.warn('[ingresso] Falha ao atualizar QR:', error.message));
       });

@@ -50,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <h2 class="ticket-card-title">${group.name}</h2>
           <p class="ticket-card-place">${group.location}</p>
           <span class="ticket-card-badge">${group.count} INGRESSO${group.count > 1 ? 'S' : ''}</span>
+          ${group.emRevenda ? '<span class="ticket-card-badge">Em revenda</span>' : ''}
         </div>`;
       card.addEventListener('click', () => {
         window.location.href = `ingresso.html?id=${encodeURIComponent(group.firstTicketId)}&evento=${encodeURIComponent(group.name)}`;
@@ -79,10 +80,12 @@ document.addEventListener('DOMContentLoaded', () => {
             location: ticket.location || 'Local a confirmar',
             image: resolveEventImage(ticket),
             count: 0,
-            firstTicketId: ticket.id
+            firstTicketId: ticket.id,
+            emRevenda: Boolean(ticket.emRevenda)
           });
         }
         grouped.get(key).count += 1;
+        grouped.get(key).emRevenda = grouped.get(key).emRevenda || Boolean(ticket.emRevenda);
       });
       cursor = data.nextCursor || '';
       hasMore = Boolean(data.hasMore);

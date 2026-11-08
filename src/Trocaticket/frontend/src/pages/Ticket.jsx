@@ -43,16 +43,19 @@ export default function Ticket({ id }) {
         <div className="ticket-carousel-card">
           <h1>{ticket.eventName || ticket.evento}</h1>
           <p>{ticket.location || 'Local a confirmar'}</p>
-          {ticket.repassado
+          {ticket.emRevenda
+            ? <p className="ticket-repassed-notice">Em revenda</p>
+            : ticket.repassado
             ? <p className="ticket-repassed-notice">Repassado, conferir em Revenda.</p>
             : ticket.qr_code_image
             ? <AssetImage className="ticket-qr" src={ticket.qr_code_image} alt="QR Code do ingresso" />
             : <p>QR Code indisponível para este ingresso.</p>}
-          <p>Status: <strong>{ticket.repassado ? 'Repassado' : ticket.status}</strong></p>
+          <p>Status: <strong>{ticket.emRevenda ? 'Em revenda' : ticket.repassado ? 'Repassado' : ticket.status}</strong></p>
+          {ticket.emRevenda && <p className="ticket-repassed-notice">Ingresso em revenda. Cancele o anúncio para voltar a usar o QR Code.</p>}
           <div className="ticket-actions">
-            <button type="button" className="primary-button">Baixar para Acesso Offline</button>
+            {!ticket.emRevenda && <><button type="button" className="primary-button">Baixar para Acesso Offline</button>
             <button type="button" className="secondary-button">Adicionar à Carteira do Google</button>
-            <button type="button" className="secondary-button">Transferir</button>
+            <button type="button" className="secondary-button">Transferir</button></>}
             <button type="button" className="secondary-button" onClick={() => {
               const reference = ticket.codigo_ingresso || ticket.numero_ingresso || ticket.id;
               window.history.pushState({}, '', `/resale?ingresso_id=${encodeURIComponent(ticket.id)}&ingresso_codigo=${encodeURIComponent(reference)}`);
