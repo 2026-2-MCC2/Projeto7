@@ -1,20 +1,24 @@
 # TrocaTicket frontend
 
-The frontend is a React/Vite application mounted at `/app/` and exposed through the clean routes `/`, `/events`, `/orders`, `/login`, and `/ticket/:id`.
+O frontend React/Vite é montado em `/app/` e também atende as rotas `/`, `/events`,
+`/orders`, `/login` e `/ticket/:id`.
 
-## Development
+## Desenvolvimento
+
+Na raiz do repositório, instale as dependências e execute:
 
 ```powershell
-Set-Location src/Trocaticket/frontend
 npm install
 npm run dev
 ```
 
-## Production build
+O Vite fica em `http://localhost:5173/app/` e a API Node em `http://localhost:3000`.
+
+## Build
 
 ```powershell
-Set-Location src/Trocaticket/frontend
 npm run build
 ```
 
-The build is emitted to `../public/app`. The Node server serves the compiled assets and keeps the existing HTML pages available as a compatibility fallback while the remaining operational screens are migrated.
+O build é gerado em `../public/app`. O servidor Node publica esses arquivos e mantém
+as páginas HTML legadas disponíveis durante a migração.

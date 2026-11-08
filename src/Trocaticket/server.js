@@ -52,6 +52,7 @@ const mimeTypes = {
 };
 const serverFiles = /^(server|db|armazenamento|status|generate-admin-token|fix-name-once|inserir_evento|resale-calculations(?:\.test)?|event-images(?:\.test)?)\.js$/i;
 const serverDirectories = /^(data|sql|scripts|node_modules|frontend|\.vscode|\.git)(\/|$)/i;
+const testFiles = /\.test\.(?:js|mjs)$/i;
 
 function normalizeEmail(value) { return String(value || '').trim().toLowerCase(); }
 function normalizeCpf(value) { return String(value || '').replace(/\D/g, ''); }
@@ -5051,6 +5052,7 @@ async function handler(request, response) {
     || fs.statSync(normalizedFilePath).isDirectory()
     || !mimeTypes[extension]
     || serverFiles.test(relativePath)
+    || testFiles.test(relativePath)
     || serverDirectories.test(relativePath)
     || hiddenPath
   ) {
