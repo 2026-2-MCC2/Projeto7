@@ -4,6 +4,10 @@ const sql = require('mssql');
 
 dotenv.config({ path: path.join(__dirname, '.env') });
 
+if (!process.env.DB_HOST || !process.env.DB_PASSWORD) {
+  console.warn('[db] DB_HOST e DB_PASSWORD não configurados. Copie src/Trocaticket/.env.example para .env ou configure as variáveis da Vercel.');
+}
+
 const config = {
   server: process.env.DB_HOST || 'localhost',
   port: Number(process.env.DB_PORT || 1433),
@@ -14,6 +18,8 @@ const config = {
     encrypt: String(process.env.DB_ENCRYPT || 'true').toLowerCase() !== 'false',
     trustServerCertificate: String(process.env.DB_TRUST_SERVER_CERTIFICATE || 'false').toLowerCase() === 'true'
   },
+  connectionTimeout: 30000,
+  requestTimeout: 30000,
   pool: {
     max: Number(process.env.DB_CONNECTION_LIMIT || 10),
     min: 0,
