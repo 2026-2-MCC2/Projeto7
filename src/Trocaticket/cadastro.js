@@ -44,7 +44,7 @@ verificationForm.addEventListener('submit', async event => {
     const result = await post('/api/auth/verificar-codigo', { email: verificationEmail, codigo: verificationForm.codigo.value.trim() });
     localStorage.setItem('trocaticket-authenticated', 'true');
     localStorage.setItem('trocaticket-user', JSON.stringify(result.user));
-    window.location.href = 'index.html';
+    window.location.href = '/index.html';
   } catch (error) {
     console.error('[cadastro] Erro ao verificar código:', error);
     showMessage(error.message);
