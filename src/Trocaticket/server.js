@@ -43,8 +43,8 @@ const mimeTypes = {
   '.gif': 'image/gif',
   '.svg': 'image/svg+xml'
 };
-const serverFiles = /^(server|db|generate-admin-token|fix-name-once|inserir_evento|resale-calculations(?:\.test)?)\.js$/i;
-const serverDirectories = /^(data|sql|node_modules|frontend|\.vscode|\.git)(\/|$)/i;
+const serverFiles = /^(server|db|armazenamento|status|generate-admin-token|fix-name-once|inserir_evento|resale-calculations(?:\.test)?)\.js$/i;
+const serverDirectories = /^(data|sql|scripts|node_modules|frontend|\.vscode|\.git)(\/|$)/i;
 
 function normalizeEmail(value) { return String(value || '').trim().toLowerCase(); }
 function normalizeCpf(value) { return String(value || '').replace(/\D/g, ''); }
