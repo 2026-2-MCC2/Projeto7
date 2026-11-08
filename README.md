@@ -41,6 +41,11 @@ de anúncios pela regra de um único anúncio `disponivel` por ingresso. O
 host e o banco e exige a confirmação digitada do `DB_NAME`. Ele nunca é
 executado automaticamente pelo servidor.
 
+Enquanto o usuário tiver um anúncio de revenda ativo (`disponivel`) no mesmo
+setor e modalidade, ele não pode comprar outro ingresso dessa combinação. Essa
+regra evita que o vendedor compre o próprio anúncio e responde `409`; ela não
+faz a compra cair no lote primário.
+
 ## Estrutura
 
 ```text

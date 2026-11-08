@@ -9,6 +9,7 @@ const QRCode = require('qrcode');
 const jwt = require('jsonwebtoken');
 const { waitUntil } = require('@vercel/functions');
 const db = require('./db');
+const { createAuthGuards } = require('./auth-guards');
 const { resaleRestriction } = require('./resale-ticket-policy');
 const { MAX_UPLOAD_BYTES, salvarArquivo } = require('./armazenamento');
 const {
@@ -1187,6 +1188,12 @@ function send(response, status, payload, extraHeaders = {}) {
   response.end(JSON.stringify(payload));
 }
 
+const { requireSession, requireSameUser, requireRole } = createAuthGuards({
+  db,
+  readSessionToken,
+  send
+});
+
 function uploadErrorStatus(error) {
   if (error?.statusCode === 413) return 413;
   if (error?.statusCode === 503) return 503;
@@ -1292,6 +1299,8 @@ async function handler(request, response) {
     try {
       const { fields, file } = await parseMultipart(request);
       const email = normalizeEmail(fields.email);
+      const user = await requireSameUser(request, response, email);
+      if (!user) return;
 
       if (!email || !file || !file.data || !file.filename) {
         return send(response, 400, { ok: false, message: 'Arquivo ou e-mail ausente.' });
@@ -1303,7 +1312,7 @@ async function handler(request, response) {
         return send(response, 413, { ok: false, message: 'A imagem deve ter no máximo 4,5 MB.' });
       }
       const avatarUrl = await salvarArquivo('avatars', uniqueName, file.data, file.mimetype || 'image/png');
-      await db.query('UPDATE usuarios SET foto_perfil = ? WHERE email = ?', [avatarUrl, email]);
+      await db.query('UPDATE usuarios SET foto_perfil = ? WHERE id = ?', [avatarUrl, user.id]);
 
       return send(response, 200, { ok: true, avatarUrl, message: 'Foto atualizada com sucesso!' });
     } catch (error) {
@@ -1423,8 +1432,9 @@ async function handler(request, response) {
   // ===== PERFIL DO USUÃƒÂRIO =====
   if (request.method === 'GET' && url.pathname === '/api/usuario/meu-perfil') {
     try {
-      const [rows] = await db.query('SELECT id, nome, email, cpf, telefone, genero, data_nascimento, tipo, status, foto_perfil FROM dbo.usuarios WHERE email = ? LIMIT 1', [normalizeEmail(url.searchParams.get('email'))]);
-      return rows.length ? send(response, 200, { ok: true, user: formatUser(rows[0]) }) : send(response, 404, { ok: false, message: 'UsuÃƒÂ¡rio nÃƒÂ£o encontrado.' });
+      const user = await requireSameUser(request, response, url.searchParams.get('email'));
+      if (!user) return;
+      return send(response, 200, { ok: true, user: formatUser(user) });
     } catch (error) { return send(response, 500, { ok: false, message: 'Erro ao carregar perfil.' }); }
   }
 
@@ -1433,6 +1443,8 @@ async function handler(request, response) {
       const body = await parseBody(request);
       const emailAtual = normalizeEmail(body.emailAtual || body.currentEmail || body.email);
       const novoEmail = normalizeEmail(body.email || emailAtual);
+      const user = await requireSameUser(request, response, emailAtual);
+      if (!user) return;
 
       if (!emailAtual || !novoEmail) {
         return send(response, 400, { ok: false, message: 'E-mail ÃƒÂ© obrigatÃƒÂ³rio.' });
@@ -1442,8 +1454,8 @@ async function handler(request, response) {
       }
 
       const [[existingUser]] = await db.query(
-        'SELECT id, nome, email, cpf, telefone, genero, data_nascimento, senha_hash FROM dbo.usuarios WHERE email = ?',
-        [emailAtual]
+        'SELECT id, nome, email, cpf, telefone, genero, data_nascimento, senha_hash FROM dbo.usuarios WHERE id = ?',
+        [user.id]
       );
       if (!existingUser) {
         return send(response, 404, { ok: false, message: 'UsuÃƒÂ¡rio nÃƒÂ£o encontrado.' });
@@ -1484,7 +1496,7 @@ async function handler(request, response) {
         `UPDATE dbo.usuarios
          SET nome = ?, email = ?, cpf = ?, telefone = ?, genero = ?, data_nascimento = ?, senha_hash = ?
          OUTPUT INSERTED.id
-         WHERE email = ?`,
+         WHERE id = ?`,
         [
           nomeCompleto,
           novoEmail,
@@ -1493,7 +1505,7 @@ async function handler(request, response) {
           genero || null,
           dataNascimento,
           senhaHash,
-          emailAtual
+           user.id
         ]
       );
 
@@ -2257,12 +2269,21 @@ async function handler(request, response) {
 
   // ===== COMPRA DE INGRESSO =====
   if (request.method === 'POST' && url.pathname === '/api/ingressos/comprar') {
+    const sessionUser = await requireSession(request, response);
+    if (!sessionUser) return;
+    let body;
+    try {
+      body = await parseBody(request);
+    } catch (error) {
+      return send(response, 400, { ok: false, message: 'Corpo da requisição inválido.' });
+    }
+    const email = normalizeEmail(body.email);
+    if (!email) return send(response, 400, { ok: false, message: 'Usuário e evento são obrigatórios.' });
+    if (email !== normalizeEmail(sessionUser.email)) return send(response, 403, { ok: false, message: 'Acesso negado.' });
     await ensureTicketSecuritySchema();
     await ensureResaleSchema();
     const connection = await db.getConnection();
     try {
-      const body = await parseBody(request);
-      const email = normalizeEmail(body.email);
       const eventoId = Number(body.evento_id);
       const quantidade = Math.max(1, Math.min(10, Number(body.quantidade) || 1));
 
@@ -2271,7 +2292,7 @@ async function handler(request, response) {
       }
 
       await connection.beginTransaction();
-      const [[user]] = await connection.query('SELECT id FROM dbo.usuarios WHERE email = ?', [email]);
+      const user = sessionUser;
       const [[event]] = await connection.query('SELECT id, nome, ticket_calculado FROM dbo.eventos WHERE id = ?', [eventoId]);
 
       if (!user) {
@@ -2343,7 +2364,8 @@ async function handler(request, response) {
             ORDER BY r.prioridade DESC, r.preco_original ASC, r.anunciado_em ASC, r.id ASC
           `, [eventoId, user.id, item.sector || '', item.sector || '', item.sector || '', item.category || '', item.category || '', item.category || '']);
           if (!resale && (item.sector || item.category)) {
-            const [[blockedOwnListing]] = await connection.query(`
+          // Regra de produto: um vendedor não compra outro ingresso do mesmo setor/modalidade enquanto seu anúncio estiver ativo.
+          const [[blockedOwnListing]] = await connection.query(`
               SELECT TOP (1) r.id
               FROM dbo.revendas r
               JOIN dbo.ingressos_emitidos i ON i.id = r.ingresso_id
@@ -4987,11 +5009,10 @@ async function handler(request, response) {
   // ===== CARTÃƒâ€¢ES DO USUÃƒÂRIO (ROBUSTO E SEGURO) =====
   if (request.method === 'GET' && url.pathname === '/api/usuario/cartoes') {
     try {
-      const email = normalizeEmail(url.searchParams.get('email'));
-      const [users] = await db.query('SELECT id FROM dbo.usuarios WHERE email = ? LIMIT 1', [email]);
-      if (!users.length) return send(response, 404, { ok: false, message: 'UsuÃƒÂ¡rio nÃƒÂ£o encontrado.' });
-      
-      const [cards] = await db.query('SELECT id, nome_titular, ultimos_digitos, bandeira, validade_mes, validade_ano, criado_em FROM dbo.cartoes_usuario WHERE usuario_id = ? ORDER BY id DESC', [users[0].id]);
+      const user = await requireSameUser(request, response, url.searchParams.get('email'));
+      if (!user) return;
+
+      const [cards] = await db.query('SELECT id, nome_titular, ultimos_digitos, bandeira, validade_mes, validade_ano, criado_em FROM dbo.cartoes_usuario WHERE usuario_id = ? ORDER BY id DESC', [user.id]);
       return send(response, 200, { ok: true, cards });
     } catch (error) {
       console.error('[cartoes GET]', error.message);
@@ -5003,8 +5024,8 @@ async function handler(request, response) {
     try {
       const body = await parseBody(request);
       const email = normalizeEmail(body.email);
-      const [users] = await db.query('SELECT id FROM dbo.usuarios WHERE email = ? LIMIT 1', [email]);
-      if (!users.length) return send(response, 404, { ok: false, message: 'Comprador nÃƒÂ£o encontrado.' });
+      const user = await requireSameUser(request, response, email);
+      if (!user) return;
 
       const cpf = normalizeCpf(body.cpf);
       if (cpf.length !== 11) return send(response, 400, { ok: false, message: 'Informe um CPF com 11 nÃƒÂºmeros. A pontuaÃƒÂ§ÃƒÂ£o ÃƒÂ© opcional.' });
@@ -5025,14 +5046,14 @@ async function handler(request, response) {
         ano = parts[1].trim();
       }
 
-      const cardHash = crypto.createHash('sha256').update(numLimpo + users[0].id, 'utf8').digest('hex');
+      const cardHash = crypto.createHash('sha256').update(numLimpo + user.id, 'utf8').digest('hex');
 
       await db.query(
         `INSERT INTO dbo.cartoes_usuario 
           (usuario_id, nome_titular, ultimos_digitos, validade_mes, validade_ano, bandeira, cartao_hash) 
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
-          users[0].id, 
+          user.id,
           String(body.nome_titular || body.nome || 'Titular').trim().toUpperCase(), 
           ultimos_digitos, 
           mes || '12', 
@@ -5054,10 +5075,10 @@ async function handler(request, response) {
       const cardId = Number(url.pathname.split('/').pop());
       const body = await parseBody(request);
       const email = normalizeEmail(body.email);
-      const [users] = await db.query('SELECT id FROM dbo.usuarios WHERE email = ? LIMIT 1', [email]);
-      if (!users.length) return send(response, 404, { ok: false, message: 'UsuÃƒÂ¡rio nÃƒÂ£o encontrado.' });
+      const user = await requireSameUser(request, response, email);
+      if (!user) return;
 
-      await db.query('DELETE FROM dbo.cartoes_usuario WHERE id = ? AND usuario_id = ?', [cardId, users[0].id]);
+      await db.query('DELETE FROM dbo.cartoes_usuario WHERE id = ? AND usuario_id = ?', [cardId, user.id]);
       return send(response, 200, { ok: true, message: 'CartÃƒÂ£o excluÃƒÂ­do com sucesso.' });
     } catch (error) {
       return send(response, 500, { ok: false, message: 'Erro ao excluir o cartÃƒÂ£o.' });

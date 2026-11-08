@@ -94,6 +94,7 @@ form.addEventListener('submit', async event => {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        emailAtual: user.email,
         email: user.email,
         nome: document.getElementById('nome').value.trim(),
         sobrenome: document.getElementById('sobrenome').value.trim(),

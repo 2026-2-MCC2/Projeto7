@@ -17,7 +17,9 @@ function createAuthGuards({ db, readSessionToken, send }) {
     }
 
     const [rows] = await db.query(
-      'SELECT id, nome, email, tipo, status FROM dbo.usuarios WHERE id = ?',
+      `SELECT id, nome, email, cpf, telefone, genero, data_nascimento, tipo, status,
+        foto_perfil, senha_hash, email_verificado, codigo_verificacao
+       FROM dbo.usuarios WHERE id = ?`,
       [session.sub]
     );
     const user = rows[0];
