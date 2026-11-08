@@ -51,7 +51,7 @@ const mimeTypes = {
   '.gif': 'image/gif',
   '.svg': 'image/svg+xml'
 };
-const serverFiles = /^(server|db|armazenamento|status|generate-admin-token|fix-name-once|inserir_evento|resale-calculations(?:\.test)?|event-images(?:\.test)?)\.js$/i;
+const serverFiles = /^(server|db|armazenamento|auth-guards|status|generate-admin-token|fix-name-once|inserir_evento|resale-calculations(?:\.test)?|event-images(?:\.test)?)\.js$/i;
 const serverDirectories = /^(data|sql|scripts|node_modules|frontend|\.vscode|\.git)(\/|$)/i;
 const testFiles = /\.test\.(?:js|mjs)$/i;
 
