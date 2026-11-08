@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.removeItem('trocaticket-user');
       localStorage.removeItem('usuario');
       sessionStorage.removeItem('adminToken');
-      window.location.href = window.location.pathname.includes('/account/') ? '../index.html' : 'index.html';
+      window.location.href = '/index.html';
     }
   }
 

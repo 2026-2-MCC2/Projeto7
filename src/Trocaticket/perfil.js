@@ -12,7 +12,7 @@ function logout() {
     localStorage.removeItem('trocaticket-avatar');
     localStorage.removeItem('token');
     sessionStorage.removeItem('adminToken');
-    window.location.href = 'index.html';
+    window.location.href = '/index.html';
   }
 }
 

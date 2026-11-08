@@ -582,7 +582,7 @@ class AdminPanel {
   logout() {
     if (confirm('Tem certeza que deseja sair?')) {
       sessionStorage.removeItem('adminToken');
-      window.location.href = 'index.html';
+      window.location.href = '/index.html';
     }
   }
 

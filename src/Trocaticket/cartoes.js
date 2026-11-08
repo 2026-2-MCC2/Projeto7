@@ -6,7 +6,7 @@ const message = document.getElementById('card-message');
 function logout() {
   localStorage.clear();
   sessionStorage.clear();
-  window.location.href = 'index.html';
+  window.location.href = '/index.html';
 }
 
 const menuToggle = document.querySelector('.menu-toggle');

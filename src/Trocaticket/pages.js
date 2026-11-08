@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function logout() {
     localStorage.clear();
     sessionStorage.clear();
-    window.location.href = 'index.html';
+    window.location.href = '/index.html';
   }
 
   if (menuToggle && mainNav) {
