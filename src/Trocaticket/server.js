@@ -11,6 +11,13 @@ const { waitUntil } = require('@vercel/functions');
 const db = require('./db');
 const { MAX_UPLOAD_BYTES, salvarArquivo } = require('./armazenamento');
 const {
+  EVENT_IMAGE_FIELDS,
+  decodeDataImage,
+  eventImageResponse,
+  eventImageVersion,
+  preserveEventImageInput
+} = require('./event-images');
+const {
   RESALE_FEES,
   calculateResalePayout
 } = require('./resale-calculations');
@@ -43,7 +50,7 @@ const mimeTypes = {
   '.gif': 'image/gif',
   '.svg': 'image/svg+xml'
 };
-const serverFiles = /^(server|db|armazenamento|status|generate-admin-token|fix-name-once|inserir_evento|resale-calculations(?:\.test)?)\.js$/i;
+const serverFiles = /^(server|db|armazenamento|status|generate-admin-token|fix-name-once|inserir_evento|resale-calculations(?:\.test)?|event-images(?:\.test)?)\.js$/i;
 const serverDirectories = /^(data|sql|scripts|node_modules|frontend|\.vscode|\.git)(\/|$)/i;
 
 function normalizeEmail(value) { return String(value || '').trim().toLowerCase(); }
@@ -1504,7 +1511,7 @@ async function handler(request, response) {
               WHERE rep.ingresso_antigo_id = i.id AND rep.vendedor_id = u.id
             ) THEN 1 ELSE 0 END AS bit) AS repassado,
             COALESCE(i.versao_titularidade, 1) AS versao_titularidade,
-            p.codigo_pedido, e.nome AS evento, e.nome AS eventName, e.artista,
+            p.codigo_pedido, e.id AS eventId, e.nome AS evento, e.nome AS eventName, e.artista,
             e.[local] AS location, e.imagem, CONVERT(varchar(19), e.data_evento, 126) AS date,
             u.nome AS titular, u.cpf,
             COALESCE(NULLIF(TRIM(i.categoria_ingresso), ''),
@@ -1549,6 +1556,7 @@ async function handler(request, response) {
         `, [Number(ticketId), requestedEmail]);
         if (!tickets.length) return send(response, 404, { ok: false, message: 'Ingresso nÃƒÂ£o encontrado.' });
         const ticket = tickets[0];
+        ticket.imagem = eventImageResponse(ticket.imagem, ticket.eventId, 'imagem', eventImageVersion(ticket.imagem));
         if (includeQr && ['ativo', 'valido'].includes(String(ticket.status).toLowerCase())) {
           const ticketSecret = await getTicketSecret(ticket.id);
           const timeStep = Math.floor(Date.now() / 1000 / 60);
@@ -1652,6 +1660,9 @@ async function handler(request, response) {
         ORDER BY i.emitido_em DESC, i.id DESC
       `, queryParams);
       const last = tickets[tickets.length - 1];
+      tickets.forEach(ticket => {
+        ticket.imagem = eventImageResponse(ticket.imagem, ticket.eventId, 'imagem', eventImageVersion(ticket.imagem));
+      });
       const nextCursor = tickets.length === limit && last && last.emittedAt
         ? Buffer.from(JSON.stringify({ emittedAt: last.emittedAt, id: Number(last.id) })).toString('base64url')
         : null;
@@ -2579,6 +2590,35 @@ async function handler(request, response) {
     }
   }
 
+  if (request.method === 'GET' && /^\/api\/events\/\d+\/imagem$/.test(url.pathname)) {
+    try {
+      const eventId = Number(url.pathname.split('/')[3]);
+      const publicField = String(url.searchParams.get('campo') || '');
+      const column = EVENT_IMAGE_FIELDS[publicField];
+      if (!column) return send(response, 404, { ok: false, message: 'Campo de imagem inválido.' });
+      const [rows] = await db.query(
+        `SELECT [${column}] AS image, DATALENGTH([${column}]) AS version
+         FROM dbo.eventos WHERE id = ?`,
+        [eventId]
+      );
+      if (!rows.length) return send(response, 404, { ok: false, message: 'Evento não encontrado.' });
+      const decoded = decodeDataImage(rows[0].image);
+      if (!decoded) return send(response, 404, { ok: false, message: 'Imagem não disponível como Data URL.' });
+      if (decoded.data.length > MAX_UPLOAD_BYTES) {
+        console.warn(`[events] imagem ${publicField} do evento ${eventId} excede 4,5 MB (${decoded.data.length} bytes).`);
+      }
+      response.writeHead(200, {
+        'Content-Type': decoded.contentType,
+        'Content-Length': decoded.data.length,
+        'Cache-Control': 'public, max-age=31536000, s-maxage=31536000, stale-while-revalidate=86400'
+      });
+      return response.end(decoded.data);
+    } catch (error) {
+      console.error('[events] erro ao servir imagem:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível carregar a imagem.' });
+    }
+  }
+
   // ===== EVENTOS (ADMIN) =====
   if (request.method === 'GET' && url.pathname === '/api/events') {
     try {
@@ -2597,9 +2637,9 @@ async function handler(request, response) {
         classification: r.classificacao_etaria || 'Livre',
         price: Number(r.ticket_calculado || 0),
         capacity: Number(r.publico_maximo || 0),
-        imagem: r.imagem || null,
-        imagem_horizontal: r.banner_desktop || null,
-        mapa_evento: r.mapa_evento || null,
+        imagem: eventImageResponse(r.imagem, r.id, 'imagem', eventImageVersion(r.imagem)),
+        imagem_horizontal: eventImageResponse(r.banner_desktop, r.id, 'banner_desktop', eventImageVersion(r.banner_desktop)),
+        mapa_evento: eventImageResponse(r.mapa_evento, r.id, 'mapa_evento', eventImageVersion(r.mapa_evento)),
         lots: lotRows.filter(lot => Number(lot.evento_id) === Number(r.id)).map(lot => ({
           id: lot.id,
           sector: lot.setor_nome || 'Setor geral',
@@ -2679,9 +2719,9 @@ async function handler(request, response) {
             name: event.nome,
             artist: event.artista || '',
             description: event.descricao || '',
-            image: event.imagem || null,
-            horizontalImage: event.banner_desktop || null,
-            mapImage: event.mapa_evento || null,
+            image: eventImageResponse(event.imagem, event.id, 'imagem', eventImageVersion(event.imagem)),
+            horizontalImage: eventImageResponse(event.banner_desktop, event.id, 'banner_desktop', eventImageVersion(event.banner_desktop)),
+            mapImage: eventImageResponse(event.mapa_evento, event.id, 'mapa_evento', eventImageVersion(event.mapa_evento)),
             date: event.data_evento ? new Date(event.data_evento).toISOString() : null,
             endDate: event.data_fim ? new Date(event.data_fim).toISOString() : null,
             classification: event.classificacao_etaria || 'Livre',
@@ -2786,7 +2826,7 @@ async function handler(request, response) {
       const [result] = await db.query(
         `INSERT INTO dbo.eventos (organizador_id, nome, artista, descricao, classificacao_etaria, [local], data_evento, data_fim, ticket_calculado, publico_minimo, publico_maximo, margem_lucro, status, destaque, imagem, banner_desktop)
          OUTPUT INSERTED.id VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 500, ?, 0.20, ?, ?, ?, ?)`,
-        [body.organizador_id || 1, nome, body.artista || null, String(body.descricao || '').trim() || null, classificacaoEtaria, local, dataEvento, dataFim, ticketCalculado, lotacao, body.status || 'publicado', destaque, body.imagem || null, body.imagem_horizontal || null]
+        [body.organizador_id || 1, nome, body.artista || null, String(body.descricao || '').trim() || null, classificacaoEtaria, local, dataEvento, dataFim, ticketCalculado, lotacao, body.status || 'publicado', destaque, preserveEventImageInput(body.imagem), preserveEventImageInput(body.imagem_horizontal)]
       );
 
       const eventoId = result[0]?.id || result.insertId;
@@ -2872,8 +2912,8 @@ async function handler(request, response) {
       const lotacao = Number(body.capacidade || body.publico_maximo || 0);
       const destaque = body.destaque === true || body.destaque === 1 || body.destaque === 'true' ? 1 : 0;
       const classificacaoEtaria = String(body.classificacao || body.classificacao_etaria || 'Livre').trim();
-      const imagem = body.imagem ? String(body.imagem) : null;
-      const imagemHorizontal = body.imagem_horizontal ? String(body.imagem_horizontal) : null;
+      const imagem = preserveEventImageInput(body.imagem);
+      const imagemHorizontal = preserveEventImageInput(body.imagem_horizontal);
 
       if (!eventoId || !nome || !local || !dataEvento || !lotacao) {
         return send(response, 400, { ok: false, message: 'Evento, nome, local, lotaÃƒÂ§ÃƒÂ£o e data sÃƒÂ£o obrigatÃƒÂ³rios.' });
@@ -4069,7 +4109,7 @@ async function handler(request, response) {
       if (!eventEndDate || eventEndDate <= eventDate) return send(response, 400, { ok: false, message: 'Informe um horÃƒÂ¡rio de encerramento posterior ao inÃƒÂ­cio do evento.' });
       const [result] = await db.query(
         `INSERT INTO eventos (organizador_id, nome, artista, \`local\`, data_evento, data_fim, ticket_calculado, publico_minimo, publico_maximo, margem_lucro, status, destaque, imagem) OUTPUT INSERTED.id VALUES (1, ?, ?, ?, ?, ?, ?, 500, 2000, 0.20, 'publicado', ?, ?)`,
-        [body.nome.trim(), body.artista || null, body.local.trim(), eventDate, eventEndDate, parseFloat(body.preco) || 0, body.destaque ? 1 : 0, body.imagem || null]
+        [body.nome.trim(), body.artista || null, body.local.trim(), eventDate, eventEndDate, parseFloat(body.preco) || 0, body.destaque ? 1 : 0, preserveEventImageInput(body.imagem)]
       );
       await audit('criacao_evento', `Evento criado: ${body.nome.trim()}.`, 'evento', body.nome.trim(), auditActor(body));
       return send(response, 201, { ok: true, eventId: result.insertId });
@@ -4103,9 +4143,9 @@ async function handler(request, response) {
         endDate: r.data_fim ? new Date(r.data_fim).toISOString() : null,
         classification: r.classificacao_etaria || 'Livre',
         price: Number(r.ticket_calculado || 0),
-        imagem: r.imagem || null,
-        imagem_horizontal: r.banner_desktop || null,
-        mapa_evento: r.mapa_evento || null,
+        imagem: eventImageResponse(r.imagem, r.id, 'imagem', eventImageVersion(r.imagem)),
+        imagem_horizontal: eventImageResponse(r.banner_desktop, r.id, 'banner_desktop', eventImageVersion(r.banner_desktop)),
+        mapa_evento: eventImageResponse(r.mapa_evento, r.id, 'mapa_evento', eventImageVersion(r.mapa_evento)),
         sectors: sectorRows.map(sector => ({ id: sector.id, name: sector.nome, capacity: Number(sector.capacidade || 0) })),
         lots: lotRows.map((lot, lotIndex) => ({
           id: lot.id,
@@ -4153,7 +4193,7 @@ async function handler(request, response) {
           parseFloat(body.price || body.preco) || 0, 
           body.status || 'publicado', 
           body.destaque ? 1 : 0, 
-          body.imagem || null, 
+          preserveEventImageInput(body.imagem),
           eventId
         ]
       );
@@ -4861,6 +4901,9 @@ async function handler(request, response) {
       const [events] = await db.query(`SELECT id, nome AS name, artista, [local] AS location, data_evento AS date,
         ticket_calculado AS price, imagem, destaque, status FROM dbo.eventos
         WHERE destaque = 1 AND status = 'publicado' ORDER BY id DESC`);
+      events.forEach(event => {
+        event.imagem = eventImageResponse(event.imagem, event.id, 'imagem', eventImageVersion(event.imagem));
+      });
       return send(response, 200, { ok: true, events });
     } catch (error) { return send(response, 500, { ok: false, message: error.message }); }
   }

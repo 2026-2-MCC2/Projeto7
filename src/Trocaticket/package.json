@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "node --watch --watch-preserve-output server.js",
     "start": "node server.js",
-    "test": "node --test resale-calculations.test.js"
+    "test": "node --test resale-calculations.test.js event-images.test.js"
   },
   "dependencies": {
     "@vercel/blob": "^2.8.2",
