@@ -84,22 +84,22 @@ async function sendVerificationEmail({ to, name, code }) {
   const transporter = getVerificationTransporter();
 
   if (!transporter) {
-    console.warn(`[auth] SMTP nÃƒÂ£o configurado. CÃƒÂ³digo de verificaÃƒÂ§ÃƒÂ£o para ${to}: ${code}`);
+    console.warn(`[auth] SMTP não configurado. Código de verificação para ${to}: ${code}`);
     return { sent: false, fallback: true };
   }
 
   await transporter.sendMail({
     from: smtpFrom,
     to,
-    subject: 'TrocaTicket - cÃƒÂ³digo de verificaÃƒÂ§ÃƒÂ£o',
-    text: `OlÃƒÂ¡ ${name || 'usuÃƒÂ¡rio'}, seu cÃƒÂ³digo de verificaÃƒÂ§ÃƒÂ£o do TrocaTicket ÃƒÂ© ${code}.`,
+    subject: 'TrocaTicket - código de verificação',
+    text: `Olá ${name || 'usuário'}, seu código de verificação do TrocaTicket é ${code}.`,
     html: `
       <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #1f2937;">
         <h2 style="margin: 0 0 16px;">TrocaTicket</h2>
-        <p>OlÃƒÂ¡ ${name || 'usuÃƒÂ¡rio'},</p>
-        <p>Use o cÃƒÂ³digo abaixo para confirmar seu cadastro:</p>
+        <p>Olá ${name || 'usuário'},</p>
+        <p>Use o código abaixo para confirmar seu cadastro:</p>
         <div style="font-size: 28px; font-weight: 700; letter-spacing: 6px; margin: 20px 0;">${code}</div>
-        <p>Se vocÃƒÂª nÃƒÂ£o solicitou este cadastro, pode ignorar esta mensagem.</p>
+        <p>Se você não solicitou este cadastro, pode ignorar esta mensagem.</p>
       </div>
     `
   });
@@ -290,53 +290,53 @@ function createOfflineTicketEmailHtml(ticket, filename, expiresAt, walletUrl, ba
   const sector = escapeHtml(ticket.sector || 'Setor a confirmar');
   const safeFilename = escapeHtml(filename);
   const supportUrl = escapeHtml(process.env.TROCATICKET_SUPPORT_URL || 'https://trocaticket.com/suporte');
-  const title = escapeHtml(`Seu ingresso offline para o ${ticket.eventName} estÃƒÂ¡ pronto, aguardamos sua presenÃƒÂ§a!`);
+  const title = escapeHtml(`Seu ingresso offline para o ${ticket.eventName} está pronto, aguardamos sua presença!`);
   const walletButton = walletUrl
-    ? `<a href="${escapeHtml(walletUrl)}" target="_blank" style="display:inline-block;padding:14px 22px;border-radius:8px;background:#111827;border:1px solid #374151;color:#ffffff;text-decoration:none;font-size:15px;font-weight:bold;"><span style="display:inline-block;margin-right:8px;color:#4285f4;font-size:18px;font-weight:bold;">G</span>Adicionar ÃƒÂ  Carteira do Google</a>`
-    : '<span role="button" aria-disabled="true" style="display:inline-block;padding:14px 22px;border-radius:8px;background:#111827;border:1px solid #374151;color:#ffffff;opacity:.55;font-size:15px;font-weight:bold;cursor:not-allowed;"><span style="display:inline-block;margin-right:8px;color:#4285f4;font-size:18px;font-weight:bold;">G</span>Adicionar ÃƒÂ  Carteira do Google</span><p style="margin:8px 0 0;color:#64748b;font-size:12px;line-height:1.6;">A Carteira do Google ainda nÃƒÂ£o estÃƒÂ¡ habilitada para este ingresso.</p>';
+    ? `<a href="${escapeHtml(walletUrl)}" target="_blank" style="display:inline-block;padding:14px 22px;border-radius:8px;background:#111827;border:1px solid #374151;color:#ffffff;text-decoration:none;font-size:15px;font-weight:bold;"><span style="display:inline-block;margin-right:8px;color:#4285f4;font-size:18px;font-weight:bold;">G</span>Adicionar à Carteira do Google</a>`
+    : '<span role="button" aria-disabled="true" style="display:inline-block;padding:14px 22px;border-radius:8px;background:#111827;border:1px solid #374151;color:#ffffff;opacity:.55;font-size:15px;font-weight:bold;cursor:not-allowed;"><span style="display:inline-block;margin-right:8px;color:#4285f4;font-size:18px;font-weight:bold;">G</span>Adicionar à Carteira do Google</span><p style="margin:8px 0 0;color:#64748b;font-size:12px;line-height:1.6;">A Carteira do Google ainda não está habilitada para este ingresso.</p>';
 
   const html = `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>Seu ingresso Troca Ticket</title>
 <style>@media only screen and (max-width:600px){.email-shell{width:100%!important}.email-pad{padding-left:18px!important;padding-right:18px!important}.event-title{font-size:23px!important}.step-cell{padding:12px!important}}</style></head>
 <body style="width:100%;margin:0;padding:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">Seu ingresso digital para ${eventName} estÃƒÂ¡ pronto, com acesso offline e QR dinÃƒÂ¢mico.</div>
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">Seu ingresso digital para ${eventName} está pronto, com acesso offline e QR dinâmico.</div>
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#ffffff;"><tr><td align="center" style="padding:0;">
 <table role="presentation" class="email-shell" width="680" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:680px;margin:0 auto;background:#ffffff;">
 <tr><td align="center" style="padding:0;background:#000000;">
 <img src="${escapeHtml(bannerSrc)}" width="680" alt="Troca Ticket" style="display:block;width:100%;max-width:680px;height:auto;margin:0 auto;border:0;">
 </td></tr>
 <tr><td class="email-pad" style="padding:30px 36px 10px;">
-<p style="margin:0 0 8px;color:#475569;font-size:15px;">OlÃƒÂ¡, ${holder}.</p>
+<p style="margin:0 0 8px;color:#475569;font-size:15px;">Olá, ${holder}.</p>
 <h1 class="event-title" style="margin:0;color:#0f172a;font-size:28px;line-height:1.25;">${title}</h1>
 </td></tr>
 <tr><td class="email-pad" style="padding:18px 36px 12px;">
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#eff6ff;border:1px solid #bfdbfe;border-left:4px solid #2563eb;border-radius:8px;"><tr><td width="42" valign="top" style="padding:16px 0 16px 16px;color:#2563eb;font-size:24px;">&#8681;</td><td style="padding:16px 16px 16px 10px;"><p style="margin:0 0 4px;color:#1e3a8a;font-size:14px;font-weight:bold;">Baixar ingresso offline</p><p style="margin:0;color:#334155;font-size:13px;line-height:1.5;">O arquivo estÃƒÂ¡ anexado a este e-mail: <strong>${safeFilename}</strong>. Guarde-o no seu smartphone antes de chegar ao evento.</p></td></tr></table>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#eff6ff;border:1px solid #bfdbfe;border-left:4px solid #2563eb;border-radius:8px;"><tr><td width="42" valign="top" style="padding:16px 0 16px 16px;color:#2563eb;font-size:24px;">&#8681;</td><td style="padding:16px 16px 16px 10px;"><p style="margin:0 0 4px;color:#1e3a8a;font-size:14px;font-weight:bold;">Baixar ingresso offline</p><p style="margin:0;color:#334155;font-size:13px;line-height:1.5;">O arquivo está anexado a este e-mail: <strong>${safeFilename}</strong>. Guarde-o no seu smartphone antes de chegar ao evento.</p></td></tr></table>
 </td></tr>
 <tr><td class="email-pad" align="center" style="padding:8px 36px 24px;">${walletButton}</td></tr>
 <tr><td class="email-pad" style="padding:0 36px 22px;">
-<h2 style="margin:0 0 6px;color:#0f172a;font-size:18px;line-height:1.4;">InstruÃƒÂ§ÃƒÂµes de utilizaÃƒÂ§ÃƒÂ£o do acesso offline (sem internet)</h2>
+<h2 style="margin:0 0 6px;color:#0f172a;font-size:18px;line-height:1.4;">Instruções de utilização do acesso offline (sem internet)</h2>
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td class="step-cell" style="padding:15px 16px;border-bottom:1px solid #e2e8f0;background:#ffffff;">
-<p style="margin:0 0 6px;color:#2563eb;font-size:13px;font-weight:bold;">Passo 1 Ã‚Â· Descarregue o anexo</p><p style="margin:0;color:#475569;font-size:13px;line-height:1.6;">Guarde <strong>${safeFilename}</strong> no seu smartphone antes de ir ao evento.</p>
+<p style="margin:0 0 6px;color:#2563eb;font-size:13px;font-weight:bold;">Passo 1 · Descarregue o anexo</p><p style="margin:0;color:#475569;font-size:13px;line-height:1.6;">Guarde <strong>${safeFilename}</strong> no seu smartphone antes de ir ao evento.</p>
 </td></tr><tr><td class="step-cell" style="padding:15px 16px;border-bottom:1px solid #e2e8f0;background:#ffffff;">
-<p style="margin:0 0 6px;color:#2563eb;font-size:13px;font-weight:bold;">Passo 2 Ã‚Â· Abra no navegador</p><p style="margin:0;color:#475569;font-size:13px;line-height:1.6;">Abra o arquivo no Google Chrome, Samsung Internet ou Safari. Se solicitado, escolha <strong>Ã¢â‚¬Å“SempreÃ¢â‚¬Â</strong> ou <strong>Ã¢â‚¬Å“Desta vezÃ¢â‚¬Â</strong>. O arquivo funciona localmente, sem dados mÃƒÂ³veis.</p>
+<p style="margin:0 0 6px;color:#2563eb;font-size:13px;font-weight:bold;">Passo 2 · Abra no navegador</p><p style="margin:0;color:#475569;font-size:13px;line-height:1.6;">Abra o arquivo no Google Chrome, Samsung Internet ou Safari. Se solicitado, escolha <strong>“Sempre”</strong> ou <strong>“Desta vez”</strong>. O arquivo funciona localmente, sem dados móveis.</p>
 </td></tr><tr><td class="step-cell" style="padding:15px 16px;background:#ffffff;">
-<p style="margin:0 0 6px;color:#2563eb;font-size:13px;font-weight:bold;">Passo 3 Ã‚Â· Apresente na entrada</p><p style="margin:0;color:#475569;font-size:13px;line-height:1.6;">Na fila, mesmo sem rede ou em modo de voo, o QR continuarÃƒÂ¡ atualizando a cada 60 segundos. Apresente a tela do navegador ÃƒÂ  equipe da portaria.</p>
+<p style="margin:0 0 6px;color:#2563eb;font-size:13px;font-weight:bold;">Passo 3 · Apresente na entrada</p><p style="margin:0;color:#475569;font-size:13px;line-height:1.6;">Na fila, mesmo sem rede ou em modo de voo, o QR continuará atualizando a cada 60 segundos. Apresente a tela do navegador à equipe da portaria.</p>
 </td></tr></table>
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:14px;background:#eff6ff;border-left:3px solid #2563eb;"><tr><td style="padding:12px 14px;color:#1e3a8a;font-size:13px;line-height:1.6;"><strong>Validade do CÃƒÂ³digo QR Offline:</strong> Ativo atÃƒÂ© ao tÃƒÂ©rmino oficial do evento em ${eventEnd}.</td></tr></table>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:14px;background:#eff6ff;border-left:3px solid #2563eb;"><tr><td style="padding:12px 14px;color:#1e3a8a;font-size:13px;line-height:1.6;"><strong>Validade do Código QR Offline:</strong> Ativo até ao término oficial do evento em ${eventEnd}.</td></tr></table>
 </td></tr>
 <tr><td class="email-pad" style="padding:0 36px 24px;">
 <h2 style="margin:0 0 10px;color:#0f172a;font-size:18px;">Resumo do ingresso</h2>
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #e2e8f0;border-radius:8px;background:#f1f5f9;">
-<tr><td style="padding:16px 18px 5px;"><p style="margin:0 0 4px;color:#64748b;font-size:11px;font-weight:bold;text-transform:uppercase;">Data e horÃƒÂ¡rio de inÃƒÂ­cio</p><p style="margin:0;color:#0f172a;font-size:14px;font-weight:bold;">${eventStart}</p></td></tr>
+<tr><td style="padding:16px 18px 5px;"><p style="margin:0 0 4px;color:#64748b;font-size:11px;font-weight:bold;text-transform:uppercase;">Data e horário de início</p><p style="margin:0;color:#0f172a;font-size:14px;font-weight:bold;">${eventStart}</p></td></tr>
 <tr><td style="padding:10px 18px 5px;"><p style="margin:0 0 4px;color:#64748b;font-size:11px;font-weight:bold;text-transform:uppercase;">Local</p><p style="margin:0;color:#0f172a;font-size:14px;">${location}</p></td></tr>
 <tr><td style="padding:10px 18px 5px;"><p style="margin:0 0 4px;color:#64748b;font-size:11px;font-weight:bold;text-transform:uppercase;">Titular</p><p style="margin:0;color:#0f172a;font-size:14px;">${holder} <span style="color:#64748b;">(${email})</span></p></td></tr>
-<tr><td style="padding:10px 18px 16px;"><p style="margin:0 0 4px;color:#64748b;font-size:11px;font-weight:bold;text-transform:uppercase;">Bilhete e setor</p><p style="margin:0;color:#0f172a;font-size:14px;font-weight:bold;">#${ticketNumber} <span style="font-weight:normal;color:#475569;">Ã‚Â· ${sector}</span></p></td></tr>
+<tr><td style="padding:10px 18px 16px;"><p style="margin:0 0 4px;color:#64748b;font-size:11px;font-weight:bold;text-transform:uppercase;">Bilhete e setor</p><p style="margin:0;color:#0f172a;font-size:14px;font-weight:bold;">#${ticketNumber} <span style="font-weight:normal;color:#475569;">· ${sector}</span></p></td></tr>
 </table>
 </td></tr>
 <tr><td align="center" style="padding:20px 24px;background:#f8fafc;border-top:1px solid #e2e8f0;">
-<p style="margin:0;color:#64748b;font-size:12px;line-height:1.6;">NÃƒÂ£o responda a este e-mail. Este ÃƒÂ© um e-mail automÃƒÂ¡tico enviado pela plataforma Troca Ticket.</p>
-<p style="margin:8px 0;color:#94a3b8;font-size:12px;">DÃƒÂºvidas ou suporte? Acesse nossa central de ajuda no site da <a href="${supportUrl}" style="color:#00e5ff;text-decoration:underline;font-weight:bold;">Troca Ticket</a>.</p>
-<p style="margin:12px 0 0;color:#94a3b8;font-size:11px;">Ã‚Â© 2026 Troca Ticket. Todos os direitos reservados.</p>
+<p style="margin:0;color:#64748b;font-size:12px;line-height:1.6;">Não responda a este e-mail. Este é um e-mail automático enviado pela plataforma Troca Ticket.</p>
+<p style="margin:8px 0;color:#94a3b8;font-size:12px;">Dúvidas ou suporte? Acesse nossa central de ajuda no site da <a href="${supportUrl}" style="color:#00e5ff;text-decoration:underline;font-weight:bold;">Troca Ticket</a>.</p>
+<p style="margin:12px 0 0;color:#94a3b8;font-size:11px;">© 2026 Troca Ticket. Todos os direitos reservados.</p>
 </td></tr>
 </table></td></tr></table>
 </body></html>`;
@@ -344,8 +344,8 @@ function createOfflineTicketEmailHtml(ticket, filename, expiresAt, walletUrl, ba
     .replace('Baixar ingresso offline (.html)', 'Baixar ingresso offline')
     .replace('Bilhete e setor', 'Bilhete, pedido e setor')
     .replace(
-      `#${ticketNumber} <span style="font-weight:normal;color:#475569;">Ã‚Â· ${sector}</span>`,
-      `#${ticketNumber} <span style="font-weight:normal;color:#475569;">Ã‚Â· Pedido #${orderCode} Ã‚Â· ${sector}</span>`
+      `#${ticketNumber} <span style="font-weight:normal;color:#475569;">· ${sector}</span>`,
+      `#${ticketNumber} <span style="font-weight:normal;color:#475569;">· Pedido #${orderCode} · ${sector}</span>`
     );
 }
 
@@ -365,16 +365,16 @@ function createOfflineTicketHtml(ticket, qrLibrary) {
   return `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>Ingresso offline | TrocaTicket</title>
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0c0e14;color:#fff;font:16px system-ui,sans-serif}.pass{width:min(340px,calc(100vw - 40px));padding:24px;box-sizing:border-box;background:#171a24;border:1px solid #30364a;border-radius:16px;text-align:center;box-shadow:0 16px 48px #0008}h1{font-size:20px;margin:0 0 8px}p{color:#aeb5c8;font-size:14px;margin:6px 0}.qr{width:220px;height:220px;margin:20px auto;background:#fff;border-radius:10px;display:grid;place-items:center}.qr canvas{max-width:100%;max-height:100%}.notice{color:#ff9f43!important;min-height:20px}.tag{color:#27b7ff;font-weight:700;font-size:12px;text-transform:uppercase}</style></head>
-<body><main class="pass"><p class="tag">TrocaTicket Ã‚Â· Ingresso digital</p><h1 id="event-name"></h1><p id="event-details"></p><div class="qr" id="qr"><canvas id="qr-canvas"></canvas></div><p class="notice" id="status" aria-live="polite">Gerando QR offline...</p><p id="ticket-number"></p><p id="event-end"></p></main>
+<body><main class="pass"><p class="tag">TrocaTicket · Ingresso digital</p><h1 id="event-name"></h1><p id="event-details"></p><div class="qr" id="qr"><canvas id="qr-canvas"></canvas></div><p class="notice" id="status" aria-live="polite">Gerando QR offline...</p><p id="ticket-number"></p><p id="event-end"></p></main>
 <script>${qrLibrary}</script><script>
 const ticket=${ticketData};
 const encoder=new TextEncoder();
 const keyBytes=Uint8Array.from(ticket.secretKey.match(/.{2}/g),part=>parseInt(part,16));
 document.getElementById('event-name').textContent=ticket.eventName;
-document.getElementById('event-details').textContent=[new Date(ticket.eventDate).toLocaleString('pt-BR'),ticket.location,ticket.sector].filter(Boolean).join(' Ã‚Â· ');
-document.getElementById('ticket-number').textContent='Ingresso #'+ticket.number+' Ã‚Â· '+ticket.holder;
-document.getElementById('event-end').textContent='VÃƒÂ¡lido atÃƒÂ© '+new Date(ticket.eventEndDate).toLocaleString('pt-BR');
-async function refresh(){const status=document.getElementById('status');if(Date.now()>ticket.expiresAt){document.getElementById('qr').hidden=true;status.textContent='Ingresso expirado: evento encerrado';return}try{const step=Math.floor(Date.now()/60000);const key=await crypto.subtle.importKey('raw',keyBytes,{name:'HMAC',hash:'SHA-256'},false,['sign']);const digest=await crypto.subtle.sign('HMAC',key,encoder.encode(ticket.number+':'+step));const hash=Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join('');await QRCode.toCanvas(document.getElementById('qr-canvas'),ticket.number+':'+step+':'+hash,{width:200,margin:1,errorCorrectionLevel:'M'});status.textContent='QR atualizado Ã‚Â· prÃƒÂ³ximo em atÃƒÂ© 60 segundos'}catch(error){status.textContent='NÃƒÂ£o foi possÃƒÂ­vel gerar o QR offline neste navegador.'}}
+document.getElementById('event-details').textContent=[new Date(ticket.eventDate).toLocaleString('pt-BR'),ticket.location,ticket.sector].filter(Boolean).join(' · ');
+document.getElementById('ticket-number').textContent='Ingresso #'+ticket.number+' · '+ticket.holder;
+document.getElementById('event-end').textContent='Válido até '+new Date(ticket.eventEndDate).toLocaleString('pt-BR');
+async function refresh(){const status=document.getElementById('status');if(Date.now()>ticket.expiresAt){document.getElementById('qr').hidden=true;status.textContent='Ingresso expirado: evento encerrado';return}try{const step=Math.floor(Date.now()/60000);const key=await crypto.subtle.importKey('raw',keyBytes,{name:'HMAC',hash:'SHA-256'},false,['sign']);const digest=await crypto.subtle.sign('HMAC',key,encoder.encode(ticket.number+':'+step));const hash=Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join('');await QRCode.toCanvas(document.getElementById('qr-canvas'),ticket.number+':'+step+':'+hash,{width:200,margin:1,errorCorrectionLevel:'M'});status.textContent='QR atualizado · próximo em até 60 segundos'}catch(error){status.textContent='Não foi possível gerar o QR offline neste navegador.'}}
 refresh();setInterval(refresh,Math.max(1000,60000-(Date.now()%60000)+150));
 </script></body></html>`;
 }
@@ -2154,7 +2154,7 @@ async function handler(request, response) {
           from: smtpFrom,
           to: ticket.email,
           subject: `TrocaTicket - ingresso offline para ${ticket.eventName}`,
-          text: `OlÃƒÂ¡ ${ticket.holder || 'titular'},\n\nSeu ingresso para ${ticket.eventName} estÃƒÂ¡ pronto. Baixe o anexo antes do evento e abra-o no navegador do celular; o QR continuarÃƒÂ¡ atualizando a cada 60 segundos mesmo sem internet.\n\nValidade do CÃƒÂ³digo QR Offline: ativo atÃƒÂ© ao tÃƒÂ©rmino oficial do evento em ${formatEmailDateTime(expiresAt)}.${walletUrl ? `\n\nAdicionar ÃƒÂ  Carteira do Google: ${walletUrl}` : ''}\n\nDÃƒÂºvidas ou suporte: ${process.env.TROCATICKET_SUPPORT_URL || 'https://trocaticket.com/suporte'}\n\nNÃƒÂ£o responda a este e-mail. Este ÃƒÂ© um e-mail automÃƒÂ¡tico enviado pela plataforma Troca Ticket.`,
+          text: `Olá ${ticket.holder || 'titular'},\n\nSeu ingresso para ${ticket.eventName} está pronto. Baixe o anexo antes do evento e abra-o no navegador do celular; o QR continuará atualizando a cada 60 segundos mesmo sem internet.\n\nValidade do Código QR Offline: ativo até ao término oficial do evento em ${formatEmailDateTime(expiresAt)}.${walletUrl ? `\n\nAdicionar à Carteira do Google: ${walletUrl}` : ''}\n\nDúvidas ou suporte: ${process.env.TROCATICKET_SUPPORT_URL || 'https://trocaticket.com/suporte'}\n\nNão responda a este e-mail. Este é um e-mail automático enviado pela plataforma Troca Ticket.`,
           html: emailHtml,
           attachments: [
             { filename, content: offlineHtml, contentType: 'text/html; charset=utf-8' },
@@ -2171,7 +2171,7 @@ async function handler(request, response) {
         filename,
         offlineHtml,
         emailPreviewHtml: transporter ? undefined : emailHtml,
-        message: transporter ? 'Pacote offline enviado por e-mail.' : 'Pacote offline preparado em modo de demonstraÃƒÂ§ÃƒÂ£o; SMTP nÃƒÂ£o configurado.'
+        message: transporter ? 'Pacote offline enviado por e-mail.' : 'Pacote offline preparado em modo de demonstração; SMTP não configurado.'
       });
     } catch (error) {
       console.error('[ingresso offline] Falha ao preparar pacote:', error.message);
@@ -5054,7 +5054,7 @@ async function handler(request, response) {
     || serverDirectories.test(relativePath)
     || hiddenPath
   ) {
-    return response.writeHead(404).end('NÃƒÂ£o encontrado');
+    return response.writeHead(404).end('Não encontrado');
   }
 
   response.writeHead(200, { 'Content-Type': mimeTypes[path.extname(normalizedFilePath).toLowerCase()] || 'application/octet-system' });
