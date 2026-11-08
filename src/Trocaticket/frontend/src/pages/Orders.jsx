@@ -84,7 +84,7 @@ export default function Orders() {
                   {event.tickets.map(ticket => (
                     <button type="button" className="ticket-subcard" key={ticket.id} onClick={() => openTicket(ticket.id)}>
                       <strong>Ingresso #{ticket.codigo_ingresso || ticket.numero_ingresso || ticket.id}</strong>
-                      <span>{ticket.emRevenda ? 'Em revenda' : ticket.repassado ? 'Repassado, conferir em Revenda' : ticket.status}</span>
+                      <span>{ticket.transferido ? 'Transferido' : ticket.repassado ? 'Repassado, conferir em Revenda' : ticket.emRevenda ? 'Em revenda' : ticket.status}</span>
                       <small>Titular: {ticket.titular || 'Não informado'} · Pedido: {ticket.codigo_pedido || 'Não informado'}</small>
                     </button>
                   ))}

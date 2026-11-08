@@ -12,4 +12,20 @@ function resaleRestriction(ticket, action) {
   return messages[action] || null;
 }
 
-module.exports = { isTicketInResale, resaleRestriction };
+function isEligibleResaleTicket(ticket) {
+  return String(ticket?.status || '').toLowerCase() === 'ativo' && !Boolean(ticket?.revoked);
+}
+
+function getTicketDisplayState(ticket) {
+  if (ticket?.transferido) return 'transferido';
+  if (ticket?.repassado) return 'repassado';
+  if (isTicketInResale(ticket)) return 'emRevenda';
+  return 'normal';
+}
+
+module.exports = {
+  isTicketInResale,
+  resaleRestriction,
+  isEligibleResaleTicket,
+  getTicketDisplayState
+};

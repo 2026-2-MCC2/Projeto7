@@ -1745,6 +1745,7 @@ async function handler(request, response) {
           ORDER BY CASE WHEN NULLIF(TRIM(el.nome), '') = NULLIF(TRIM(i.lote_nome), '') THEN 0 ELSE 1 END, el.id
         ) l
         WHERE r.evento_id = ? AND r.status = 'disponivel'
+          AND i.status = 'ativo' AND ISNULL(i.revoked, 0) = 0
         ORDER BY i.setor_nome ASC, r.prioridade DESC, r.preco_original ASC, r.anunciado_em ASC, r.id ASC
       `, [eventId]);
       return send(response, 200, { ok: true, listings });
@@ -1840,6 +1841,7 @@ async function handler(request, response) {
           FROM dbo.revendas r
           JOIN dbo.ingressos_emitidos i ON i.id = r.ingresso_id
           WHERE r.status = 'disponivel'
+            AND i.status = 'ativo' AND ISNULL(i.revoked, 0) = 0
         )
         SELECT r.id, r.ingresso_id, r.evento_id,
           COALESCE(paid_lot.preco_lote, r.preco_original) AS preco_original,

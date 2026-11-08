@@ -144,28 +144,16 @@ document.addEventListener('DOMContentLoaded', () => {
     image.hidden = false;
     image.style.display = '';
     if (status) status.hidden = false;
-    if (isTicketResold(ticket)) {
-      image.removeAttribute('src');
-      image.hidden = true;
-      image.alt = '';
-      return;
-    }
-    if (ticket.emRevenda) {
-      image.removeAttribute('src');
-      image.hidden = true;
-      image.alt = '';
-      return;
-    }
     if (isTicketTransferred(ticket)) {
       image.removeAttribute('src');
       image.hidden = true;
-      image.style.display = 'none';
       image.alt = '';
-      if (status) {
-        status.textContent = 'TRANSFERIDO';
-        status.hidden = false;
-        status.style.display = 'block';
-      }
+      return;
+    }
+    if (isTicketResold(ticket) || ticket.emRevenda) {
+      image.removeAttribute('src');
+      image.hidden = true;
+      image.alt = '';
       return;
     }
     if (isTicketUsed(ticket)) {
@@ -274,8 +262,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const ticket = groupTickets[currentIndex];
     if (!ticket) return;
     const used = isTicketUsed(ticket);
-    const resold = isTicketResold(ticket);
     const transferred = isTicketTransferred(ticket);
+    const resold = isTicketResold(ticket);
     const emRevenda = Boolean(ticket.emRevenda);
 
     document.getElementById('ticket-event-name').textContent = ticket.eventName || ticket.evento || 'EVENTO';
@@ -372,8 +360,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('ticket-digital-actions').hidden = used || resold || transferred || emRevenda;
     document.querySelector('.ticket-actions-group').hidden = used || resold || transferred;
-    btnTransfer.hidden = emRevenda;
-    btnResell.hidden = used || transferred;
+    btnTransfer.hidden = emRevenda || resold;
+    btnResell.hidden = used || transferred || resold;
     btnTransfer.disabled = btnTransfer.disabled || emRevenda;
     btnResell.disabled = used || resold;
     btnResell.textContent = emRevenda ? 'VER ANÚNCIO NA REVENDA' : '🏷️ ANUNCIAR EM REVENDA';

@@ -43,14 +43,16 @@ export default function Ticket({ id }) {
         <div className="ticket-carousel-card">
           <h1>{ticket.eventName || ticket.evento}</h1>
           <p>{ticket.location || 'Local a confirmar'}</p>
-          {ticket.emRevenda
-            ? <div className="ticket-qr-state"><strong>INGRESSO EM REVENDA</strong><span>Cancele o anúncio para voltar a usar o QR Code.</span></div>
+          {ticket.transferido
+            ? <div className="ticket-qr-state"><strong>INGRESSO TRANSFERIDO</strong><span>Este ingresso foi transferido.</span></div>
             : ticket.repassado
             ? <div className="ticket-qr-state"><strong>INGRESSO REPASSADO</strong><span>Confira em Revenda.</span></div>
+            : ticket.emRevenda
+            ? <div className="ticket-qr-state"><strong>INGRESSO EM REVENDA</strong><span>Cancele o anúncio para voltar a usar o QR Code.</span></div>
             : ticket.qr_code_image
             ? <AssetImage className="ticket-qr" src={ticket.qr_code_image} alt="QR Code do ingresso" />
             : <p>QR Code indisponível para este ingresso.</p>}
-          <p>Status: <strong>{ticket.emRevenda ? 'Em revenda' : ticket.repassado ? 'Repassado' : ticket.status}</strong></p>
+          <p>Status: <strong>{ticket.transferido ? 'Transferido' : ticket.repassado ? 'Repassado' : ticket.emRevenda ? 'Em revenda' : ticket.status}</strong></p>
           <div className="ticket-actions">
             {!ticket.emRevenda && <><button type="button" className="primary-button">Baixar para Acesso Offline</button>
             <button type="button" className="secondary-button">Adicionar à Carteira do Google</button>
