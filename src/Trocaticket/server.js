@@ -1888,7 +1888,7 @@ async function handler(request, response) {
       const session = readSessionToken(request);
       if (!session) return send(response, 401, { ok: false, message: 'Sessão inválida.' });
       const resaleId = Number(url.pathname.split('/').pop());
-      const [result] = await db.query("UPDATE dbo.revendas SET status = 'cancelada' WHERE id = ? AND vendedor_id = ? AND status = 'disponivel'", [resaleId, session.sub]);
+      const [, result] = await db.query("UPDATE dbo.revendas SET status = 'cancelada' WHERE id = ? AND vendedor_id = ? AND status = 'disponivel'", [resaleId, session.sub]);
       if (!result.affectedRows) return send(response, 404, { ok: false, message: 'Anúncio não encontrado ou já processado.' });
       return send(response, 200, { ok: true, message: 'Anúncio retirado da fila.' });
     } catch (error) {
@@ -1913,11 +1913,12 @@ async function handler(request, response) {
       );
       if (!listing || listing.status !== 'disponivel') return send(response, 404, { ok: false, message: 'Anúncio ativo não encontrado.' });
       const difference = Number(listing.preco_original) * (nextFee.percent - Number(listing.taxa_percentual)) / 100;
-      await db.query(`
+      const [, updateResult] = await db.query(`
         UPDATE dbo.revendas
         SET taxa_percentual = ?, taxa_nome = ?, prioridade = ?
         WHERE id = ? AND status = 'disponivel'
       `, [nextFee.percent, nextFee.label, nextFee.priority, resaleId]);
+      if (!updateResult.affectedRows) return send(response, 404, { ok: false, message: 'Anúncio ativo não encontrado.' });
       return send(response, 200, {
         ok: true,
         message: `Prioridade alterada para ${nextFee.label} (${nextFee.percent}%). O novo posicionamento já foi aplicado à fila.`,
@@ -3487,7 +3488,7 @@ async function handler(request, response) {
       const motivoRecusa = String(body.motivo_recusa || '').trim();
       if (!['aprovado', 'recusado'].includes(status)) return send(response, 400, { ok: false, message: 'Status invÃƒÂ¡lido. Use aprovado ou recusado.' });
       if (status === 'recusado' && !motivoRecusa) return send(response, 400, { ok: false, message: 'Informe o motivo da recusa.' });
-      const [result] = await db.query(
+      const [, result] = await db.query(
         'UPDATE dbo.fornecedor_documentos SET status = ?, motivo_recusa = ?, atualizado_em = SYSUTCDATETIME() WHERE id = ?',
         [status, status === 'recusado' ? motivoRecusa : null, documentId]
       );
