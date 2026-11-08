@@ -32,21 +32,22 @@ function tableNameFromBatch(batch) {
   return match ? `dbo.${match[1]}` : 'seed.sql';
 }
 
-function readSetupBatches() {
-  return [
-    ...readBatches('schema.sql').map((sqlText, index) => ({
+function readSetupBatches({ includeSeed }) {
+  const batches = readBatches('schema.sql').map((sqlText, index) => ({
       source: 'schema.sql',
       number: index + 1,
       table: tableNameFromBatch(sqlText),
       sql: sqlText
-    })),
-    ...readBatches('seed.sql').map((sqlText, index) => ({
+    }));
+  if (includeSeed) {
+    batches.push(...readBatches('seed.sql').map((sqlText, index) => ({
       source: 'seed.sql',
       number: index + 1,
       table: tableNameFromBatch(sqlText),
       sql: sqlText
-    }))
-  ];
+    })));
+  }
+  return batches;
 }
 
 function schemaTableNames(batches) {
@@ -73,6 +74,16 @@ function askForConfirmation() {
   });
 }
 
+function askForSeedConfirmation() {
+  return new Promise(resolve => {
+    const input = readline.createInterface({ input: process.stdin, output: process.stdout });
+    input.question('Digite ADMIN DE TESTE para autorizar o seed no host Azure: ', answer => {
+      input.close();
+      resolve(answer.trim().toUpperCase() === 'ADMIN DE TESTE');
+    });
+  });
+}
+
 async function existingSchemaTables(pool, tableNames) {
   const values = tableNames.map(name => `'${name.replace(/'/g, "''")}'`).join(', ');
   const result = await pool.request().query(`
@@ -84,18 +95,23 @@ async function existingSchemaTables(pool, tableNames) {
   return result.recordset.map(row => row.name);
 }
 
-function printDryRun(batches) {
+function printDryRun(batches, seedIgnored) {
   const schemaBatches = batches.filter(batch => batch.source === 'schema.sql');
   const seedBatches = batches.filter(batch => batch.source === 'seed.sql');
   console.log(`[db:setup] dry-run: ${schemaBatches.length} batches de schema.sql e ${seedBatches.length} batches de seed.sql.`);
   console.log(`[db:setup] Tabelas que seriam criadas: ${schemaBatches.map(batch => batch.table).join(', ')}`);
+  if (seedIgnored) {
+    console.log('[db:setup] seed será ignorado neste host. Use --com-seed para autorizar o seed em host Azure.');
+  }
   console.log('[db:setup] Nenhuma conexao foi aberta.');
 }
 
 async function main() {
-  const batches = readSetupBatches();
+  const azureHost = isAzureHost();
+  const includeSeed = !azureHost || process.argv.includes('--com-seed');
+  const batches = readSetupBatches({ includeSeed });
   if (process.argv.includes('--dry-run')) {
-    printDryRun(batches);
+    printDryRun(batches, azureHost && !includeSeed);
     return;
   }
 
@@ -111,6 +127,10 @@ async function main() {
 
     if (!await askForConfirmation()) {
       console.log('Operação cancelada.');
+      return;
+    }
+    if (azureHost && includeSeed && !await askForSeedConfirmation()) {
+      console.log('Operação cancelada: seed não autorizado.');
       return;
     }
 
