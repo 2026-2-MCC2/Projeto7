@@ -1,7 +1,9 @@
--- Seed de desenvolvimento. Os hashes são apenas valores de teste; nenhuma senha real é armazenada.
--- O login de produção deve ser criado e configurado separadamente.
+-- SOMENTE DESENVOLVIMENTO LOCAL. Nunca rode este seed em banco compartilhado ou de produção.
+-- Usuários: seed-admin@trocaticket.local, seed-organizador@trocaticket.local,
+-- seed-fornecedor@trocaticket.local e seed-comprador@trocaticket.local.
+-- Senha de desenvolvimento local: DevLocal#2026
 
-DECLARE @senha_hash varchar(100) = '$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy';
+DECLARE @senha_hash varchar(100) = '$2b$10$iJEW0ZP4xyYaLq/LRnmcCeg542Mt2Uc3PXMUFtXQrN7nml/xjQt7C';
 DECLARE @admin_id int;
 DECLARE @organizador_id int;
 DECLARE @fornecedor_id int;

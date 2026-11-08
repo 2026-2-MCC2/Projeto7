@@ -1,4 +1,5 @@
 -- Schema do TrocaTicket. As tabelas de exemplo do DDL original não fazem parte deste arquivo.
+-- dbo.cancelamentos e opcional; o servidor so a consulta se ela existir.
 
 CREATE TABLE [dbo].[auditoria_admin] (
     [id] bigint IDENTITY(1,1) NOT NULL,
