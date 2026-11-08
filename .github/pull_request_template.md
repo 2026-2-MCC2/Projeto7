@@ -14,7 +14,7 @@
 
 - [ ] `npm run build`
 - [ ] `npm test`
-- [ ] Outros: 
+- [ ] Outros:
 
 ## Checklist
 
