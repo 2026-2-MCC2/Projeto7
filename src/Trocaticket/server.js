@@ -15,6 +15,9 @@ const {
 
 const port = process.env.PORT || 3000;
 const root = __dirname;
+if (process.env.VERCEL && !String(process.env.TROCATICKET_SESSION_SECRET || '').trim()) {
+  throw new Error('TROCATICKET_SESSION_SECRET is required on Vercel.');
+}
 const sessionTokenSecret = process.env.TROCATICKET_SESSION_SECRET
   || process.env.DB_PASSWORD
   || crypto.createHash('sha256').update(path.join(__dirname, 'trocaticket-session')).digest('hex');
