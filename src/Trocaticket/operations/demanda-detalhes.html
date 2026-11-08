@@ -39,6 +39,7 @@
     <dialog id="accept-proposal-dialog" class="security-dialog">
         <form method="dialog" id="accept-proposal-form"><button class="dialog-close" value="cancel" aria-label="Fechar">×</button><p class="section-kicker">Validação de autoridade</p><h2>Aceitar proposta</h2><p>Confirme sua senha de login para contratar este fornecedor.</p><input id="accept-proposal-password" type="password" required autocomplete="current-password" placeholder="Senha de login"><p id="accept-proposal-message" class="form-message"></p><div class="dialog-actions"><button class="btn-secondary" value="cancel">Cancelar</button><button class="btn-primary" value="default">Confirmar aceite</button></div></form>
     </dialog>
+    <script src="../auth-fetch.js"></script>
     <script>
         const params = new URLSearchParams(window.location.search), eventId = Number(params.get('evento_id')), demandId = Number(params.get('demanda_id')), $ = id => document.getElementById(id);
         const formatCurrency = value => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
