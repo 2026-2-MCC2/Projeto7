@@ -47,6 +47,16 @@ BEGIN
     criado_em datetime2(0) NOT NULL DEFAULT SYSUTCDATETIME()
   );
 END;
+IF NOT EXISTS (
+  SELECT 1
+  FROM sys.indexes
+  WHERE object_id = OBJECT_ID('dbo.revendas')
+    AND name = 'ux_revendas_ingresso_disponivel'
+)
+  CREATE UNIQUE INDEX ux_revendas_ingresso_disponivel
+    ON dbo.revendas (ingresso_id)
+    WHERE status = 'disponivel';
+
 IF COL_LENGTH('dbo.repasse_revendas', 'valor_cobranca') IS NULL
   ALTER TABLE dbo.repasse_revendas ADD valor_cobranca decimal(10,2) NULL;
 IF COL_LENGTH('dbo.repasse_revendas', 'lucro_empresa') IS NULL

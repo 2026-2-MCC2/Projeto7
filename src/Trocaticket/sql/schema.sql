@@ -207,9 +207,13 @@ CREATE TABLE [dbo].[revendas] (
     [taxa_administracao_valor] decimal(10,2) NOT NULL CONSTRAINT [df_revendas_valor_taxa_admin] DEFAULT 0,
     [status] varchar(20) NOT NULL CONSTRAINT [df_revendas_status] DEFAULT 'disponivel',
     [anunciado_em] datetime2(0) NOT NULL CONSTRAINT [df_revendas_anunciado] DEFAULT SYSUTCDATETIME(),
-    [vendido_em] datetime2(0) NULL,
-    CONSTRAINT [uq_revendas_ingresso_ativo] UNIQUE ([ingresso_id], [status])
+    [vendido_em] datetime2(0) NULL
 );
+GO
+
+CREATE UNIQUE INDEX [ux_revendas_ingresso_disponivel]
+ON [dbo].[revendas] ([ingresso_id])
+WHERE [status] = 'disponivel';
 GO
 
 CREATE TABLE [dbo].[repasse_revendas] (

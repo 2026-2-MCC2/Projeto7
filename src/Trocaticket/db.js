@@ -16,7 +16,8 @@ const config = {
   database: process.env.DB_NAME || 'TrocaTicket',
   options: {
     encrypt: String(process.env.DB_ENCRYPT || 'true').toLowerCase() !== 'false',
-    trustServerCertificate: String(process.env.DB_TRUST_SERVER_CERTIFICATE || 'false').toLowerCase() === 'true'
+    trustServerCertificate: String(process.env.DB_TRUST_SERVER_CERTIFICATE || 'false').toLowerCase() === 'true',
+    enableArithAbort: true
   },
   connectionTimeout: 30000,
   requestTimeout: 30000,

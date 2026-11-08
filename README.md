@@ -30,9 +30,16 @@ O site Node fica em `http://localhost:3000` e o React em
 | `npm test` | Executa os testes automatizados |
 | `npm run db:setup -- --dry-run` | Mostra os batches do banco sem conectar |
 | `npm run db:setup` | Prepara um banco vazio após as confirmações de segurança |
+| `npm run db:migrate-revenda -- --dry-run` | Mostra o plano do índice de revenda sem conectar |
 
 O `db:setup` recusa bancos que já tenham tabelas do schema. Em host Azure, o
 `seed.sql` não é executado por padrão.
+
+`db:migrate-revenda` é uma migração deliberada para trocar a unicidade global
+de anúncios pela regra de um único anúncio `disponivel` por ingresso. O
+`--dry-run` não conecta ao banco; sem essa opção, em Azure o script mostra o
+host e o banco e exige a confirmação digitada do `DB_NAME`. Ele nunca é
+executado automaticamente pelo servidor.
 
 ## Estrutura
 
