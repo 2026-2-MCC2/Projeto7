@@ -133,7 +133,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       const response = await fetch('/api/ingressos/comprar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: user.email, evento_id: currentEvent.id, quantidade: quantity, preco: total / quantity, valor_total: total, items }) });
       const data = await response.json(); if (!response.ok || !data.ok) throw new Error(data.message || 'Não foi possível concluir a compra.');
-      alert('Compra realizada com sucesso!'); window.location.href = `ingresso.html?evento=${encodeURIComponent(currentEvent.name)}`;
+      alert('Compra realizada com sucesso!'); window.location.href = `/account/meus-ingressos.html?evento=${encodeURIComponent(currentEvent.name)}`;
       } catch (error) { alert(error.message); elements.buy.disabled = false; elements.buy.textContent = 'COMPRAR INGRESSOS'; }
   }
 
