@@ -9,7 +9,7 @@
     "dev": "concurrently -k -n api,site -c blue,magenta \"npm run dev -w trocaticket-server\" \"npm run dev -w trocaticket-frontend\"",
     "build": "npm run build --workspace=src/Trocaticket/frontend",
     "start": "npm run start --workspace=src/Trocaticket",
-    "test": "node --test src/Trocaticket/resale-calculations.test.js src/Trocaticket/event-images.test.js src/Trocaticket/event-edit-image-preservation.test.js src/Trocaticket/resale-route-updates.test.js src/Trocaticket/resale-ticket-policy.test.js",
+    "test": "node --test src/Trocaticket/resale-calculations.test.js src/Trocaticket/event-images.test.js src/Trocaticket/event-edit-image-preservation.test.js src/Trocaticket/resale-route-updates.test.js src/Trocaticket/resale-ticket-policy.test.js src/Trocaticket/armazenamento.test.js",
     "db:setup": "node src/Trocaticket/scripts/db-setup.js",
     "db:migrate-revenda": "node src/Trocaticket/scripts/migrate-revenda-index.js"
   },

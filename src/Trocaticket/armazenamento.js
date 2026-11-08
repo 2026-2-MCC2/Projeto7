@@ -18,6 +18,13 @@ async function salvarArquivo(pasta, nome, dados, tipo) {
   const safeName = path.basename(String(nome));
   if (!safeFolder || !safeName) throw new Error('Caminho de arquivo inválido.');
 
+  if (process.env.VERCEL && !process.env.BLOB_READ_WRITE_TOKEN) {
+    const error = new Error('Armazenamento de arquivos não configurado para produção.');
+    error.statusCode = 503;
+    console.error('[armazenamento] BLOB_READ_WRITE_TOKEN é obrigatório na Vercel.');
+    throw error;
+  }
+
   if (process.env.BLOB_READ_WRITE_TOKEN) {
     const blob = await put(`${safeFolder}/${safeName}`, dados, {
       access: 'public',

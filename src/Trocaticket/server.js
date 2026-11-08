@@ -1188,7 +1188,9 @@ function send(response, status, payload, extraHeaders = {}) {
 }
 
 function uploadErrorStatus(error) {
-  return error?.statusCode === 413 ? 413 : 500;
+  if (error?.statusCode === 413) return 413;
+  if (error?.statusCode === 503) return 503;
+  return 500;
 }
 
 function parseBody(request) {
@@ -3939,7 +3941,7 @@ async function handler(request, response) {
       return send(response, 201, { ok: true, mensagem_id: result[0]?.id || result.insertId });
     } catch (error) {
       console.error('[organizador] mensagem:', error.message);
-      return send(response, uploadErrorStatus(error), { ok: false, message: error.message });
+      return send(response, uploadErrorStatus(error), { ok: false, message: 'Não foi possível enviar a mensagem.' });
     }
   }
 
