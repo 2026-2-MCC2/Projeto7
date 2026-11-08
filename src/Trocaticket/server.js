@@ -5033,7 +5033,8 @@ async function handler(request, response) {
   try {
     requestedPath = decodeURIComponent(url.pathname);
   } catch {
-    return response.writeHead(400).end('Caminho invÃƒÂ¡lido');
+    response.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+    return response.end('Caminho inválido');
   }
 
   const filePath = requestedPath.startsWith('/app/')
@@ -5056,7 +5057,8 @@ async function handler(request, response) {
     || serverDirectories.test(relativePath)
     || hiddenPath
   ) {
-    return response.writeHead(404).end('Não encontrado');
+    response.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+    return response.end('Não encontrado');
   }
 
   response.writeHead(200, { 'Content-Type': mimeTypes[path.extname(normalizedFilePath).toLowerCase()] || 'application/octet-system' });
