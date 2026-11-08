@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "node --watch --watch-preserve-output server.js",
     "start": "node server.js",
-    "test": "node --test resale-calculations.test.js event-images.test.js event-edit-image-preservation.test.js resale-route-updates.test.js resale-ticket-policy.test.js armazenamento.test.js auth-fetch.test.js",
+    "test": "node --test resale-calculations.test.js event-images.test.js event-edit-image-preservation.test.js resale-route-updates.test.js resale-ticket-policy.test.js armazenamento.test.js auth-fetch.test.js checkout.test.js",
     "db:setup": "node scripts/db-setup.js",
     "db:migrate-revenda": "node scripts/migrate-revenda-index.js"
   },

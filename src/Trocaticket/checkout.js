@@ -1,3 +1,8 @@
+function restoreCheckoutButton(button, originalText = 'COMPRAR INGRESSOS') {
+  button.disabled = false;
+  button.textContent = originalText;
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   const eventId = new URLSearchParams(window.location.search).get('id');
   const elements = {
@@ -134,7 +139,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const response = await fetch('/api/ingressos/comprar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: user.email, evento_id: currentEvent.id, quantidade: quantity, preco: total / quantity, valor_total: total, items }) });
       const data = await response.json(); if (!response.ok || !data.ok) throw new Error(data.message || 'Não foi possível concluir a compra.');
       alert('Compra realizada com sucesso!'); window.location.href = `/account/meus-ingressos.html?evento=${encodeURIComponent(currentEvent.name)}`;
-      } catch (error) { alert(error.message); elements.buy.disabled = false; elements.buy.textContent = 'COMPRAR INGRESSOS'; }
+      } catch (error) { alert(error.message); } finally { restoreCheckoutButton(elements.buy); }
   }
 
   elements.promoForm.addEventListener('submit', event => { event.preventDefault(); const code = elements.promoCode.value.trim().toUpperCase(); const coupons = { TROCA10: .10, EVENTO5: .05 }; if (coupons[code]) { discountRate = coupons[code]; elements.promoFeedback.className = 'promo-feedback'; elements.promoFeedback.textContent = `Cupom aplicado: ${coupons[code] * 100}% de desconto.`; } else { discountRate = 0; elements.promoFeedback.className = 'promo-feedback is-error'; elements.promoFeedback.textContent = code ? 'Cupom inválido ou expirado.' : 'Digite um cupom para aplicar.'; } updateSummary(); });
