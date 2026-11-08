@@ -9,6 +9,7 @@ const QRCode = require('qrcode');
 const jwt = require('jsonwebtoken');
 const { waitUntil } = require('@vercel/functions');
 const db = require('./db');
+const { resaleRestriction } = require('./resale-ticket-policy');
 const { MAX_UPLOAD_BYTES, salvarArquivo } = require('./armazenamento');
 const {
   EVENT_IMAGE_FIELDS,
@@ -488,11 +489,19 @@ async function getTicketForSession(request, ticketId) {
       e.nome AS eventName, e.[local] AS location,
       CONVERT(varchar(19), e.data_evento, 126) AS eventDate,
       CONVERT(varchar(19), e.data_fim, 126) AS eventEndDate,
-      u.nome AS holder, u.email AS email, p.codigo_pedido AS orderCode
+      u.nome AS holder, u.email AS email, p.codigo_pedido AS orderCode,
+      CAST(CASE WHEN resale.id IS NULL THEN 0 ELSE 1 END AS bit) AS emRevenda,
+      resale.id AS revendaId
     FROM dbo.ingressos_emitidos i
     JOIN dbo.usuarios u ON u.id = i.comprador_id
     JOIN dbo.eventos e ON e.id = i.evento_id
     LEFT JOIN dbo.pedidos p ON p.id = i.pedido_id
+    OUTER APPLY (
+      SELECT TOP (1) r.id
+      FROM dbo.revendas r
+      WHERE r.ingresso_id = i.id AND r.status = 'disponivel'
+      ORDER BY r.id DESC
+    ) resale
     WHERE i.id = ? AND i.comprador_id = ? AND u.email = ?
   `, [ticketId, session.sub, session.email]);
   if (!rows.length) return { error: { status: 404, message: 'Ingresso nÃƒÂ£o encontrado para esta conta.' } };
@@ -1165,12 +1174,13 @@ function getAdminUserStatus(user) {
   return 'ativa';
 }
 
-function send(response, status, payload) {
+function send(response, status, payload, extraHeaders = {}) {
   response.writeHead(status, {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, Idempotency-Key',
-    'Content-Type': 'application/json; charset=utf-8'
+    'Content-Type': 'application/json; charset=utf-8',
+    ...extraHeaders
   });
   response.end(JSON.stringify(payload));
 }
@@ -1513,6 +1523,8 @@ async function handler(request, response) {
               SELECT 1 FROM dbo.repasse_revendas rep
               WHERE rep.ingresso_antigo_id = i.id AND rep.vendedor_id = u.id
             ) THEN 1 ELSE 0 END AS bit) AS repassado,
+            CAST(CASE WHEN resale.id IS NULL THEN 0 ELSE 1 END AS bit) AS emRevenda,
+            resale.id AS revendaId,
             COALESCE(i.versao_titularidade, 1) AS versao_titularidade,
             p.codigo_pedido, e.id AS eventId, e.nome AS evento, e.nome AS eventName, e.artista,
             e.[local] AS location, e.imagem, CONVERT(varchar(19), e.data_evento, 126) AS date,
@@ -1539,6 +1551,12 @@ async function handler(request, response) {
           ) tr
           LEFT JOIN dbo.usuarios u3 ON u3.id = tr.destinatario_id
           OUTER APPLY (
+            SELECT TOP (1) r.id
+            FROM dbo.revendas r
+            WHERE r.ingresso_id = i.id AND r.status = 'disponivel'
+            ORDER BY r.id DESC
+          ) resale
+          OUTER APPLY (
             SELECT TOP (1) el.tipo_ingresso, el.preco_meia, el.preco_inteira
             FROM dbo.evento_lotes el
             WHERE el.evento_id = i.evento_id
@@ -1560,7 +1578,7 @@ async function handler(request, response) {
         if (!tickets.length) return send(response, 404, { ok: false, message: 'Ingresso nÃƒÂ£o encontrado.' });
         const ticket = tickets[0];
         ticket.imagem = eventImageResponse(ticket.imagem, ticket.eventId, 'imagem', eventImageVersion(ticket.imagem));
-        if (includeQr && ['ativo', 'valido'].includes(String(ticket.status).toLowerCase())) {
+        if (includeQr && !ticket.emRevenda && ['ativo', 'valido'].includes(String(ticket.status).toLowerCase())) {
           const ticketSecret = await getTicketSecret(ticket.id);
           const timeStep = Math.floor(Date.now() / 1000 / 60);
           const payload = makeActiveTicketPayload(ticket.numero_ingresso, ticketSecret.secret_key, timeStep);
@@ -1572,7 +1590,7 @@ async function handler(request, response) {
           ticket.qr_code_image = null;
           ticket.qr_time_step = null;
         }
-        return send(response, 200, { ok: true, ticket });
+        return send(response, 200, { ok: true, ticket }, { 'Cache-Control': 'private, no-store' });
       }
 
       const requestedLimit = Number(url.searchParams.get('limit') || 20);
@@ -1603,6 +1621,8 @@ async function handler(request, response) {
             SELECT 1 FROM dbo.repasse_revendas rep
             WHERE rep.ingresso_antigo_id = i.id AND rep.vendedor_id = u.id
           ) THEN 1 ELSE 0 END AS bit) AS repassado,
+          CAST(CASE WHEN resale.id IS NULL THEN 0 ELSE 1 END AS bit) AS emRevenda,
+          resale.id AS revendaId,
           COALESCE(i.versao_titularidade, 1) AS versao_titularidade,
           p.codigo_pedido, e.nome AS evento, e.nome AS eventName, e.artista,
           e.[local] AS location, e.imagem,
@@ -1629,6 +1649,12 @@ async function handler(request, response) {
           ORDER BY accepted.id DESC
         ) tr
         LEFT JOIN dbo.usuarios u3 ON u3.id = tr.destinatario_id
+        OUTER APPLY (
+          SELECT TOP (1) r.id
+          FROM dbo.revendas r
+          WHERE r.ingresso_id = i.id AND r.status = 'disponivel'
+          ORDER BY r.id DESC
+        ) resale
         OUTER APPLY (
           SELECT TOP (1) el.tipo_ingresso, el.preco_meia, el.preco_inteira
           FROM dbo.evento_lotes el
@@ -1669,7 +1695,7 @@ async function handler(request, response) {
       const nextCursor = tickets.length === limit && last && last.emittedAt
         ? Buffer.from(JSON.stringify({ emittedAt: last.emittedAt, id: Number(last.id) })).toString('base64url')
         : null;
-      return send(response, 200, { ok: true, tickets, nextCursor, hasMore: Boolean(nextCursor) });
+      return send(response, 200, { ok: true, tickets, nextCursor, hasMore: Boolean(nextCursor) }, { 'Cache-Control': 'private, no-store' });
     } catch (error) { 
       console.error('[usuario] Erro nos ingressos:', error.message); 
       return send(response, 500, { ok: false, message: 'Erro ao carregar ingressos.' }); 
@@ -2128,6 +2154,8 @@ async function handler(request, response) {
       if (result.error) return send(response, result.error.status, { ok: false, message: result.error.message });
 
       const { ticket } = result;
+      const resaleMessage = resaleRestriction(ticket, 'qr');
+      if (resaleMessage) return send(response, 409, { ok: false, message: resaleMessage });
       const eventDate = new Date(ticket.eventDate);
       if (Number.isNaN(eventDate.getTime())) return send(response, 400, { ok: false, message: 'A data do evento nÃƒÂ£o estÃƒÂ¡ configurada.' });
       const expiresAt = new Date(ticket.eventEndDate);
@@ -2193,6 +2221,8 @@ async function handler(request, response) {
       const result = await getTicketForSession(request, ticketId);
       if (result.error) return send(response, result.error.status, { ok: false, message: result.error.message });
       const { ticket } = result;
+      const resaleMessage = resaleRestriction(ticket, 'qr');
+      if (resaleMessage) return send(response, 409, { ok: false, message: resaleMessage });
       if (Number.isNaN(new Date(ticket.eventDate).getTime())) {
         return send(response, 400, { ok: false, message: 'A data do evento nÃƒÂ£o estÃƒÂ¡ configurada.' });
       }
@@ -2382,11 +2412,18 @@ async function handler(request, response) {
 
       const [[ticket]] = await connection.query(
         `SELECT i.*, u.nome AS remetente_nome, u.email AS remetente_email,
-          e.nome AS evento_nome, e.data_evento, p.codigo_pedido
+          e.nome AS evento_nome, e.data_evento, p.codigo_pedido,
+          resale.id AS revenda_id
          FROM ingressos_emitidos i
          JOIN usuarios u ON u.id = i.comprador_id
          JOIN eventos e ON e.id = i.evento_id
          LEFT JOIN pedidos p ON p.id = i.pedido_id
+         OUTER APPLY (
+           SELECT TOP (1) r.id
+           FROM revendas r
+           WHERE r.ingresso_id = i.id AND r.status = 'disponivel'
+           ORDER BY r.id DESC
+         ) resale
          WHERE i.id = ? FOR UPDATE`,
         [ingresso_id]
       );
@@ -2394,6 +2431,10 @@ async function handler(request, response) {
       if (!ticket || !['ativo', 'valido'].includes(String(ticket.status).toLowerCase()) || Number(ticket.revoked) === 1) {
         await connection.rollback();
         return send(response, 400, { ok: false, message: 'Ingresso indisponível para transferência.' });
+      }
+      if (ticket.revenda_id) {
+        await connection.rollback();
+        return send(response, 409, { ok: false, message: resaleRestriction(ticket, 'transfer') });
       }
 
       if (ticket.remetente_email !== session.email) {
@@ -4657,10 +4698,17 @@ async function handler(request, response) {
       const [rows] = await connection.query(`
         SELECT TOP (1) i.id, i.numero_ingresso, i.evento_id, i.status, i.secret_key,
           i.setor_nome, i.utilizado_em, i.bilheteria_origem, u.nome AS titular,
+          resale.id AS revenda_id,
           e.nome AS evento
         FROM dbo.ingressos_emitidos i WITH (UPDLOCK, ROWLOCK)
         JOIN dbo.usuarios u ON u.id = i.comprador_id
         JOIN dbo.eventos e ON e.id = i.evento_id
+        OUTER APPLY (
+          SELECT TOP (1) r.id
+          FROM dbo.revendas r
+          WHERE r.ingresso_id = i.id AND r.status = 'disponivel'
+          ORDER BY r.id DESC
+        ) resale
         WHERE i.numero_ingresso = ?
       `, [ticketId]);
       const ticket = rows[0];
@@ -4669,6 +4717,10 @@ async function handler(request, response) {
         return send(response, 404, { ok: false, kind: 'error', message: 'Ingresso InvÃƒÂ¡lido ou NÃƒÂ£o Encontrado.' });
       }
       const status = String(ticket.status || '').toLowerCase();
+      if (ticket.revenda_id) {
+        await connection.rollback();
+        return send(response, 409, { ok: false, kind: 'error', message: resaleRestriction(ticket, 'checkin') });
+      }
       if (['utilizado', 'usado', 'checked_in'].includes(status)) {
         await connection.rollback();
         return send(response, 409, { ok: false, kind: 'error', message: 'Ingresso jÃƒÂ¡ utilizado.', checkinAt: ticket.utilizado_em });
@@ -4729,7 +4781,17 @@ async function handler(request, response) {
       const reason = String(body.motivo || '').trim();
       if (!reason) return send(response, 400, { ok: false, message: 'Informe o motivo da liberaÃƒÂ§ÃƒÂ£o manual.' });
       await connection.beginTransaction();
-      const [rows] = await connection.query('SELECT id, numero_ingresso, status FROM dbo.ingressos_emitidos WITH (UPDLOCK, ROWLOCK) WHERE id = ?', [ticketId]);
+      const [rows] = await connection.query(`
+        SELECT i.id, i.numero_ingresso, i.status, resale.id AS revenda_id
+        FROM dbo.ingressos_emitidos i WITH (UPDLOCK, ROWLOCK)
+        OUTER APPLY (
+          SELECT TOP (1) r.id
+          FROM dbo.revendas r
+          WHERE r.ingresso_id = i.id AND r.status = 'disponivel'
+          ORDER BY r.id DESC
+        ) resale
+        WHERE i.id = ?
+      `, [ticketId]);
       if (!rows.length) {
         await connection.rollback();
         return send(response, 404, { ok: false, message: 'Ingresso nÃƒÂ£o encontrado.' });
@@ -4737,6 +4799,10 @@ async function handler(request, response) {
       if (!['ativo', 'valido'].includes(String(rows[0].status).toLowerCase())) {
         await connection.rollback();
         return send(response, 409, { ok: false, message: 'Ingresso nÃƒÂ£o estÃƒÂ¡ disponÃƒÂ­vel para check-in.' });
+      }
+      if (rows[0].revenda_id) {
+        await connection.rollback();
+        return send(response, 409, { ok: false, message: resaleRestriction(rows[0], 'checkin') });
       }
       const [updated] = await connection.query(`
         UPDATE dbo.ingressos_emitidos
