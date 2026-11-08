@@ -972,7 +972,8 @@ function ensureResaleSchema() {
               SET r.taxa_administracao_percentual = ?
               FROM dbo.revendas r
               JOIN dbo.ingressos_emitidos i ON i.id = r.ingresso_id
-              WHERE i.bilheteria_origem IS NULL OR i.bilheteria_origem = 'Troca Ticket'
+              WHERE (i.bilheteria_origem IS NULL OR i.bilheteria_origem = 'Troca Ticket')
+                AND r.taxa_administracao_percentual IS NULL
             `, [DEFAULT_ADMINISTRATION_FEE_PERCENT]);
             // Existing listings may have been created from the event average. Always restore
             // the price paid for the ticket's lot and modality before displaying or selling it.
@@ -1000,6 +1001,7 @@ function ensureResaleSchema() {
                 ORDER BY CASE WHEN NULLIF(TRIM(el.nome), '') = NULLIF(TRIM(i.lote_nome), '') THEN 0 ELSE 1 END, el.id
               ) lot
               WHERE lot.preco_lote IS NOT NULL
+                AND (r.preco_original IS NULL OR r.taxa_administracao_valor IS NULL)
             `, [DEFAULT_ADMINISTRATION_FEE_PERCENT]);
             const [columns] = await db.query(`
               SELECT COL_LENGTH('dbo.ingressos_emitidos', 'preco_original') AS preco_original,

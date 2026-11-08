@@ -129,3 +129,26 @@ test('alterar taxa responde 404 quando o UPDATE não afeta o anúncio', async ()
     delete require.cache[serverPath];
   }
 });
+
+test('backfills de revenda só atualizam valores ainda nulos', async () => {
+  const originalQuery = db.query;
+  const updateQueries = [];
+  db.query = async sql => {
+    if (/^\s*UPDATE r\s+SET/i.test(sql)) updateQueries.push(sql);
+    return mockSchemaQuery(sql);
+  };
+
+  try {
+    delete require.cache[serverPath];
+    const handler = require(serverPath);
+    const result = await invoke(handler, createRequest('GET', '/api/revenda/fila?evento_id=1'));
+
+    assert.equal(result.response.status, 200);
+    assert.equal(updateQueries.length, 2);
+    assert.match(updateQueries[0], /r\.taxa_administracao_percentual\s+IS\s+NULL/i);
+    assert.match(updateQueries[1], /r\.preco_original\s+IS\s+NULL\s+OR\s+r\.taxa_administracao_valor\s+IS\s+NULL/i);
+  } finally {
+    db.query = originalQuery;
+    delete require.cache[serverPath];
+  }
+});
