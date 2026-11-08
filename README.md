@@ -1,126 +1,120 @@
-# FECAP - Fundação de Comércio Álvares Penteado
+# TrocaTicket
 
-<p align="center">
-<a href= "https://www.fecap.br/"><img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRhZPrRa89Kma0ZZogxm0pi-tCn_TLKeHGVxywp-LXAFGR3B1DPouAJYHgKZGV0XTEf4AE&usqp=CAU" alt="FECAP - Fundação de Comércio Álvares Penteado" border="0"></a>
-</p>
+Plataforma do grupo GJPSV para compra, transferência e revenda segura de ingressos.
+O projeto busca reduzir golpes e cambismo, mantendo o ingresso associado a fluxos
+de usuário, evento e transferência verificáveis.
 
-# Nome do Projeto - Troca Ticket
+## Site publicado
 
-## Nome do Grupo - GJPSV
+Link: _______________________________________________
 
-## Integrantes: <a href="https://www.linkedin.com/in/jo%C3%A3o-croti-4b8b573b8/">João Croti</a>, <a href="https://www.linkedin.com/in/victorbarq/">Pablo Kayke</a>, <a href="https://www.linkedin.com/in/samuel-eblak-851a19367/">Samuel Eblak</a>, <a href="https://www.linkedin.com/in/gustavo-matsune/">Gustavo Kenji</a>, <a href="https://github.com/VictorOliveira-hub">Victor de OLiveira Nascimento</a>
+## Como rodar
 
-## Professores Orientadores: <a href="https://www.linkedin.com/in/victorbarq/">Dr. Victor Von Doom</a>, <a href="https://www.linkedin.com/in/victorbarq/">Me. Saitama</a>, <a href="https://www.linkedin.com/in/victorbarq/">Dr. Strange</a>, <a href="https://www.linkedin.com/in/victorbarq/">Me. Yoda</a>, <a href="https://www.linkedin.com/in/victorbarq/">Dr. Gero</a>
+Requisitos: Node.js conforme `.nvmrc` e acesso ao banco configurado.
 
-## Descrição
-
-<p align="center">
-<img src="https://pix4free.org/assets/library/2021-01-20/originals/game.jpg" alt="NOME DO JOGO" border="0">
-  Game by <a href="http://www.nyphotographic.com/">Nick Youngson</a> <a rel="license" href="https://creativecommons.org/licenses/by-sa/3.0/">CC BY-SA 3.0</a> <a href="http://pix4free.org/">Pix4free</a>
-</p>
-
-
-De um a dois parágrafos sobre o que é seu projeto e o que ele faz.
-<br><br>
-Meu projeto ajuda estudantes FECAP a configurarem seus githubs.
-<br><br>
-May the force be with you!
-<br><br>
-
-## 🛠 Estrutura de pastas
-
--Raiz<br>
-|<br>
-|-->documentos<br>
-  &emsp;|-->antigos<br>
-  &emsp;|Documentação.docx<br>
-|-->executáveis<br>
-  &emsp;|-->windows<br>
-  &emsp;|-->android<br>
-  &emsp;|-->HTML<br>
-|-->imagens<br>
-|-->src<br>
-  &emsp;|-->Backend<br>
-  &emsp;|-->Frontend<br>
-|readme.md<br>
-
-A pasta raiz contem dois arquivos que devem ser alterados:
-
-<b>README.MD</b>: Arquivo que serve como guia e explicação geral sobre seu projeto. O mesmo que você está lendo agora.
-
-Há também 4 pastas que seguem da seguinte forma:
-
-<b>documentos</b>: Toda a documentação estará nesta pasta.
-
-<b>executáveis</b>: Binários e executáveis do projeto devem estar nesta pasta.
-
-<b>imagens</b>: Imagens do sistema
-
-<b>src</b>: Pasta que contém o código fonte.
-
-## 🛠 Instalação
-
-<b>Android:</b>
-
-Faça o Download do JOGO.apk no seu celular.
-Execute o APK e siga as instruções de seu telefone.
-
-```sh
-Coloque código do prompt de comnando se for necessário
+```powershell
+npm install
+Copy-Item src/Trocaticket/.env.example src/Trocaticket/.env
+# Edite src/Trocaticket/.env com os valores do ambiente
+npm run dev
 ```
 
-<b>Windows:</b>
+O site Node fica em `http://localhost:3000` e o React em
+`http://localhost:5173/app/`.
 
-Não há instalação! Apenas executável!
-Encontre o JOGO.exe na pasta executáveis e execute-o como qualquer outro programa.
+| Comando | Finalidade |
+|---|---|
+| `npm run dev` | Inicia API/site Node e frontend React |
+| `npm run build` | Gera o frontend em `src/Trocaticket/public/app` |
+| `npm start` | Inicia somente o servidor Node |
+| `npm test` | Executa os testes automatizados |
+| `npm run db:setup -- --dry-run` | Mostra os batches do banco sem conectar |
+| `npm run db:setup` | Prepara um banco vazio após as confirmações de segurança |
 
-```sh
-Coloque código do prompt de comnando se for necessário
+O `db:setup` recusa bancos que já tenham tabelas do schema. Em host Azure, o
+`seed.sql` não é executado por padrão.
+
+## Estrutura
+
+```text
+.
+├── api/                       # Entrada da função Vercel
+├── scripts/                   # Scripts auxiliares da raiz
+├── sql/                       # Schema e seed do banco
+├── src/Trocaticket/
+│   ├── account/, auth/, events/, info/, operations/  # Páginas legadas
+│   ├── public/                # Assets compilados e uploads
+│   ├── frontend/              # Aplicação React/Vite
+│   ├── server.js              # API e servidor de arquivos
+│   ├── db.js                  # Acesso ao SQL Server
+│   ├── armazenamento.js       # Blob/local para uploads
+│   └── scripts/db-setup.js    # Preparação segura do banco
+├── package.json               # Comandos e workspaces
+└── vercel.json                # Deploy
 ```
 
-<b>HTML:</b>
+## Variáveis de ambiente
 
-Não há instalação!
-Encontre o index.html na pasta executáveis e execute-o como uma página WEB (através de algum browser).
+| Variável | Uso |
+|---|---|
+| `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` | Conexão com o SQL Server |
+| `DB_ENCRYPT`, `DB_TRUST_SERVER_CERTIFICATE`, `DB_CONNECTION_LIMIT` | Opções da conexão |
+| `TROCATICKET_SESSION_SECRET` | Segredo das sessões; obrigatório na Vercel |
+| `TROCATICKET_PUBLIC_URL` | URL pública usada em links e e-mails |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | Envio de e-mails |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_PRIVATE_KEY`, `GOOGLE_CLIENT_EMAIL` | Integração Google |
+| `BLOB_READ_WRITE_TOKEN` | Armazenamento de uploads na Vercel Blob |
+| `PORT` | Porta local do servidor |
 
-## 💻 Configuração para Desenvolvimento
+## Publicar na Vercel
 
-Descreva como instalar todas as dependências para desenvolvimento e como rodar um test-suite automatizado de algum tipo. Se necessário, faça isso para múltiplas plataformas.
+Antes de abrir o banco para a Internet, troque a senha do Azure SQL por uma
+senha longa e exclusiva.
 
-Para abrir este projeto você necessita das seguintes ferramentas:
+1. **Fase 5.1 — Firewall:** no Azure SQL, libere o acesso necessário para a
+   Vercel e mantenha somente regras indispensáveis.
+2. **Fase 5.2 — Repositório:** importe `2026-2-MCC2/Projeto7` em
+   [vercel.com/new](https://vercel.com/new), usando a raiz do repositório.
+3. **Fase 5.3 — Variáveis:** cadastre na Vercel as variáveis listadas acima,
+   com os valores do ambiente de produção. Nunca publique `.env`.
+4. **Fase 5.4 — Blob e região:** crie uma Blob Store, configure
+   `BLOB_READ_WRITE_TOKEN` e selecione a região `gru1` quando disponível.
+   Uploads novos usam URL pública do Blob.
+5. **Fase 5.5 — Validação:** confirme build, páginas públicas, login, compra,
+   transferência, revenda, e-mails, QR Code, Google Wallet e os GETs da API.
+   Pushes na branch configurada do GitHub geram deploys automáticos.
 
--<a href="https://godotengine.org/download">GODOT</a>
+O domínio gratuito `.vercel.app` é fornecido pela Vercel. Um domínio próprio
+deve ser comprado em um registrador e adicionado em **Project > Settings >
+Domains**.
 
-```sh
-make install
-npm test
-Coloque código do prompt de comnando se for necessário
-```
+## Limitações conhecidas
 
-## Deploy no Vercel
+- Respostas de funções da Vercel são limitadas a 4,5 MB.
+- Uploads novos vão para o Blob e usam URL pública.
+- Anexos antigos de chat, avatares e documentos de fornecedor que existem
+  somente no disco local não existem automaticamente na Vercel.
+- `seed.sql` é somente para banco local; a senha de desenvolvimento está
+  documentada apenas no comentário do topo desse arquivo.
+- `db:setup` recusa tabelas existentes e, no Azure, não roda o seed por padrão.
+- `dbo.cancelamentos` é opcional e só é consultada pelo servidor se existir.
 
-O deploy usa a raiz do repositório. O Vercel executa `npm ci`, gera o React com
-`npm run build` e encaminha as demais rotas para a API em `api/index.js`.
+## Documentação legada
 
-1. Importe `2026-2-MCC2/Projeto7` em [vercel.com/new](https://vercel.com/new).
-2. Deixe **Root Directory** na raiz e selecione **Other** como framework.
-3. Cadastre as variáveis `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`,
-   `DB_ENCRYPT`, `DB_CONNECTION_LIMIT` e `TROCATICKET_SESSION_SECRET`.
-4. Faça o deploy. Pushes na `main` geram novos deploys automaticamente.
+Os documentos abaixo foram mantidos sem apagar ou mover arquivos:
 
-O endereço gratuito termina em `.vercel.app`. Para usar um domínio próprio, compre-o
-em um registrador e adicione-o em **Project > Settings > Domains**.
+| Documento | Situação encontrada | Proposta |
+|---|---|---|
+| `START_HERE.txt` | Caminho local antigo, `node server.js` e senhas de exemplo | Manter como histórico ou atualizar depois |
+| `SETUP_GUIDE.md` | Comandos antigos, `ADMIN_PASSWORD`, porta 8080 e senhas de exemplo | Substituir por este README |
+| `SUMMARY.md` | `node server.js` e fluxo anterior | Manter como histórico |
+| `QUICK_REFERENCE.md` | `node server.js` e configuração administrativa antiga | Atualizar em revisão futura |
+| `README_ADMIN.txt` | Senhas padrão e comandos antigos | Atualizar antes de uso operacional |
+| `ADMIN_GUIDE.md` | `ADMIN_PASSWORD` e senha padrão `admin123` | Atualizar para o fluxo atual |
+| `HTTP_EXAMPLES.md` | Exemplos com `node server.js` e senha de exemplo | Atualizar endpoints e autenticação |
+| `FLOW_DIAGRAMS.md` | Diagrama usa o comando antigo | Atualizar diagrama |
+| `SECURITY_CHECKLIST.md` | Exemplos de senha e instruções administrativas antigas | Revisar com o modelo atual |
 
-## 📋 Licença/License
-Utilize o link <https://chooser-beta.creativecommons.org/> para fazer uma licença CC BY 4.0.
+## Contribuição
 
-## 🎓 Referências
-
-Aqui estão as referências usadas no projeto.
-
-1. <https://github.com/iuricode/readme-template>
-2. <https://github.com/gabrieldejesus/readme-model>
-3. <https://chooser-beta.creativecommons.org/>
-4. <https://freesound.org/>
-5. <https://www.toptal.com/developers/gitignore>
-6. Músicas por: <a href="https://freesound.org/people/DaveJf/sounds/616544/"> DaveJf </a> e <a href="https://freesound.org/people/DRFX/sounds/338986/"> DRFX </a> ambas com Licença CC 0.
+Consulte [CONTRIBUTING.md](CONTRIBUTING.md).
