@@ -7,5 +7,13 @@ export default defineConfig({
   build: {
     outDir: '../public/app',
     emptyOutDir: true
+  },
+  server: {
+    proxy: {
+      '/api': 'http://localhost:3000',
+      '/public': 'http://localhost:3000',
+      '/uploads': 'http://localhost:3000',
+      '/imagens': 'http://localhost:3000'
+    }
   }
 });

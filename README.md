@@ -1,9 +1,3 @@
-```sh
-Utilize o site <https://www.toptal.com/developers/gitignore> para gerar seu arquivo gitignore e apague este campo.
-
-Vide tutoriais do PI.
-```
-
 # FECAP - Fundação de Comércio Álvares Penteado
 
 <p align="center">
@@ -102,6 +96,20 @@ make install
 npm test
 Coloque código do prompt de comnando se for necessário
 ```
+
+## Deploy no Vercel
+
+O deploy usa a raiz do repositório. O Vercel executa `npm ci`, gera o React com
+`npm run build` e encaminha as demais rotas para a API em `api/index.js`.
+
+1. Importe `2026-2-MCC2/Projeto7` em [vercel.com/new](https://vercel.com/new).
+2. Deixe **Root Directory** na raiz e selecione **Other** como framework.
+3. Cadastre as variáveis `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`,
+   `DB_ENCRYPT`, `DB_CONNECTION_LIMIT` e `TROCATICKET_SESSION_SECRET`.
+4. Faça o deploy. Pushes na `main` geram novos deploys automaticamente.
+
+O endereço gratuito termina em `.vercel.app`. Para usar um domínio próprio, compre-o
+em um registrador e adicione-o em **Project > Settings > Domains**.
 
 ## 📋 Licença/License
 Utilize o link <https://chooser-beta.creativecommons.org/> para fazer uma licença CC BY 4.0.
