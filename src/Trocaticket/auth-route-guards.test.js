@@ -121,3 +121,116 @@ test('compra rejeita e-mail diferente antes de consultar esquema ou evento', asy
     delete require.cache[serverPath];
   }
 });
+
+test('rotas administrativas exigem admin e não devolvem segredos de usuários', async () => {
+  const originalQuery = db.query;
+  let usersSql = '';
+  db.query = async (sql) => {
+    if (String(sql).includes('FROM dbo.usuarios WHERE id = ?')) {
+      return [[{
+        id: 7,
+        nome: 'Admin',
+        email: 'atual@example.com',
+        tipo: 'admin',
+        status: 'aprovado',
+        senha_hash: 'hash',
+        codigo_verificacao: '123456'
+      }], {}];
+    }
+    usersSql = String(sql);
+    return [[{
+      id: 8,
+      nome: 'Pessoa',
+      email: 'pessoa@example.com',
+      tipo: 'comum',
+      status: 'aprovado',
+      cpf: '00000000000',
+      telefone: '11999999999',
+      email_verificado: true
+    }], {}];
+  };
+
+  try {
+    delete require.cache[serverPath];
+    const handler = require(serverPath);
+    const unauthenticated = await invoke(handler, request('GET', '/api/admin/users', undefined, null));
+    assert.equal(unauthenticated.status, 401);
+
+    db.query = async (sql) => {
+      if (String(sql).includes('FROM dbo.usuarios WHERE id = ?')) {
+        return [[{
+          id: 7,
+          nome: 'Comprador',
+          email: 'atual@example.com',
+          tipo: 'comprador',
+          status: 'aprovado'
+        }], {}];
+      }
+      return [[], {}];
+    };
+    const buyer = await invoke(handler, request('GET', '/api/admin/users'));
+    assert.equal(buyer.status, 403);
+
+    db.query = async (sql) => {
+      if (String(sql).includes('FROM dbo.usuarios WHERE id = ?')) {
+        return [[{
+          id: 7,
+          nome: 'Admin',
+          email: 'atual@example.com',
+          tipo: 'admin',
+          status: 'aprovado',
+          senha_hash: 'hash'
+        }], {}];
+      }
+      return [[{
+        id: 8,
+        nome: 'Pessoa',
+        email: 'pessoa@example.com',
+        tipo: 'comprador',
+        status: 'aprovado',
+        email_verificado: true
+      }], {}];
+    };
+    const admin = await invoke(handler, request('GET', '/api/admin/users'));
+    assert.equal(admin.status, 200);
+    assert.equal(usersSql.includes('codigo_verificacao'), false);
+    assert.equal(admin.payload.users[0].codigo_verificacao, undefined);
+    assert.equal(admin.payload.users[0].senha_hash, undefined);
+  } finally {
+    db.query = originalQuery;
+    delete require.cache[serverPath];
+  }
+});
+
+test('admin_email diferente da sessão é rejeitado', async () => {
+  const originalQuery = db.query;
+  db.query = async (sql) => {
+    if (String(sql).includes('FROM dbo.usuarios WHERE id = ?')) {
+      return [[{
+        id: 7,
+        nome: 'Admin',
+        email: 'atual@example.com',
+        tipo: 'admin',
+        status: 'aprovado',
+        senha_hash: 'hash'
+      }], {}];
+    }
+    return [[], {}];
+  };
+
+  try {
+    delete require.cache[serverPath];
+    const handler = require(serverPath);
+    const result = await invoke(handler, request('PATCH', '/api/admin/users/8', {
+      admin_email: 'outro@example.com',
+      admin_password: 'qualquer',
+      tipo: 'comum',
+      status: 'ativa'
+    }));
+    assert.equal(result.status, 403);
+    assert.equal(result.payload.message, 'Acesso negado.');
+  } finally {
+    db.query = originalQuery;
+    delete require.cache[serverPath];
+  }
+});

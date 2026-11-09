@@ -4293,6 +4293,8 @@ async function handler(request, response) {
 
   if (request.method === 'GET' && url.pathname === '/api/admin/revenda-filas') {
     try {
+      const admin = await requireRole(request, response, ['admin']);
+      if (!admin) return;
       await ensureResaleSchema();
       const [rows] = await db.query(`
         WITH filas AS (
@@ -4371,6 +4373,8 @@ async function handler(request, response) {
   // ===== PAINEL ADMIN STATS =====
   if (request.method === 'GET' && url.pathname === '/api/admin/stats') {
     try {
+      const admin = await requireRole(request, response, ['admin']);
+      if (!admin) return;
       const [baseRows] = await db.query(`
         SELECT
           (SELECT COUNT(*) FROM dbo.usuarios) AS totalUsers,
@@ -4552,13 +4556,17 @@ async function handler(request, response) {
 
   if (request.method === 'GET' && (url.pathname === '/api/admin/users' || url.pathname === '/api/admin/usuarios')) {
     try {
-      const [users] = await db.query('SELECT id, nome, email, tipo, status, cpf, telefone, criado_em, email_verificado, codigo_verificacao FROM dbo.usuarios ORDER BY id DESC');
+      const admin = await requireRole(request, response, ['admin']);
+      if (!admin) return;
+      const [users] = await db.query('SELECT id, nome, email, tipo, status, cpf, telefone, criado_em, email_verificado FROM dbo.usuarios ORDER BY id DESC');
       return send(response, 200, { ok: true, users: users.map(user => ({ ...user, status: getAdminUserStatus(user) })) });
     } catch (error) { return send(response, 500, { ok: false, message: error.message }); }
   }
 
   if (request.method === 'PATCH' && /^\/api\/admin\/users\/\d+$/.test(url.pathname)) {
     try {
+      const admin = await requireRole(request, response, ['admin']);
+      if (!admin) return;
       const userId = Number(url.pathname.split('/').pop());
       const body = await parseBody(request);
       const adminEmail = normalizeEmail(body.admin_email);
@@ -4572,8 +4580,10 @@ async function handler(request, response) {
         return send(response, 400, { ok: false, message: 'Tipo ou status de usuÃƒÂ¡rio invÃƒÂ¡lido.' });
       }
 
-      const [[admin]] = await db.query('SELECT id, nome, tipo, senha_hash FROM dbo.usuarios WHERE email = ?', [adminEmail]);
-      if (!admin || admin.tipo !== 'admin' || !(await bcrypt.compare(adminPassword, admin.senha_hash))) {
+      if (adminEmail && adminEmail !== normalizeEmail(admin.email)) {
+        return send(response, 403, { ok: false, message: 'Acesso negado.' });
+      }
+      if (!(await bcrypt.compare(adminPassword, admin.senha_hash))) {
         return send(response, 403, { ok: false, message: 'Senha do administrador invÃƒÂ¡lida.' });
       }
       if (admin.id === userId && tipo !== 'admin') {
@@ -4599,6 +4609,8 @@ async function handler(request, response) {
 
   if (request.method === 'DELETE' && /^\/api\/admin\/users\/\d+$/.test(url.pathname)) {
     try {
+      const admin = await requireRole(request, response, ['admin']);
+      if (!admin) return;
       const userId = Number(url.pathname.split('/').pop());
       const body = await parseBody(request);
       const adminEmail = normalizeEmail(body.admin_email);
@@ -4607,8 +4619,10 @@ async function handler(request, response) {
         return send(response, 400, { ok: false, message: 'E-mail e senha do administrador sÃƒÂ£o obrigatÃƒÂ³rios.' });
       }
 
-      const [[admin]] = await db.query('SELECT id, nome, tipo, senha_hash FROM dbo.usuarios WHERE email = ?', [adminEmail]);
-      if (!admin || String(admin.tipo).toLowerCase() !== 'admin' || !(await bcrypt.compare(adminPassword, admin.senha_hash))) {
+      if (adminEmail !== normalizeEmail(admin.email)) {
+        return send(response, 403, { ok: false, message: 'Acesso negado.' });
+      }
+      if (!(await bcrypt.compare(adminPassword, admin.senha_hash))) {
         return send(response, 403, { ok: false, message: 'Senha do administrador invÃƒÂ¡lida.' });
       }
       if (admin.id === userId) {
@@ -4922,6 +4936,8 @@ async function handler(request, response) {
 
   if (request.method === 'PATCH' && /^\/api\/admin\/tickets\/\d+\/status$/.test(url.pathname)) {
     try {
+      const admin = await requireRole(request, response, ['admin']);
+      if (!admin) return;
       const ticketId = Number(url.pathname.split('/')[4]);
       const body = await parseBody(request);
       const status = String(body.status || '').trim().toLowerCase();
@@ -4938,7 +4954,7 @@ async function handler(request, response) {
       );
       if (!result.length) return send(response, 404, { ok: false, message: 'Ingresso nÃƒÂ£o encontrado.' });
       const [[ticket]] = await db.query(`SELECT e.nome AS evento FROM dbo.ingressos_emitidos i JOIN dbo.eventos e ON e.id = i.evento_id WHERE i.id = ?`, [ticketId]);
-      const actor = auditActor(body);
+      const actor = admin;
       const [[ticketCode]] = await db.query('SELECT numero_ingresso FROM dbo.ingressos_emitidos WHERE id = ?', [ticketId]);
       await audit('alteracao_status_ingresso', `Status do ingresso do evento ${ticket?.evento || 'evento'} alterado para ${status}.`, 'ingresso', ticketCode?.numero_ingresso || 'Ingresso nÃƒÂ£o identificado', actor);
       return send(response, 200, { ok: true, ticket: result[0] });
@@ -4951,6 +4967,8 @@ async function handler(request, response) {
   // ===== ROTAS AUXILIARES DO ADMIN (LOGS E DESTAQUES) =====
   if (request.method === 'GET' && url.pathname.startsWith('/api/admin/activity-log')) {
     try {
+      const admin = await requireRole(request, response, ['admin']);
+      if (!admin) return;
       const actor = url.searchParams.get('actor') || '';
       const type = url.searchParams.get('type') || '';
       const limit = Math.min(Number(url.searchParams.get('limit') || 50), 200);
@@ -4974,6 +4992,8 @@ async function handler(request, response) {
 
   if (request.method === 'GET' && url.pathname === '/api/admin/user-history') {
     try {
+      const admin = await requireRole(request, response, ['admin']);
+      if (!admin) return;
       const search = String(url.searchParams.get('q') || '').trim();
       if (!search) return send(response, 400, { ok: false, message: 'Informe nome, telefone, e-mail ou CPF.' });
       const [users] = await db.query(`SELECT TOP (1) id, nome, email, cpf, telefone, tipo, status, criado_em
@@ -4996,6 +5016,8 @@ async function handler(request, response) {
 
   if (request.method === 'GET' && url.pathname.startsWith('/api/admin/featured-events')) {
     try {
+      const admin = await requireRole(request, response, ['admin']);
+      if (!admin) return;
       const [events] = await db.query(`SELECT id, nome AS name, artista, [local] AS location, data_evento AS date,
         ticket_calculado AS price, imagem, destaque, status FROM dbo.eventos
         WHERE destaque = 1 AND status = 'publicado' ORDER BY id DESC`);
