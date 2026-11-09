@@ -4608,7 +4608,23 @@ async function handler(request, response) {
         return send(response, 400, { ok: false, message: 'A conta do administrador nÃƒÂ£o pode perder o tipo admin.' });
       }
 
-      const [[affectedUser]] = await db.query('SELECT nome FROM dbo.usuarios WHERE id = ?', [userId]);
+      const [[affectedUser]] = await db.query('SELECT id, nome, tipo, status FROM dbo.usuarios WHERE id = ?', [userId]);
+      if (!affectedUser) return send(response, 404, { ok: false, message: 'UsuÃƒÂ¡rio nÃƒÂ£o encontrado.' });
+      const targetIsActiveAdmin = String(affectedUser.tipo || '').toLowerCase() === 'admin'
+        && !['bloqueado', 'suspensa', 'excluida'].includes(String(affectedUser.status || '').toLowerCase());
+      const targetRemainsActiveAdmin = tipo === 'admin' && requestedStatus === 'ativa';
+      if (targetIsActiveAdmin && !targetRemainsActiveAdmin) {
+        const [[activeAdmins]] = await db.query(
+          `SELECT COUNT(*) AS total
+           FROM dbo.usuarios
+           WHERE id <> ? AND LOWER(tipo) = 'admin'
+             AND LOWER(status) NOT IN ('bloqueado', 'suspensa', 'excluida')`,
+          [userId]
+        );
+        if (Number(activeAdmins?.total || 0) === 0) {
+          return send(response, 409, { ok: false, message: 'Não é possível remover o último administrador.' });
+        }
+      }
       const [updated] = await db.query(
         `UPDATE dbo.usuarios
          SET tipo = ?, status = ?
@@ -4649,6 +4665,20 @@ async function handler(request, response) {
 
       const [[affectedUser]] = await db.query('SELECT id, nome, email, tipo, status FROM dbo.usuarios WHERE id = ?', [userId]);
       if (!affectedUser) return send(response, 404, { ok: false, message: 'UsuÃƒÂ¡rio nÃƒÂ£o encontrado.' });
+      const targetIsActiveAdmin = String(affectedUser.tipo || '').toLowerCase() === 'admin'
+        && !['bloqueado', 'suspensa', 'excluida'].includes(String(affectedUser.status || '').toLowerCase());
+      if (targetIsActiveAdmin) {
+        const [[activeAdmins]] = await db.query(
+          `SELECT COUNT(*) AS total
+           FROM dbo.usuarios
+           WHERE id <> ? AND LOWER(tipo) = 'admin'
+             AND LOWER(status) NOT IN ('bloqueado', 'suspensa', 'excluida')`,
+          [userId]
+        );
+        if (Number(activeAdmins?.total || 0) === 0) {
+          return send(response, 409, { ok: false, message: 'Não é possível remover o último administrador.' });
+        }
+      }
       if (String(affectedUser.tipo).toLowerCase() === 'admin') {
         return send(response, 403, { ok: false, message: 'Contas de administrador nÃƒÂ£o podem ser excluÃƒÂ­das por este fluxo.' });
       }

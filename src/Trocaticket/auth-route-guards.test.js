@@ -319,3 +319,58 @@ test('upload de imagem de evento rejeita sem sessão antes de ler o corpo', asyn
     delete require.cache[serverPath];
   }
 });
+
+test('impede remover o último administrador e permite alteração com outro admin ativo', async () => {
+  const originalQuery = db.query;
+  const passwordHash = '$2b$04$ySqOnCxwNp3Uw/o9ywcbAucTOTZAa0rLq2XrCOTWhBuYr75S1mi7.';
+  let activeAdminCount = 0;
+  let target = { id: 7, nome: 'Admin', tipo: 'admin', status: 'aprovado' };
+  db.query = async (sql) => {
+    const text = String(sql);
+    if (text.includes('SELECT id, nome, email, cpf, telefone') && text.includes('foto_perfil')) {
+      return [[{
+        id: 7,
+        nome: 'Admin',
+        email: 'atual@example.com',
+        tipo: 'admin',
+        status: 'aprovado',
+        senha_hash: passwordHash
+      }], {}];
+    }
+    if (text.includes('SELECT id, nome, tipo, status FROM dbo.usuarios WHERE id = ?')) {
+      return [[target], {}];
+    }
+    if (text.includes('COUNT(*) AS total')) {
+      return [[{ total: activeAdminCount }], {}];
+    }
+    if (text.includes('UPDATE dbo.usuarios')) {
+      return [[{ id: target.id, nome: target.nome, email: 'target@example.com', tipo: 'admin', status: 'suspensa' }], {}];
+    }
+    return [[], {}];
+  };
+
+  try {
+    delete require.cache[serverPath];
+    const handler = require(serverPath);
+    const payload = { admin_email: 'atual@example.com', admin_password: 'senha', tipo: 'admin', status: 'suspensa' };
+
+    const lastAdmin = await invoke(handler, request('PATCH', '/api/admin/users/7', payload));
+    assert.equal(lastAdmin.status, 409);
+    assert.equal(lastAdmin.payload.message, 'Não é possível remover o último administrador.');
+
+    activeAdminCount = 1;
+    const withAnotherAdmin = await invoke(handler, request('PATCH', '/api/admin/users/7', payload));
+    assert.equal(withAnotherAdmin.status, 200);
+
+    target = { id: 8, nome: 'Pessoa', tipo: 'comum', status: 'aprovado' };
+    const commonUser = await invoke(handler, request('PATCH', '/api/admin/users/8', {
+      ...payload,
+      tipo: 'admin',
+      status: 'ativa'
+    }));
+    assert.equal(commonUser.status, 200);
+  } finally {
+    db.query = originalQuery;
+    delete require.cache[serverPath];
+  }
+});
