@@ -7,16 +7,6 @@
   "functions": {
     "api/index.js": {
       "includeFiles": "src/Trocaticket/**/*.{html,css,js,png,jpg,jpeg,webp,gif,svg}",
-      "excludeFiles": [
-        "src/Trocaticket/frontend/node_modules/**",
-        "src/Trocaticket/frontend/src/**",
-        "src/Trocaticket/frontend/.vite/**",
-        "src/Trocaticket/**/*.test.js",
-        "src/Trocaticket/**/*.test.mjs",
-        "src/Trocaticket/public/uploads/chat-attachments/**",
-        "src/Trocaticket/public/uploads/avatars/**",
-        "src/Trocaticket/public/uploads/supplier-documents/**"
-      ],
       "maxDuration": 30
     }
   },
