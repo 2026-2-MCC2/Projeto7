@@ -1522,9 +1522,9 @@ async function handler(request, response) {
   // ===== MEUS INGRESSOS =====
   if (request.method === 'GET' && /^\/api\/usuario\/meus-ingressos(?:\/\d+)?$/.test(url.pathname)) {
     try {
-      const session = readSessionToken(request);
       const requestedEmail = normalizeEmail(url.searchParams.get('email'));
-      if (!session || session.email !== requestedEmail) return send(response, 403, { ok: false, message: 'SessÃƒÂ£o invÃƒÂ¡lida. Entre novamente para acessar seus ingressos.' });
+      const user = await requireSameUser(request, response, requestedEmail);
+      if (!user) return;
       await ensureTicketSecuritySchema();
       await ensureResaleSchema();
       const ticketId = url.pathname.match(/\/(\d+)$/)?.[1];

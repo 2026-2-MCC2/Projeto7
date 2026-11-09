@@ -74,6 +74,39 @@ test('rotas de perfil respondem 401 sem sessão e 403 para outro titular', async
   }
 });
 
+test('meus ingressos usa o e-mail atual do usuário da sessão', async () => {
+  const originalQuery = db.query;
+  const currentUser = {
+    id: 7,
+    nome: 'Pessoa',
+    email: 'novo@example.com',
+    tipo: 'comum',
+    status: 'aprovado'
+  };
+  db.query = async (sql) => {
+    if (String(sql).includes('FROM dbo.usuarios WHERE id = ?')) return [[currentUser], {}];
+    return [[], {}];
+  };
+
+  try {
+    delete require.cache[serverPath];
+    const handler = require(serverPath);
+
+    const unauthenticated = await invoke(handler, request('GET', '/api/usuario/meus-ingressos?email=novo@example.com', undefined, null));
+    assert.equal(unauthenticated.status, 401);
+
+    const otherUser = await invoke(handler, request('GET', '/api/usuario/meus-ingressos?email=outro@example.com', undefined, sessionToken(7, 'antigo@example.com')));
+    assert.equal(otherUser.status, 403);
+
+    const currentEmail = await invoke(handler, request('GET', '/api/usuario/meus-ingressos?email=novo@example.com', undefined, sessionToken(7, 'antigo@example.com')));
+    assert.equal(currentEmail.status, 200);
+    assert.equal(currentEmail.payload.ok, true);
+  } finally {
+    db.query = originalQuery;
+    delete require.cache[serverPath];
+  }
+});
+
 test('rota de perfil responde 200 para o titular atual', async () => {
   const originalQuery = db.query;
   db.query = async () => [[{
