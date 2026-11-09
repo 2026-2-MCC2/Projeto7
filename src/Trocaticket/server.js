@@ -2742,6 +2742,8 @@ async function handler(request, response) {
 
   if (request.method === 'GET' && url.pathname === '/api/organizador/dashboard') {
     try {
+      const operator = await requireRole(request, response, ['admin', 'organizador']);
+      if (!operator) return;
       await ensureSupplierSchema();
       const eventoId = Number(url.searchParams.get('evento_id') || 1);
       const [eventRows] = await db.query('SELECT * FROM dbo.eventos WHERE id = ? LIMIT 1', [eventoId]);
@@ -2833,6 +2835,8 @@ async function handler(request, response) {
 
   if (request.method === 'GET' && url.pathname === '/api/organizador/chat') {
     try {
+      const operator = await requireRole(request, response, ['admin', 'organizador']);
+      if (!operator) return;
       await ensureSupplierSchema();
       const [rows] = await db.query(`
         SELECT
@@ -2868,6 +2872,8 @@ async function handler(request, response) {
   }
 
   if (request.method === 'POST' && url.pathname === '/api/organizador/eventos') {
+    const operator = await requireRole(request, response, ['admin', 'organizador']);
+    if (!operator) return;
     const requestKey = String(request.headers['idempotency-key'] || '').trim();
     if (requestKey && eventCreationRequests.has(requestKey)) {
       const previous = eventCreationRequests.get(requestKey);
@@ -2942,6 +2948,8 @@ async function handler(request, response) {
 
   if (request.method === 'POST' && /^\/api\/organizador\/eventos\/\d+\/imagem$/.test(url.pathname)) {
     try {
+      const operator = await requireRole(request, response, ['admin', 'organizador']);
+      if (!operator) return;
       const eventoId = Number(url.pathname.match(/\/(\d+)\/imagem$/)[1]);
       const body = await parseBody(request);
       const imageType = body.tipo === 'banner' ? 'banner_desktop' : body.tipo === 'mapa' ? 'mapa_evento' : 'imagem';
@@ -2974,6 +2982,8 @@ async function handler(request, response) {
 
   if (request.method === 'PUT' && url.pathname === '/api/organizador/eventos') {
     try {
+      const operator = await requireRole(request, response, ['admin', 'organizador']);
+      if (!operator) return;
       await ensureSupplierSchema();
       const body = await parseBody(request);
       const eventoId = Number(body.id || body.evento_id || body.eventId);
@@ -3053,6 +3063,8 @@ async function handler(request, response) {
 
   if (request.method === 'POST' && url.pathname === '/api/organizador/cotacoes') {
     try {
+      const operator = await requireRole(request, response, ['admin', 'organizador']);
+      if (!operator) return;
       const body = await parseBody(request);
       const eventoId = Number(body.evento_id || body.eventId);
       const itemId = body.item_id ? Number(body.item_id) : null;
@@ -4175,6 +4187,8 @@ async function handler(request, response) {
 
   if (request.method === 'POST' && url.pathname === '/api/events') {
     try {
+      const operator = await requireRole(request, response, ['admin', 'organizador']);
+      if (!operator) return;
       const body = await parseBody(request);
       const eventDate = parseEventDate(body.data_evento || body.date);
       const eventEndDate = body.data_fim ? parseEventDate(body.data_fim) : null;
@@ -4184,7 +4198,7 @@ async function handler(request, response) {
         `INSERT INTO eventos (organizador_id, nome, artista, \`local\`, data_evento, data_fim, ticket_calculado, publico_minimo, publico_maximo, margem_lucro, status, destaque, imagem) OUTPUT INSERTED.id VALUES (1, ?, ?, ?, ?, ?, ?, 500, 2000, 0.20, 'publicado', ?, ?)`,
         [body.nome.trim(), body.artista || null, body.local.trim(), eventDate, eventEndDate, parseFloat(body.preco) || 0, body.destaque ? 1 : 0, preserveEventImageInput(body.imagem)]
       );
-      await audit('criacao_evento', `Evento criado: ${body.nome.trim()}.`, 'evento', body.nome.trim(), auditActor(body));
+      await audit('criacao_evento', `Evento criado: ${body.nome.trim()}.`, 'evento', body.nome.trim(), operator);
       return send(response, 201, { ok: true, eventId: result.insertId });
     } catch (error) { return send(response, 500, { ok: false, message: error.message }); }
   }
@@ -4246,6 +4260,8 @@ async function handler(request, response) {
 
   if (request.method === 'PUT' && /^\/api\/events\/\d+$/.test(url.pathname)) {
     try {
+      const operator = await requireRole(request, response, ['admin', 'organizador']);
+      if (!operator) return;
       const eventId = Number(url.pathname.split('/').pop());
       const body = await parseBody(request);
       const eventDate = parseEventDate(body.data_evento || body.date);
@@ -4270,7 +4286,7 @@ async function handler(request, response) {
           eventId
         ]
       );
-      await audit('edicao_evento', `Evento ${eventName} atualizado pelo painel.`, 'evento', eventName, auditActor(body));
+      await audit('edicao_evento', `Evento ${eventName} atualizado pelo painel.`, 'evento', eventName, operator);
       return send(response, 200, { ok: true, message: 'Evento atualizado com sucesso!' });
     } catch (error) { 
       return send(response, 500, { ok: false, message: error.message }); 
@@ -4279,12 +4295,14 @@ async function handler(request, response) {
 
   if (request.method === 'DELETE' && /^\/api\/events\/\d+$/.test(url.pathname)) {
     try {
+      const operator = await requireRole(request, response, ['admin', 'organizador']);
+      if (!operator) return;
       const eventId = Number(url.pathname.split('/').pop());
       const body = await parseBody(request);
       const [eventRows] = await db.query('SELECT nome FROM dbo.eventos WHERE id = ?', [eventId]);
       const eventName = eventRows[0]?.nome || `Evento ${eventId}`;
       await db.query('DELETE FROM eventos WHERE id = ?', [eventId]);
-      await audit('exclusao_evento', `Evento ${eventName} excluÃƒÂ­do pelo painel.`, 'evento', eventName, auditActor(body));
+      await audit('exclusao_evento', `Evento ${eventName} excluÃƒÂ­do pelo painel.`, 'evento', eventName, operator);
       return send(response, 200, { ok: true, message: 'Evento excluÃƒÂ­do com sucesso!' });
     } catch (error) { 
       return send(response, 500, { ok: false, message: error.message }); 

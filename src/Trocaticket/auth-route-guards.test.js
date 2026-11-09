@@ -234,3 +234,88 @@ test('admin_email diferente da sessão é rejeitado', async () => {
     delete require.cache[serverPath];
   }
 });
+
+test('rotas de eventos e organizador exigem sessão e papel autorizado', async () => {
+  const originalQuery = db.query;
+  db.query = async (sql) => {
+    if (String(sql).includes('FROM dbo.usuarios WHERE id = ?')) {
+      return [[{
+        id: 7,
+        nome: 'Admin',
+        email: 'atual@example.com',
+        tipo: 'admin',
+        status: 'aprovado',
+        senha_hash: 'hash'
+      }], {}];
+    }
+    return [[{ id: 42 }], {}];
+  };
+
+  try {
+    delete require.cache[serverPath];
+    const handler = require(serverPath);
+    const routes = [
+      ['POST', '/api/events'],
+      ['PUT', '/api/events/1'],
+      ['DELETE', '/api/events/1'],
+      ['GET', '/api/organizador/dashboard?evento_id=1'],
+      ['GET', '/api/organizador/chat'],
+      ['POST', '/api/organizador/eventos'],
+      ['POST', '/api/organizador/eventos/1/imagem'],
+      ['PUT', '/api/organizador/eventos'],
+      ['POST', '/api/organizador/cotacoes']
+    ];
+
+    for (const [method, route] of routes) {
+      const unauthenticated = await invoke(handler, request(method, route, {}, null));
+      assert.equal(unauthenticated.status, 401, route);
+    }
+
+    const buyerQuery = db.query;
+    db.query = async (sql) => {
+      if (String(sql).includes('FROM dbo.usuarios WHERE id = ?')) {
+        return [[{ id: 7, nome: 'Comprador', email: 'atual@example.com', tipo: 'comum', status: 'aprovado' }], {}];
+      }
+      return [[], {}];
+    };
+    const buyer = await invoke(handler, request('POST', '/api/events', {}, sessionToken()));
+    assert.equal(buyer.status, 403);
+    db.query = buyerQuery;
+
+    const created = await invoke(handler, request('POST', '/api/organizador/cotacoes', {
+      evento_id: 1,
+      titulo: 'Som',
+      escopo: 'Contratação',
+      valor_estimado: 100
+    }));
+    assert.equal(created.status, 201);
+  } finally {
+    db.query = originalQuery;
+    delete require.cache[serverPath];
+  }
+});
+
+test('upload de imagem de evento rejeita sem sessão antes de ler o corpo', async () => {
+  const originalQuery = db.query;
+  db.query = async () => {
+    throw new Error('não deveria consultar o banco sem sessão');
+  };
+
+  const uploadRequest = new EventEmitter();
+  uploadRequest.method = 'POST';
+  uploadRequest.url = '/api/organizador/eventos/1/imagem';
+  uploadRequest.headers = {};
+  uploadRequest.on = () => {
+    throw new Error('não deveria ler o corpo sem sessão');
+  };
+
+  try {
+    delete require.cache[serverPath];
+    const handler = require(serverPath);
+    const result = await invoke(handler, uploadRequest);
+    assert.equal(result.status, 401);
+  } finally {
+    db.query = originalQuery;
+    delete require.cache[serverPath];
+  }
+});

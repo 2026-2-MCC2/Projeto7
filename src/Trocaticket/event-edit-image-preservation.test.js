@@ -1,13 +1,27 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
 const { EventEmitter } = require('node:events');
 const path = require('node:path');
+
+function sessionToken() {
+  const secret = process.env.TROCATICKET_SESSION_SECRET
+    || process.env.DB_PASSWORD
+    || crypto.createHash('sha256').update(path.join(__dirname, 'trocaticket-session')).digest('hex');
+  const claims = Buffer.from(JSON.stringify({
+    sub: 7,
+    email: 'admin@example.com',
+    exp: Math.floor(Date.now() / 1000) + 3600
+  })).toString('base64url');
+  const signature = crypto.createHmac('sha256', secret).update(claims).digest('base64url');
+  return `${claims}.${signature}`;
+}
 
 function createRequest(body) {
   const request = new EventEmitter();
   request.method = 'PUT';
   request.url = '/api/organizador/eventos';
-  request.headers = { host: 'localhost:3010' };
+  request.headers = { host: 'localhost:3010', authorization: `Bearer ${sessionToken()}` };
   process.nextTick(() => {
     request.emit('data', JSON.stringify(body));
     request.emit('end');
@@ -34,6 +48,16 @@ test('edição preserva imagens quando o painel envia URLs gerenciadas', async (
     async beginTransaction() {},
     async query(sql, params) {
       queries.push({ sql, params });
+      if (String(sql).includes('FROM dbo.usuarios WHERE id = ?')) {
+        return [[{
+          id: 7,
+          nome: 'Admin',
+          email: 'admin@example.com',
+          tipo: 'admin',
+          status: 'aprovado',
+          senha_hash: 'hash'
+        }]];
+      }
       return [[]];
     },
     async commit() {},
@@ -43,6 +67,16 @@ test('edição preserva imagens quando o painel envia URLs gerenciadas', async (
   const mockDb = {
     async query(sql, params) {
       queries.push({ sql, params });
+      if (String(sql).includes('FROM dbo.usuarios WHERE id = ?')) {
+        return [[{
+          id: 7,
+          nome: 'Admin',
+          email: 'admin@example.com',
+          tipo: 'admin',
+          status: 'aprovado',
+          senha_hash: 'hash'
+        }]];
+      }
       return [[]];
     },
     async getConnection() {
