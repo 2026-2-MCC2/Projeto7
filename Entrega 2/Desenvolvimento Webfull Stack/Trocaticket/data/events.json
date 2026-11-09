@@ -1,0 +1,5 @@
+[
+  {"id":"trap-in-sanca","name":"Trap in Sanca","date":"18 ABR 2026","place":"Arena Multiplace, São Paulo","region":"São Paulo","price":180,"image":"imagens/trap in sanca.jpeg","origin":"Blacktag"},
+  {"id":"terra-sp","name":"Terra SP","date":"02 MAI 2026","place":"Terra SP, São Paulo","region":"São Paulo","price":220,"image":"imagens/terra sp.jpeg","origin":"Ticketmaster"},
+  {"id":"festa-do-chefe","name":"Festa do Chefe","date":"16 MAI 2026","place":"Campinas Hall, Campinas","region":"Campinas","price":145,"image":"imagens/festa do chefe.jpeg","origin":"Bilheteria Digital"}
+]

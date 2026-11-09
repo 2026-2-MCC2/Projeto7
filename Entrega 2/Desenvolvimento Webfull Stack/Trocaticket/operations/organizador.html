@@ -1,0 +1,2517 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="../admin.css">
+    <link rel="stylesheet" href="../organizador.css?v=20261103-checklist-contrast">
+    <title>Painel do Organizador | TrocaTicket</title>
+</head>
+<body class="organizer-body">
+    <div class="organizer-shell">
+        <aside class="organizer-sidebar">
+            <div class="brand-block">
+                <a class="brand" href="../index.html" aria-label="TrocaTicket home">
+                    <img class="brand-logo" src="../imagens/logo troca ticket.png" alt="TrocaTicket logo">
+                    <span>Troca<span class="brand-accent">Ticket</span></span>
+                </a>
+            </div>
+
+            <nav class="sidebar-nav" aria-label="Menu do organizador">
+                <button class="nav-btn active" type="button" data-panel="overview">Painel Geral</button>
+                <button class="nav-btn" type="button" data-panel="events">Eventos</button>
+                <button class="nav-btn" type="button" data-panel="finance">Viabilidade</button>
+                <button class="nav-btn" type="button" data-panel="demands">Demandas</button>
+                <button class="nav-btn" type="button" data-panel="suppliers">Fornecedores</button>
+                <a id="organizer-chat-link" class="nav-btn nav-link-btn chat-nav-btn" href="../chat.html">Central de chat<span class="chat-unread-dot" id="organizer-chat-unread" hidden aria-label="Mensagens não lidas"></span></a>
+                <button class="nav-btn" type="button" data-panel="checklist">Checklist</button>
+            </nav>
+
+            <div class="sidebar-card">
+                <span class="eyebrow">Evento ativo</span>
+                <strong id="active-event-name">Festival TrocaTicket</strong>
+                <small id="active-event-date">10 de dez. • 20:00</small>
+            </div>
+        </aside>
+
+        <main class="organizer-main">
+            <header class="organizer-topbar">
+                <div>
+                    <span class="eyebrow">Área do Organizador</span>
+                    <h1>Painel Executivo</h1>
+                </div>
+                <div class="topbar-actions">
+                    <span id="organizer-name" class="user-pill">Organizador</span>
+                    <button type="button" id="btn-organizer-logout" class="btn-logout">Sair</button>
+                    <button type="button" id="btn-voltar-eventos" class="btn-back-events" data-close="event-editor-modal" hidden>← Voltar</button>
+                </div>
+            </header>
+
+            <div class="panel-stack">
+                <section id="panel-overview" class="organizer-panel active">
+                    <div class="header-row">
+                        <div>
+                            <p class="section-kicker">Visão geral</p>
+                            <h2>Indicadores do evento</h2>
+                        </div>
+                        <div class="inline-select">
+                            <label for="event-select">Evento</label>
+                            <select id="event-select"></select>
+                        </div>
+                    </div>
+
+                    <div class="kpi-grid">
+                        <article class="kpi-card gradient-purple">
+                            <span class="kpi-label">Receita bruta</span>
+                            <strong id="kpi-revenue">R$ 0,00</strong>
+                            <small id="kpi-revenue-detail">0 ingressos vendidos</small>
+                        </article>
+                        <article class="kpi-card gradient-cyan">
+                            <span class="kpi-label">Ocupação</span>
+                            <strong id="kpi-occupancy">0%</strong>
+                            <div class="progress-bar"><span id="occupancy-fill"></span></div>
+                            <small id="kpi-occupancy-detail">0 / 0 lotados</small>
+                        </article>
+                        <article class="kpi-card gradient-green">
+                            <span class="kpi-label">Despesas confirmadas</span>
+                            <strong id="kpi-confirmed-costs">R$ 0,00</strong>
+                            <small id="kpi-estimated-costs">Estimadas: R$ 0,00</small>
+                        </article>
+                        <article class="kpi-card gradient-gold">
+                            <span class="kpi-label">Lucro líquido</span>
+                            <strong id="kpi-profit">R$ 0,00</strong>
+                            <small id="kpi-profit-detail">Projeção em tempo real</small>
+                        </article>
+                    </div>
+
+                    <div class="bottom-grid">
+                        <article class="info-card">
+                            <div class="card-header-row">
+                                <h3>Break-even</h3>
+                                <span class="badge badge-blue" id="break-even-badge">0 ingressos</span>
+                            </div>
+                            <div class="thermometer-wrap">
+                                <div class="thermometer">
+                                    <div class="thermometer-fill" id="thermometer-fill"></div>
+                                </div>
+                                <div class="thermometer-meta">
+                                    <span>Meta de cobertura</span>
+                                    <strong id="break-even-meta">0 / 0 ingressos</strong>
+                                </div>
+                            </div>
+                            <p id="break-even-text">Faltam 0 ingressos para zerar custos contratados.</p>
+                        </article>
+
+                        <article class="info-card">
+                            <div class="card-header-row">
+                                <h3>Contagem regressiva</h3>
+                                <span class="badge badge-cyan">Evento</span>
+                            </div>
+                            <div id="countdown" class="countdown-grid">
+                                <div><strong id="countdown-days">00</strong><span>Dias</span></div>
+                                <div><strong id="countdown-hours">00</strong><span>Horas</span></div>
+                                <div><strong id="countdown-minutes">00</strong><span>Min</span></div>
+                                <div><strong id="countdown-seconds">00</strong><span>Seg</span></div>
+                            </div>
+                        </article>
+
+                        <article class="info-card alerts-card">
+                            <div class="card-header-row">
+                                <h3>Alertas operacionais</h3>
+                                <span class="badge badge-warning">Críticos</span>
+                            </div>
+                            <ul id="alerts-list" class="alert-list"></ul>
+                        </article>
+                    </div>
+                </section>
+
+                <section id="panel-events" class="organizer-panel">
+                    <div class="header-row">
+                        <div>
+                            <p class="section-kicker">Gestão</p>
+                            <h2>Eventos e lotes</h2>
+                        </div>
+                        <button type="button" id="btn-abrir-novo-evento" class="btn-primary">+ Novo Evento</button>
+                    </div>
+
+                    <div id="event-editor-modal" class="event-editor-shell hidden" aria-hidden="true">
+                        <div class="event-editor-modal-card">
+                            <div class="modal-header">
+                                <div>
+                                    <span class="section-kicker">Configuração</span>
+                                    <h3 id="event-editor-title">Novo evento</h3>
+                                </div>
+                            </div>
+                            <form id="form-novo-evento" class="glass-form event-editor-form">
+                            <div class="field-group">
+                                <label for="ev-nome">Nome do evento</label>
+                                <input type="text" id="ev-nome" required placeholder="Festival de Verão 2026">
+                            </div>
+
+                            <div class="field-group">
+                                <label for="ev-artista">Artista / atração principal</label>
+                                <input type="text" id="ev-artista" placeholder="Ex.: WIU, KayBlack, Ryu, The Runner">
+                            </div>
+
+                            <div class="field-group">
+                                <label for="ev-descricao">Descrição do evento para o consumidor</label>
+                                <textarea id="ev-descricao" rows="5" maxlength="5000" placeholder="Descreva a experiência, atrações, informações importantes e orientações para o público."></textarea>
+                                <small class="field-hint">Este texto será exibido na página pública do evento.</small>
+                            </div>
+
+                            <div class="event-images-grid">
+                                <div class="field-group event-image-field">
+                                    <label>Capa do evento</label>
+                                    <input type="hidden" id="ev-imagem">
+                                    <div id="ev-imagem-preview" class="event-image-preview" hidden>
+                                        <img id="ev-imagem-preview-image" src="" alt="Prévia da capa do evento">
+                                        <span id="ev-imagem-status">Imagem carregada</span>
+                                    </div>
+                                    <label class="event-image-replace" for="ev-imagem-file">Substituir capa (opcional)</label>
+                                    <input type="file" id="ev-imagem-file" accept="image/*">
+                                </div>
+
+                                <div class="field-group event-image-field">
+                                    <label for="ev-imagem-horizontal-file">Banner horizontal responsivo</label>
+                                    <input type="hidden" id="ev-imagem-horizontal">
+                                    <div id="ev-imagem-horizontal-preview" class="event-image-preview event-image-preview-horizontal" hidden>
+                                        <img id="ev-imagem-horizontal-preview-image" src="" alt="Prévia da imagem horizontal do evento">
+                                        <span id="ev-imagem-horizontal-status">Banner horizontal carregado</span>
+                                    </div>
+                                    <label class="event-image-replace" for="ev-imagem-horizontal-file">Substituir banner (opcional)</label>
+                                    <input type="file" id="ev-imagem-horizontal-file" accept="image/*">
+                                </div>
+                                <div class="field-group event-image-field">
+                                    <label for="ev-mapa-file">Mapa do evento</label>
+                                    <input type="hidden" id="ev-mapa">
+                                    <div id="ev-mapa-preview" class="event-image-preview event-image-preview-horizontal" hidden>
+                                        <img id="ev-mapa-preview-image" src="" alt="Prévia do mapa do evento">
+                                        <span id="ev-mapa-status">Mapa carregado</span>
+                                    </div>
+                                    <label class="event-image-replace" for="ev-mapa-file">Anexar ou substituir mapa (opcional)</label>
+                                    <input type="file" id="ev-mapa-file" accept="image/*">
+                                </div>
+                            </div>
+
+                            <div class="field-row two-columns">
+                                <div class="field-group">
+                                    <label for="ev-classificacao">Classificação indicativa</label>
+                                    <select id="ev-classificacao">
+                                        <option value="Livre">Livre</option>
+                                        <option value="10+">10+</option>
+                                        <option value="12+">12+</option>
+                                        <option value="14+">14+</option>
+                                        <option value="16+">16+</option>
+                                        <option value="18+">18+</option>
+                                    </select>
+                                </div>
+                                <div class="field-group">
+                                    <label for="ev-status">Status</label>
+                                    <select id="ev-status">
+                                        <option value="planejamento">Planejamento</option>
+                                        <option value="publicado">Publicado</option>
+                                        <option value="em venda">Em venda</option>
+                                        <option value="finalizado">Finalizado</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="field-row three-columns">
+                                <div class="field-group">
+                                    <label for="ev-data-inicio">Início</label>
+                                    <input type="datetime-local" id="ev-data-inicio" required>
+                                </div>
+                                <div class="field-group">
+                                    <label for="ev-data-fim">Término</label>
+                                    <input type="datetime-local" id="ev-data-fim" required>
+                                </div>
+                                <div class="field-group">
+                                    <label for="ev-capacidade">Lotação</label>
+                                    <input type="number" id="ev-capacidade" min="50" required placeholder="2500">
+                                </div>
+                            </div>
+
+                            <div class="field-group">
+                                <label for="ev-local">Endereço</label>
+                                <input type="text" id="ev-local" required placeholder="Avenida Paulista, 1000 — São Paulo/SP">
+                            </div>
+
+                            <div class="field-group">
+                                <label for="ev-preco-medio">Preço médio</label>
+                                <input type="number" id="ev-preco-medio" min="0" step="0.01" placeholder="120.00" readonly>
+                            </div>
+
+                            <div class="field-group sector-manager">
+                                <div class="sector-manager-header">
+                                    <div>
+                                        <label>Setores e lotes de venda</label>
+                                        <small class="field-help">Setor &gt; tipo de bilhete &gt; lotes de venda</small>
+                                    </div>
+                                    <button type="button" id="btn-add-sector" class="btn-secondary">+ Adicionar novo setor</button>
+                                </div>
+                                <div id="ticket-sectors" class="sector-list"></div>
+                            </div>
+
+                            <div class="toggle-row">
+                                <input type="checkbox" id="ev-destaque">
+                                <label for="ev-destaque">Exibir no carrossel principal</label>
+                            </div>
+
+                            <div class="event-form-actions">
+                                <button type="submit" class="btn-primary" id="btn-salvar-evento">Salvar evento</button>
+                                <button type="button" id="btn-novo-evento" class="btn-secondary">Novo Evento / Limpar</button>
+                            </div>
+                            <p id="event-form-message" class="form-message"></p>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="events-main-layout">
+                        <div class="glass-panel events-list-panel">
+                            <div class="card-header-row">
+                                <h3>Eventos cadastrados</h3>
+                                <button type="button" id="btn-recarregar-eventos" class="btn-secondary small">Atualizar</button>
+                            </div>
+                            <div class="table-wrap compact">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Nome</th>
+                                            <th>Data</th>
+                                            <th>Lotação</th>
+                                            <th>Status</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="eventos-org-table-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="panel-finance" class="organizer-panel">
+                    <div class="header-row">
+                        <div>
+                            <p class="section-kicker">Financeiro</p>
+                            <h2>Simulador de viabilidade</h2>
+                        </div>
+                    </div>
+
+                    <div class="finance-grid">
+                        <div class="glass-form">
+                            <div class="field-row two-columns">
+                                <div class="field-group">
+                                    <label for="sim-capacidade">Lotação alvo (Q)</label>
+                                    <input type="number" id="sim-capacidade" min="1" step="1" value="1000">
+                                </div>
+                                <div class="field-group">
+                                    <label for="sim-ocupacao">Ocupação esperada</label>
+                                    <select id="sim-ocupacao">
+                                        <option value="50">50%</option>
+                                        <option value="75" selected>75%</option>
+                                        <option value="90">90%</option>
+                                        <option value="100">100%</option>
+                                    </select>
+                                </div>
+                                <div class="field-group">
+                                    <label for="sim-ticket">Preço médio do ingresso</label>
+                                    <input type="number" id="sim-ticket" min="0" step="0.01" value="120">
+                                </div>
+                            </div>
+                            <div class="summary-box">
+                                <div>
+                                    <span>Receita projetada</span>
+                                    <strong id="projection-revenue">R$ 0,00</strong>
+                                </div>
+                                <div>
+                                    <span>Margem de erro</span>
+                                    <strong id="projection-margin">Calculando...</strong>
+                                </div>
+                            </div>
+                            <div class="price-engine-cards">
+                                <div><span>Custo operacional</span><strong id="price-total-cost">R$ 0,00</strong></div>
+                            </div>
+                            <div class="finance-differential-card">
+                                <div class="card-header-row"><h3>Diagnóstico financeiro</h3><span id="finance-concavity" class="finance-chip">Modelo determinístico</span></div>
+                                <div class="finance-insights">
+                                    <div><span>Break-even unitário</span><strong id="finance-break-even-diagnostic">—</strong></div>
+                                    <div><span>Ingressos esperados</span><strong id="finance-expected-tickets">—</strong></div>
+                                    <div><span>Custos cobertos</span><strong id="finance-cost-coverage">—</strong></div>
+                                </div>
+                                <p id="finance-diagnosis" class="finance-diagnosis">Ajuste os parâmetros para calcular a receita e os custos.</p>
+                                <canvas id="finance-profit-chart" height="180" aria-label="Curvas de receita e custos operacionais"></canvas>
+                                <div class="finance-chart-legend" aria-label="Legenda do gráfico">
+                                    <span><i class="legend-line revenue-line"></i>Receita projetada</span>
+                                    <span><i class="legend-line cost-line"></i>Custo operacional</span>
+                                    <span><i class="legend-dot break-even-dot"></i>Break-even</span>
+                                    <span><i class="legend-line current-price-line"></i>Preço atual do ingresso</span>
+                                </div>
+                                <div id="finance-chart-tooltip" class="finance-chart-tooltip" hidden></div>
+                            </div>
+                        </div>
+
+                        <div class="glass-panel">
+                            <div class="card-header-row">
+                                <h3>Planilha operacional</h3>
+                                <button type="button" id="btn-add-cost" class="btn-secondary small">+ Item</button>
+                            </div>
+                            <div class="table-wrap">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Categoria</th>
+                                            <th>Item</th>
+                                            <th>Estimado</th>
+                                            <th>Contratado</th>
+                                            <th>Fornecedor</th>
+                                            <th>Status</th>
+                                            <th>Ação</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="cost-table-body"></tbody>
+                                </table>
+                            </div>
+                                <div class="cost-totals"><span>Custo Total Estimado: <strong id="cost-total-estimated">R$ 0,00</strong></span><span>Custo Total Real Contratado: <strong id="cost-total-contracted">R$ 0,00</strong></span></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="panel-demands" class="organizer-panel">
+                    <div class="header-row">
+                        <div>
+                            <p class="section-kicker">Cotações</p>
+                            <h2>Demandas por evento</h2>
+                            <p class="panel-description">Analise as demandas abertas, acompanhe os estados das cotações e abra os detalhes de cada solicitação.</p>
+                        </div>
+                        <div class="inline-select">
+                            <label for="demand-event-select">Evento</label>
+                            <select id="demand-event-select"></select>
+                        </div>
+                    </div>
+
+                    <div class="provider-kpi-grid">
+                        <article class="provider-kpi"><span>Em cotação</span><strong id="demand-quoting-count">0</strong><small>Demandas aguardando propostas</small></article>
+                        <article class="provider-kpi"><span>Em negociação</span><strong id="demand-negotiation-count">0</strong><small>Demandas com propostas ativas</small></article>
+                        <article class="provider-kpi"><span>Confirmadas</span><strong id="demand-confirmed-count">0</strong><small>Demandas aprovadas ou contratadas</small></article>
+                        <article class="provider-kpi"><span>Valor em negociação</span><strong id="demand-negotiation-value">R$ 0,00</strong><small>Soma das propostas recebidas</small></article>
+                    </div>
+
+                    <div class="demand-section">
+                        <div class="card-header-row">
+                            <h3>Demandas abertas</h3>
+                            <span class="badge badge-blue" id="demand-total-count">0</span>
+                        </div>
+                        <div id="demand-list" class="demand-list"></div>
+                    </div>
+                </section>
+
+                <section id="panel-checklist" class="organizer-panel">
+                    <div class="header-row">
+                        <div>
+                            <p class="section-kicker">Operação</p>
+                            <h2>Checklist e cronograma</h2>
+                            <p class="panel-description">Acompanhe as exigências críticas e os marcos operacionais do evento em um único painel.</p>
+                        </div>
+                    </div>
+
+                    <div class="checklist-progress-panel">
+                        <div class="checklist-progress-copy">
+                            <div>
+                                <span class="section-kicker">Prontidão do evento</span>
+                                <h3 id="checklist-progress-label">0% concluído</h3>
+                                <p id="checklist-progress-detail">0 de 0 exigências cumpridas</p>
+                            </div>
+                            <span id="checklist-progress-badge" class="badge badge-warning">Atenção necessária</span>
+                        </div>
+                        <div class="checklist-progress-track"><span id="checklist-progress-bar"></span></div>
+                    </div>
+
+                    <div class="checklist-grid">
+                        <div class="glass-panel">
+                            <div class="card-header-row">
+                                <h3>Licenças e documentos</h3>
+                                <button type="button" id="btn-add-document" class="btn-secondary small">+ Documento</button>
+                            </div>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Documento</th>
+                                        <th>Prazo limite</th>
+                                        <th>Status</th>
+                                        <th>Ação</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="document-table-body"></tbody>
+                            </table>
+                        </div>
+
+                        <div class="glass-panel">
+                            <div class="card-header-row">
+                                <h3>Run of show</h3>
+                                <button type="button" id="btn-add-task" class="btn-secondary small">+ Tarefa</button>
+                            </div>
+                            <div id="runofshow-list" class="timeline-list"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="panel-suppliers" class="organizer-panel">
+                    <div class="header-row">
+                        <div>
+                            <p class="section-kicker">Operação</p>
+                            <h2>Fornecedores</h2>
+                            <p class="panel-description">Consulte histórico e eficiência operacional sem exposição de valores financeiros.</p>
+                        </div>
+                        <span class="badge badge-blue" id="supplier-history-count">0 fornecedores</span>
+                    </div>
+                    <div class="supplier-history-summary">
+                        <article class="provider-kpi"><span>Homologados</span><strong id="supplier-approved-count">0</strong><small>Documentação aprovada</small></article>
+                        <article class="provider-kpi"><span>Ativos</span><strong id="supplier-active-count">0</strong><small>Com histórico operacional</small></article>
+                        <article class="provider-kpi"><span>Conformidade média</span><strong id="supplier-compliance-average">0%</strong><small>Status documental</small></article>
+                    </div>
+                    <div id="supplier-history-list" class="supplier-history-list">
+                        <p class="empty-state">Carregando histórico operacional...</p>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <div id="quote-modal" class="modal hidden" aria-hidden="true">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Solicitar cotação</h3>
+                <button type="button" class="modal-close" data-close="quote-modal">×</button>
+            </div>
+
+            <form id="quote-form">
+                <div class="field-group">
+                    <label for="quote-title">Nome do serviço</label>
+                    <input type="text" id="quote-title" required>
+                </div>
+                <div class="field-group">
+                    <label for="quote-description">Escopo / demanda</label>
+                    <textarea id="quote-description" rows="4" required></textarea>
+                </div>
+                <div class="field-row two-columns">
+                    <div class="field-group">
+                        <label for="quote-deadline">Prazo</label>
+                        <input type="date" id="quote-deadline" required>
+                    </div>
+                    <div class="field-group">
+                        <label for="quote-value">Valor da cotação (R$)</label>
+                        <input type="number" id="quote-value" step="0.01" min="0" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary full-width">Enviar demanda</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="cost-modal" class="modal hidden" aria-hidden="true">
+        <div class="modal-card">
+            <div class="modal-header"><h3>Novo centro de custo</h3><button type="button" class="modal-close" data-close="cost-modal">×</button></div>
+            <form id="cost-form">
+                <div class="field-group"><label for="cost-category">Categoria</label><select id="cost-category"><option>Artístico / Cachê</option><option>Estrutura & Som</option><option>Segurança & Brigada</option><option>Equipe Médica</option><option>Alimentos & Bebidas</option><option>Taxas / Licenças / ECAD</option><option>Marketing</option></select></div>
+                <div class="field-group"><label for="cost-name">Nome do item</label><input id="cost-name" maxlength="500" required placeholder="Palco, ambulância, cachê..." /></div>
+                <div class="field-group"><label for="cost-estimated">Custo estimado (R$)</label><input id="cost-estimated" type="number" min="0" step="0.01" required /></div>
+                <button type="submit" class="btn-primary full-width">Adicionar custo</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="chat-modal" class="modal hidden" aria-hidden="true">
+        <div class="modal-card chat-modal-card">
+            <div class="modal-header">
+                <h3 id="chat-title">Chat com fornecedor</h3>
+                <button type="button" class="modal-close" data-close="chat-modal">×</button>
+            </div>
+            <div id="chat-messages" class="chat-messages"></div>
+            <form id="chat-form" class="chat-form">
+                <input type="text" id="chat-input" placeholder="Escreva sua mensagem..." required>
+                <button type="submit" class="btn-primary">Enviar</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="supplier-history-modal" class="modal hidden" aria-hidden="true">
+        <div class="modal-card supplier-history-modal-card">
+            <div class="modal-header">
+                <h3>Histórico operacional</h3>
+                <button type="button" class="modal-close" data-close="supplier-history-modal">×</button>
+            </div>
+            <div id="supplier-history-modal-body"></div>
+        </div>
+    </div>
+
+    <div id="document-modal" class="modal hidden" aria-hidden="true">
+        <div class="modal-card checklist-form-modal">
+            <div class="modal-header">
+                <div><span class="section-kicker">Checklist</span><h3 id="document-modal-title">Adicionar exigência documental</h3></div>
+                <button type="button" class="modal-close" data-close="document-modal">×</button>
+            </div>
+            <form id="document-form" class="modal-form">
+                <div class="field-group"><label for="document-name">Documento</label><input id="document-name" name="nome" required maxlength="180" placeholder="Ex.: AVCB do Corpo de Bombeiros"></div>
+                <div class="form-grid-two">
+                    <div class="field-group"><label for="document-category">Categoria</label><input id="document-category" name="categoria" maxlength="120" placeholder="Ex.: Segurança"></div>
+                    <div class="field-group"><label for="document-deadline">Prazo limite</label><input id="document-deadline" name="prazo" type="date" required></div>
+                </div>
+                <div class="field-group"><label for="document-status">Status inicial</label><select id="document-status" name="status"><option value="pendente">Pendente</option><option value="aprovado">Aprovado</option></select></div>
+                <div class="modal-form-actions"><button type="button" class="btn-secondary modal-cancel" data-close="document-modal">Cancelar</button><button type="submit" class="btn-primary" id="document-submit-label">Adicionar exigência</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div id="task-modal" class="modal hidden" aria-hidden="true">
+        <div class="modal-card checklist-form-modal">
+            <div class="modal-header">
+                <div><span class="section-kicker">Cronograma operacional</span><h3 id="task-modal-title">Adicionar marco do evento</h3></div>
+                <button type="button" class="modal-close" data-close="task-modal">×</button>
+            </div>
+            <form id="task-form" class="modal-form">
+                <div class="form-grid-two">
+                    <div class="field-group"><label for="task-time">Horário</label><input id="task-time" name="horario" type="time" required value="09:00"></div>
+                    <div class="field-group"><label for="task-responsible">Responsável</label><input id="task-responsible" name="responsavel" required maxlength="120" placeholder="Ex.: Produção"></div>
+                </div>
+                <div class="field-group"><label for="task-activity">Atividade ou marco</label><input id="task-activity" name="atividade" required maxlength="180" placeholder="Ex.: Abertura de portas"></div>
+                <div class="modal-form-actions"><button type="button" class="btn-secondary modal-cancel" data-close="task-modal">Cancelar</button><button type="submit" class="btn-primary" id="task-submit-label">Adicionar ao cronograma</button></div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../auth-fetch.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const user = JSON.parse(localStorage.getItem('trocaticket-user') || localStorage.getItem('usuario') || 'null');
+
+            if (!user || !user.email) {
+                window.location.href = '../auth/login.html';
+                return;
+            }
+
+            const organizerState = {
+                selectedEventId: null,
+                occupancy: 75,
+                foodPerPerson: 1.5,
+                beveragePerPerson: 0.8,
+                avgTicket: 120,
+                eventList: [],
+                costItems: [],
+                salesMetrics: { soldTickets: 0, grossRevenue: 0 },
+                demands: [],
+                documents: [],
+                supplierDocuments: [],
+                supplierDocumentsError: '',
+                suppliers: [],
+                suppliersError: '',
+                tasks: [],
+                activeDemandId: null,
+                activeChatDemandId: null
+            };
+
+            async function fetchJson(url, options = {}) {
+                const sessionUser = JSON.parse(localStorage.getItem('trocaticket-user') || localStorage.getItem('usuario') || 'null');
+                const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+                if (sessionUser?.session_token) headers.Authorization = `Bearer ${sessionUser.session_token}`;
+                const response = await fetch(url, {
+                    headers,
+                    ...options
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    const error = new Error(data.message || 'Erro ao carregar dados do organizador.');
+                    error.status = response.status;
+                    if (response.status === 401 || response.status === 403) {
+                        localStorage.removeItem('trocaticket-user');
+                        localStorage.removeItem('usuario');
+                        sessionStorage.removeItem('trocaticket-user');
+                        sessionStorage.removeItem('usuario');
+                        window.location.href = '../auth/login.html?redirect=../operations/organizador.html';
+                    }
+                    throw error;
+                }
+                return data;
+            }
+
+            function normalizeDashboardEvent(rawEvent = {}) {
+                const rawLots = Array.isArray(rawEvent.lots) ? rawEvent.lots : [];
+                const rawSectors = Array.isArray(rawEvent.sectors || rawEvent.setores) ? (rawEvent.sectors || rawEvent.setores) : [];
+                const groupedLegacyLots = rawLots.reduce((groups, lot) => {
+                    const key = lot.setor_nome || lot.setor || 'Setor geral';
+                    if (!groups[key]) groups[key] = { nome: key, capacidade: Number(lot.setor_capacidade || 0), lotes: [] };
+                    groups[key].capacidade = Math.max(groups[key].capacidade, Number(lot.setor_capacidade || 0));
+                    groups[key].lotes.push(lot);
+                    return groups;
+                }, {});
+                const sectors = rawSectors.length ? rawSectors : Object.values(groupedLegacyLots);
+                return {
+                    id: Number(rawEvent.id || 0),
+                    name: rawEvent.name || rawEvent.nome || 'Evento',
+                    artist: rawEvent.artist || rawEvent.artista || '',
+                    description: rawEvent.description || rawEvent.descricao || '',
+                    image: rawEvent.image || rawEvent.imagem || '',
+                    horizontalImage: rawEvent.horizontalImage || rawEvent.imagem_horizontal || rawEvent.banner_desktop || '',
+                    mapImage: rawEvent.mapImage || rawEvent.mapa_evento || '',
+                    date: rawEvent.date || rawEvent.data_evento || new Date().toISOString(),
+                    endDate: rawEvent.endDate || rawEvent.data_fim || null,
+                    address: rawEvent.location || rawEvent.local || rawEvent.address || 'Local não informado',
+                    capacity: Number(rawEvent.capacity || rawEvent.publico_maximo || 0),
+                    avgTicket: Number(rawEvent.avgTicket || rawEvent.ticket_calculado || 0),
+                    classification: rawEvent.classification || rawEvent.classificacao_etaria || 'Livre',
+                    status: rawEvent.status || 'publicado',
+                    destaque: Boolean(rawEvent.destaque),
+                    setores: sectors.map((sector, sectorIndex) => ({
+                        id: sector.id || `sector-${sectorIndex}`,
+                        nome: sector.nome || sector.name || 'Setor',
+                        capacidade: Number(sector.capacidade || sector.capacity || 0),
+                        lotes: (sector.lotes || sector.lots || []).map((lot, lotIndex) => ({
+                            id: lot.id || `lot-${sectorIndex}-${lotIndex}`,
+                            nomeLote: lot.nomeLote || lot.nome || lot.name || 'Lote',
+                            tipoIngresso: lot.tipoIngresso || lot.tipo_ingresso || lot.type || 'Inteira',
+                            quantidadeTotal: Number(lot.quantidade_total || lot.quantidadeTotal || lot.quantidade || lot.quantity || 0),
+                            quantidadeMeia: Number(lot.quantidade_meia || lot.quantidadeMeia || 0),
+                            quantidadeInteira: Number(lot.quantidade_inteira || lot.quantidadeInteira || 0),
+                            quantidadeSolidaria: Number(lot.quantidade_solidaria || lot.quantidadeSolidaria || 0),
+                            precoInteira: Number(lot.preco_inteira || lot.precoInteira || lot.preco || lot.price || 0),
+                            precoMeia: Number(lot.preco_meia || lot.precoMeia || 0),
+                            modalidades: (() => {
+                                if (Array.isArray(lot.modalidades)) return lot.modalidades;
+                                try { return lot.modalidades_json ? JSON.parse(lot.modalidades_json) : []; } catch (error) { return []; }
+                            })(),
+                            regraVirada: lot.regraVirada || lot.regra || lot.rule || 'esgotamento',
+                            dataInicio: lot.dataInicio || lot.data_inicio || '',
+                            dataFim: lot.dataFim || lot.data_fim || lot.data_virada || ''
+                        }))
+                    }))
+                };
+            }
+
+            function normalizeCostItem(rawItem = {}) {
+                return {
+                    id: Number(rawItem.id || Date.now() + Math.random()),
+                    category: rawItem.categoria || rawItem.category || 'Geral',
+                    item: rawItem.nome_item || rawItem.item || 'Item',
+                    estimated: converterMoedaParaFloat(rawItem.custo_estimado ?? rawItem.estimated),
+                    contracted: converterMoedaParaFloat(rawItem.custo_contratado ?? rawItem.contracted),
+                    supplier: rawItem.fornecedor || rawItem.supplier || '',
+                    status: rawItem.status || 'pendente',
+                    quoteRequestId: rawItem.demanda_id || rawItem.quoteRequestId || null
+                };
+            }
+
+            function normalizeDemand(rawDemand = {}) {
+                return {
+                    id: Number(rawDemand.id || Date.now() + Math.random()),
+                    title: rawDemand.titulo || rawDemand.title || 'Demanda',
+                    service: rawDemand.servico || rawDemand.service || 'Solicitação',
+                    scope: rawDemand.escopo || rawDemand.scope || '',
+                    deadline: rawDemand.prazo || rawDemand.deadline || new Date().toISOString().slice(0, 10),
+                    value: Number(rawDemand.valor_estimado || rawDemand.value || 0),
+                    status: rawDemand.status || 'em cotacao',
+                    proposals: Array.isArray(rawDemand.proposals) ? rawDemand.proposals.map((proposal) => ({
+                        id: Number(proposal.id || proposal.proposta_id || proposal.proposal_id || 0),
+                        company: proposal.empresa || proposal.company || 'Fornecedor',
+                        value: Number(proposal.valor || proposal.value || 0),
+                        scope: proposal.escopo || proposal.scope || '',
+                        deadline: proposal.prazo || proposal.deadline || '',
+                        files: Array.isArray(proposal.anexos) ? proposal.anexos : (proposal.files || []),
+                        status: proposal.status || 'em analise'
+                    })) : [],
+                    messages: Array.isArray(rawDemand.messages) ? rawDemand.messages.map((message) => ({
+                        sender: message.remetente || message.sender || 'organizador',
+                        text: message.texto || message.text || ''
+                    })) : []
+                };
+            }
+
+            function deduplicateDemands(rawDemands = []) {
+                const seenIds = new Set();
+                const seenBusinessKeys = new Set();
+                return rawDemands.filter((rawDemand) => {
+                    const rawId = Number(rawDemand?.id || rawDemand?.demanda_id || 0);
+                    const normalizeKeyPart = (value) => String(value || '')
+                        .normalize('NFD')
+                        .replace(/[\u0300-\u036f]/g, '')
+                        .toLowerCase()
+                        .replace(/\s+/g, ' ')
+                        .trim();
+                    const title = normalizeKeyPart(rawDemand?.titulo || rawDemand?.title);
+                    const service = normalizeKeyPart(rawDemand?.servico || rawDemand?.service || 'solicitacao');
+                    const businessKey = `${title}|${service}`;
+
+                    if (rawId > 0) {
+                        if (seenIds.has(rawId)) return false;
+                        seenIds.add(rawId);
+                    }
+                    if (title && seenBusinessKeys.has(businessKey)) return false;
+                    if (title) seenBusinessKeys.add(businessKey);
+                    return true;
+                }).map(normalizeDemand);
+            }
+
+            function normalizeDocument(rawDocument = {}) {
+                return {
+                    id: Number(rawDocument.id || Date.now() + Math.random()),
+                    name: rawDocument.nome || rawDocument.name || 'Documento',
+                    category: rawDocument.categoria || rawDocument.category || 'Geral',
+                    deadline: rawDocument.prazo || rawDocument.deadline || new Date().toISOString().slice(0, 10),
+                    status: rawDocument.status || 'pendente',
+                    attachmentUrl: rawDocument.anexo_url || rawDocument.attachmentUrl || '',
+                    hasAttachment: Boolean(rawDocument.anexo_url || rawDocument.hasAttachment)
+                };
+            }
+
+            function normalizeTask(rawTask = {}) {
+                return {
+                    id: Number(rawTask.id || Date.now() + Math.random()),
+                    time: rawTask.horario || rawTask.time || '09:00',
+                    activity: rawTask.atividade || rawTask.activity || 'Tarefa',
+                    responsible: rawTask.responsavel || rawTask.responsible || 'Responsável',
+                    status: rawTask.status || (rawTask.concluida || rawTask.checked ? 'concluida' : 'pendente'),
+                    checked: Boolean(rawTask.concluida || rawTask.checked)
+                };
+            }
+
+            const defaultChecklistDocuments = [
+                ['Alvará da Prefeitura', 'Licenças'],
+                ['AVCB do Corpo de Bombeiros', 'Segurança'],
+                ['Laudo Acústico', 'Operação'],
+                ['Contrato de Segurança Privada', 'Segurança'],
+                ['Equipe Médica / Ambulância', 'Saúde']
+            ];
+
+            function checklistStorageKey(eventId) {
+                return `trocaticket-checklist-${eventId}`;
+            }
+
+            function readLocalChecklist(eventId) {
+                try {
+                    return JSON.parse(localStorage.getItem(checklistStorageKey(eventId)) || 'null');
+                } catch (error) {
+                    return null;
+                }
+            }
+
+            function saveLocalChecklist(eventId) {
+                if (!eventId) return;
+                localStorage.setItem(checklistStorageKey(eventId), JSON.stringify({
+                    documents: organizerState.documents,
+                    tasks: organizerState.tasks
+                }));
+            }
+
+            function createDefaultChecklist(eventId) {
+                const event = organizerState.eventList.find(item => item.id === eventId);
+                const deadline = event?.date ? String(event.date).slice(0, 10) : new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+                if (!organizerState.documents.length) {
+                    organizerState.documents = defaultChecklistDocuments.map(([name, category], index) => normalizeDocument({
+                        id: -(index + 1),
+                        nome: name,
+                        categoria: category,
+                        prazo: deadline,
+                        status: 'pendente'
+                    }));
+                }
+                if (!organizerState.tasks.length) organizerState.tasks = [
+                    ['08:00', 'Montagem e vistoria técnica', 'Produção'],
+                    ['16:00', 'Soundcheck', 'Palco'],
+                    ['18:00', 'Abertura de portas', 'Operação'],
+                    ['20:00', 'Início do show principal', 'Produção']
+                ].map(([time, activity, responsible], index) => normalizeTask({
+                    id: -(index + 1),
+                    horario: time,
+                    atividade: activity,
+                    responsavel: responsible,
+                    status: 'pendente'
+                }));
+                saveLocalChecklist(eventId);
+            }
+
+            function mergeLocalChecklist(eventId) {
+                const local = readLocalChecklist(eventId);
+                if (local?.documents?.length) {
+                    const serverDocuments = new Map(organizerState.documents.map(document => [String(document.id), document]));
+                    organizerState.documents = local.documents.map(normalizeDocument).map(document => {
+                        const serverDocument = serverDocuments.get(String(document.id));
+                        return serverDocument ? { ...serverDocument, ...document } : document;
+                    });
+                    organizerState.documents.push(...Array.from(serverDocuments.values()).filter(document => !local.documents.some(item => String(item.id) === String(document.id))));
+                }
+                if (local?.tasks?.length) {
+                    const serverTasks = new Map(organizerState.tasks.map(task => [String(task.id), task]));
+                    organizerState.tasks = local.tasks.map(normalizeTask).map(task => {
+                        const serverTask = serverTasks.get(String(task.id));
+                        return serverTask ? { ...serverTask, ...task } : task;
+                    });
+                    organizerState.tasks.push(...Array.from(serverTasks.values()).filter(task => !local.tasks.some(item => String(item.id) === String(task.id))));
+                }
+                if (!organizerState.documents.length || !organizerState.tasks.length) createDefaultChecklist(eventId);
+            }
+
+            async function loadEventCatalog() {
+                const data = await fetchJson('/api/events');
+                organizerState.eventList = (data.events || []).map((event) => normalizeDashboardEvent({
+                    id: event.id,
+                    name: event.name,
+                    date: event.date,
+                    endDate: event.endDate,
+                    location: event.location,
+                    capacity: event.capacity || event.publico_maximo || 0,
+                    avgTicket: event.price || event.ticket_calculado || 0,
+                    classification: event.classification,
+                    artist: event.artist || event.artista,
+                    image: event.image || event.imagem,
+                    horizontalImage: event.horizontalImage || event.imagem_horizontal || event.banner_desktop,
+                    status: event.status,
+                    destaque: event.destaque,
+                    lots: []
+                }));
+
+                if (!organizerState.selectedEventId && organizerState.eventList.length) {
+                    organizerState.selectedEventId = organizerState.eventList[0].id;
+                }
+
+                if (organizerState.selectedEventId) {
+                    const selectedExists = organizerState.eventList.some((event) => event.id === organizerState.selectedEventId);
+                    if (!selectedExists) {
+                        organizerState.selectedEventId = organizerState.eventList[0]?.id || null;
+                    }
+                }
+
+                if (organizerState.selectedEventId) {
+                    await loadOrganizerDashboard();
+                }
+            }
+
+            async function loadOrganizerDashboard() {
+                if (!organizerState.selectedEventId) {
+                    organizerState.costItems = [];
+                    organizerState.salesMetrics = { soldTickets: 0, grossRevenue: 0 };
+                    organizerState.demands = [];
+                    organizerState.documents = [];
+                    organizerState.tasks = [];
+                    renderAll();
+                    return;
+                }
+
+                const payload = await fetchJson(`/api/organizador/dashboard?evento_id=${organizerState.selectedEventId}`);
+                const dashboard = payload.dashboard || {};
+                const catalogEvent = organizerState.eventList.find((item) => item.id === organizerState.selectedEventId) || {};
+                const event = normalizeDashboardEvent({
+                    ...catalogEvent,
+                    ...dashboard.event,
+                    image: dashboard.event?.image || catalogEvent.image || '',
+                    horizontalImage: dashboard.event?.horizontalImage || catalogEvent.horizontalImage || '',
+                    lots: dashboard.lots || [],
+                    setores: dashboard.setores || dashboard.sectors || []
+                });
+
+                const currentEventIndex = organizerState.eventList.findIndex((item) => item.id === event.id);
+                if (currentEventIndex >= 0) {
+                    organizerState.eventList[currentEventIndex] = {
+                        ...organizerState.eventList[currentEventIndex],
+                        ...event
+                    };
+                } else if (event.id) {
+                    organizerState.eventList.push(event);
+                }
+
+                organizerState.costItems = (dashboard.costItems || []).map(normalizeCostItem);
+                organizerState.salesMetrics = {
+                    soldTickets: Number(dashboard.salesMetrics?.soldTickets || 0),
+                    grossRevenue: Number(dashboard.salesMetrics?.grossRevenue || 0)
+                };
+                organizerState.demands = deduplicateDemands(dashboard.demands || []);
+                organizerState.documents = (dashboard.documents || []).map(normalizeDocument);
+                organizerState.tasks = (dashboard.tasks || []).map(normalizeTask);
+                mergeLocalChecklist(organizerState.selectedEventId);
+                try {
+                    organizerState.supplierDocuments = (await fetchJson('/api/organizador/fornecedor-documentos')).documents || [];
+                    organizerState.supplierDocumentsError = '';
+                } catch (error) {
+                    console.warn('Não foi possível carregar a documentação dos fornecedores:', error.message);
+                    organizerState.supplierDocuments = [];
+                    organizerState.supplierDocumentsError = error.message;
+                }
+                try {
+                    organizerState.suppliers = (await fetchJson('/api/organizador/fornecedores')).suppliers || [];
+                    organizerState.suppliersError = '';
+                } catch (error) {
+                    console.warn('Não foi possível carregar o histórico dos fornecedores:', error.message);
+                    organizerState.suppliers = [];
+                    organizerState.suppliersError = error.message;
+                }
+                if (!organizerState.demands.some((demand) => demand.id === organizerState.activeDemandId)) {
+                    organizerState.activeDemandId = organizerState.demands[0]?.id || null;
+                }
+                if (!organizerState.demands.some((demand) => demand.id === organizerState.activeChatDemandId)) {
+                    organizerState.activeChatDemandId = organizerState.activeDemandId;
+                }
+
+                renderAll();
+                updateOrganizerChatUnread();
+            }
+
+            async function updateOrganizerChatUnread() {
+                try {
+                    const data = await fetchJson('/api/organizador/chat/nao-lidas');
+                    document.getElementById('organizer-chat-unread').hidden = !Number(data.unread);
+                } catch (error) {
+                    console.warn('Não foi possível consultar mensagens não lidas:', error.message);
+                }
+            }
+            document.getElementById('organizer-chat-link').addEventListener('click', async (event) => {
+                event.preventDefault();
+                window.location.href = '../chat.html';
+            });
+
+            function formatCurrency(value) {
+                return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
+            }
+
+            function escapeHtml(value) {
+                return String(value || '').replace(/[&<>"']/g, character => ({
+                    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+                }[character]));
+            }
+
+            function parseDecimal(value, fallback = 0) {
+                if (value === null || value === undefined || value === '') return fallback;
+                if (typeof value === 'number') return Number.isFinite(value) ? value : fallback;
+                const raw = String(value).trim();
+                if (!raw) return fallback;
+                const converted = converterMoedaParaFloat(raw);
+                if (Number.isFinite(converted)) return converted;
+                const normalized = raw.replace(/\./g, '').replace(',', '.');
+                const parsed = Number.parseFloat(normalized);
+                return Number.isFinite(parsed) ? parsed : fallback;
+            }
+
+            function converterMoedaParaFloat(value) {
+                if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+                if (value === null || value === undefined || value === '') return 0;
+                const texto = String(value).trim();
+                if (!texto) return 0;
+                const limpo = texto.replace(/[R$\s]/gi, '');
+                const somenteNumeros = limpo.replace(/[^0-9,.-]/g, '');
+                if (!somenteNumeros) return 0;
+                if (somenteNumeros.includes(',') && somenteNumeros.includes('.')) {
+                    return Number(somenteNumeros.replace(/\./g, '').replace(',', '.'));
+                }
+                if (somenteNumeros.includes(',')) {
+                    return Number(somenteNumeros.replace(',', '.'));
+                }
+                if (/^\d{1,3}(\.\d{3})+$/.test(somenteNumeros)) {
+                    return Number(somenteNumeros.replace(/\./g, ''));
+                }
+                return Number(somenteNumeros);
+            }
+
+            function refreshFinancialSimulation() {
+                organizerState.occupancy = parseDecimal(document.getElementById('sim-ocupacao')?.value, 75);
+                organizerState.avgTicket = parseDecimal(document.getElementById('sim-ticket')?.value, 0);
+                renderOverview();
+                renderFinancialEngine();
+            }
+
+            function parseDate(dateText) {
+                return new Date(dateText);
+            }
+
+            function renderEventSelect() {
+                const select = document.getElementById('event-select');
+                select.innerHTML = organizerState.eventList.map(event => `
+                    <option value="${event.id}" ${event.id === organizerState.selectedEventId ? 'selected' : ''}>${event.name}</option>
+                `).join('');
+
+                const current = organizerState.eventList.find(event => event.id === organizerState.selectedEventId) || organizerState.eventList[0];
+                if (current) {
+                    const ticketInput = document.getElementById('sim-ticket');
+                    const capacityInput = document.getElementById('sim-capacidade');
+                    if (ticketInput && document.activeElement !== ticketInput) ticketInput.value = Number(current.avgTicket || 0).toFixed(2);
+                    if (capacityInput && document.activeElement !== capacityInput) capacityInput.value = Number(current.capacity || 0);
+                }
+                document.getElementById('active-event-name').textContent = current.name;
+                document.getElementById('active-event-date').textContent = new Date(current.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) + ' • ' + new Date(current.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            }
+
+            function renderDemandEventSelect() {
+                const select = document.getElementById('demand-event-select');
+                if (!select) return;
+                select.innerHTML = organizerState.eventList.map(event => `
+                    <option value="${event.id}" ${event.id === organizerState.selectedEventId ? 'selected' : ''}>${event.name}</option>
+                `).join('');
+            }
+
+            function toLocalInputValue(dateValue) {
+                if (!dateValue) return '';
+                const date = new Date(dateValue);
+                if (Number.isNaN(date.getTime())) return '';
+                const timezoneOffset = date.getTimezoneOffset() * 60000;
+                return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 16);
+            }
+
+            function escapeMarkup(value) {
+                return String(value || '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
+            }
+
+            function buildSectorMarkup(sectors = []) {
+                const container = document.getElementById('ticket-sectors');
+                container.innerHTML = sectors.map((sector, sectorIndex) => `
+                    <article class="sector-card ${sectorIndex === 0 ? 'is-open' : ''}" data-sector-index="${sectorIndex}">
+                        <div class="sector-card-header">
+                            <button type="button" class="sector-toggle" aria-expanded="${sectorIndex === 0}">
+                                <span class="sector-chevron">▸</span>
+                                <strong>${escapeMarkup(sector.nome || 'Novo setor')}</strong>
+                            </button>
+                            <button type="button" class="sector-remove" aria-label="Remover setor">×</button>
+                        </div>
+                        <div class="sector-card-body">
+                            <div class="sector-fields">
+                                <label>Nome do setor<input class="sector-name" type="text" value="${escapeMarkup(sector.nome)}" placeholder="Pista, Área VIP..." required></label>
+                                <label>Lotação dedicada<input class="sector-capacity" type="number" min="1" value="${Number(sector.capacidade || 0) || ''}" placeholder="2500" required></label>
+                            </div>
+                            <div class="lot-table-header"><span>Lotes de venda</span><small>Total e preço da inteira informados pelo organizador; demais campos são calculados.</small></div>
+                            <div class="sector-lots">
+                                ${(sector.lotes || []).map((lot) => buildLotMarkup(lot)).join('') || '<p class="lot-empty">Nenhum lote neste setor.</p>'}
+                            </div>
+                            <button type="button" class="add-sector-lot btn-secondary small">+ Adicionar lote a este setor</button>
+                            <p class="sector-summary"></p>
+                        </div>
+                    </article>
+                `).join('') || '<p class="sector-empty">Nenhum setor configurado. Adicione o primeiro setor para começar.</p>';
+                updateSectorSummaries();
+            }
+
+            function buildLotMarkup(lot = {}) {
+                const rule = lot.regraVirada || 'esgotamento';
+                const total = Number(lot.quantidadeTotal || lot.quantidade || 0);
+                const meia = Math.ceil(total * 0.40);
+                const inteira = Math.max(total - meia, 0);
+                const precoInteira = Number(lot.precoInteira || lot.preco || 0);
+                return `<div class="lot-config">
+                    <div class="lot-header">
+                        <div class="lot-header-fields">
+                            <label>Nome do lote<input class="lot-name" type="text" value="${escapeMarkup(lot.nomeLote)}" placeholder="1.º Lote" aria-label="Identificação do lote"></label>
+                            <label>Quantidade total<input class="lot-total" type="number" min="1" value="${total || ''}" placeholder="1000" aria-label="Quantidade total"></label>
+                            <label>Regra de virada<select class="lot-rule" aria-label="Regra de virada">
+                                <option value="data" ${rule === 'data' ? 'selected' : ''}>Por Data/Hora</option>
+                                <option value="esgotamento" ${rule !== 'data' ? 'selected' : ''}>Por Esgotamento</option>
+                            </select></label>
+                            <div class="lot-date-fields" ${rule === 'data' ? '' : 'hidden'}>
+                                <label>Data de início<input class="lot-start" type="datetime-local" value="${toLocalInputValue(lot.dataInicio)}"></label>
+                                <label>Data de término<input class="lot-end" type="datetime-local" value="${toLocalInputValue(lot.dataFim)}"></label>
+                            </div>
+                        </div>
+                        <button type="button" class="lot-remove" aria-label="Excluir lote">×</button>
+                    </div>
+                    <div class="lot-modalities">
+                        <div class="lot-table-row lot-table-head"><span>Modalidade</span><span>Quantidade</span><span>Preço (R$)</span><span>Ações / status</span></div>
+                        <div class="lot-table-row fixed-modality"><div><strong>Meia-Entrada (Lei 12.933/13)</strong><span class="legal-badge">Obrigatório por lei</span></div><input class="lot-half" type="number" value="${meia || ''}" readonly aria-label="Quantidade de meia-entrada"><input class="lot-half-price" type="number" value="${(precoInteira / 2).toFixed(2)}" readonly aria-label="Preço da meia-entrada"><span class="lock-status">🔒 Travado</span></div>
+                        <div class="lot-table-row fixed-modality"><div><strong>Inteira</strong><span class="modality-hint">Saldo após meia e extras</span></div><input class="lot-full" type="number" value="${inteira || ''}" readonly aria-label="Quantidade de inteira"><input class="lot-full-price" type="number" min="0" step="0.01" value="${precoInteira || ''}" placeholder="0,00" aria-label="Preço da inteira"><span class="open-status">Editável</span></div>
+                        <div class="custom-modalities-list">${(lot.modalidades || []).map(modality => buildCustomModalityMarkup(modality)).join('') || '<p class="custom-empty">Adicione uma modalidade personalizada abaixo.</p>'}</div>
+                    </div>
+                    <div class="lot-footer"><button type="button" class="add-custom-modality btn-secondary small">+ Adicionar modalidade personalizada</button><p class="modalities-warning" hidden></p><p class="lot-legal-note">Calculado por lei: 40% de meia-entrada garantida e 50% do preço da inteira.</p><p class="lot-summary"></p></div>
+                </div>`;
+            }
+
+            function buildCustomModalityMarkup(modality = {}) {
+                return `<div class="lot-table-row custom-modality"><input class="custom-name" type="text" value="${escapeMarkup(modality.nome)}" placeholder="Ingresso Solidário" aria-label="Nome da modalidade"><input class="custom-quantity" type="number" min="0" value="${Number(modality.quantidade || 0) || ''}" placeholder="Qtd" aria-label="Quantidade da modalidade"><input class="custom-price" type="number" min="0" step="0.01" value="${Number(modality.preco || 0) || ''}" placeholder="0,00" aria-label="Preço da modalidade"><button type="button" class="custom-remove" aria-label="Remover modalidade">×</button></div>`;
+            }
+
+            function addSector() {
+                const container = document.getElementById('ticket-sectors');
+                container.querySelector('.sector-empty')?.remove();
+                const sectors = readSectorsFromForm();
+                sectors.push({ nome: '', capacidade: 0, lotes: [] });
+                buildSectorMarkup(sectors);
+                const cards = container.querySelectorAll('.sector-card');
+                cards[cards.length - 1]?.querySelector('.sector-name')?.focus();
+            }
+
+            function addLotToSector(card) {
+                card.querySelector('.sector-lots .lot-empty')?.remove();
+                card.querySelector('.sector-lots').insertAdjacentHTML('beforeend', buildLotMarkup());
+                updateSectorSummaries();
+            }
+
+            function readSectorsFromForm() {
+                return Array.from(document.querySelectorAll('.sector-card')).map((card) => ({
+                    id: card.dataset.sectorId || undefined,
+                    nome: card.querySelector('.sector-name')?.value.trim() || '',
+                    capacidade: Number(card.querySelector('.sector-capacity')?.value || 0),
+                    lotes: Array.from(card.querySelectorAll('.lot-config')).map((row) => ({
+                        id: row.dataset.lotId || undefined,
+                        nomeLote: row.querySelector('.lot-name')?.value.trim() || '',
+                        tipoIngresso: 'Inteira',
+                        quantidadeTotal: Number(row.querySelector('.lot-total')?.value || 0),
+                        quantidadeMeia: Number(row.querySelector('.lot-half')?.value || 0),
+                        quantidadeInteira: Number(row.querySelector('.lot-full')?.value || 0),
+                        precoInteira: Number(row.querySelector('.lot-full-price')?.value || 0),
+                        precoMeia: Number(row.querySelector('.lot-half-price')?.value || 0),
+                        quantidade: Number(row.querySelector('.lot-total')?.value || 0),
+                        preco: Number(row.querySelector('.lot-full-price')?.value || 0),
+                        regraVirada: row.querySelector('.lot-rule')?.value || 'esgotamento',
+                        dataInicio: row.querySelector('.lot-start')?.value || '',
+                        dataFim: row.querySelector('.lot-end')?.value || '',
+                        modalidades: Array.from(row.querySelectorAll('.custom-modality')).map((modality) => ({
+                            nome: modality.querySelector('.custom-name')?.value.trim() || '',
+                            quantidade: Number(modality.querySelector('.custom-quantity')?.value || 0),
+                            preco: Number(modality.querySelector('.custom-price')?.value || 0)
+                        })).filter(modality => modality.nome)
+                    })).filter(lot => lot.nomeLote)
+                })).filter(sector => sector.nome || sector.lotes.length);
+            }
+
+            function updateSectorSummaries() {
+                let weightedQuantity = 0;
+                let weightedRevenue = 0;
+                document.querySelectorAll('.sector-card').forEach((card) => {
+                    const quantity = Array.from(card.querySelectorAll('.lot-total')).reduce((sum, input) => sum + Number(input.value || 0), 0);
+                    const revenue = Array.from(card.querySelectorAll('.lot-config')).reduce((sum, row) => {
+                        const baseRevenue = Number(row.querySelector('.lot-full')?.value || 0) * Number(row.querySelector('.lot-full-price')?.value || 0);
+                        const halfRevenue = Number(row.querySelector('.lot-half')?.value || 0) * Number(row.querySelector('.lot-half-price')?.value || 0);
+                        const customRevenue = Array.from(row.querySelectorAll('.custom-modality')).reduce((customSum, modality) => customSum + Number(modality.querySelector('.custom-quantity')?.value || 0) * Number(modality.querySelector('.custom-price')?.value || 0), 0);
+                        return sum + baseRevenue + halfRevenue + customRevenue;
+                    }, 0);
+                    const capacity = Number(card.querySelector('.sector-capacity')?.value || 0);
+                    card.querySelector('.sector-summary').textContent = `Total de bilhetes alocados: ${quantity} / ${capacity} | Receita potencial: ${formatCurrency(revenue)}`;
+                    const half = Array.from(card.querySelectorAll('.lot-half')).reduce((sum, input) => sum + Number(input.value || 0), 0);
+                    const lotSummary = card.querySelector('.lot-summary');
+                    if (lotSummary) {
+                        lotSummary.textContent = `Total alocado: ${quantity.toLocaleString('pt-BR')} / ${quantity.toLocaleString('pt-BR')} ingressos | Cota de meia: ${half.toLocaleString('pt-BR')} (40%) garantida`;
+                    }
+                    weightedQuantity += quantity;
+                    weightedRevenue += revenue;
+                });
+                const average = weightedQuantity ? weightedRevenue / weightedQuantity : 0;
+                document.getElementById('ev-preco-medio').value = average.toFixed(2);
+            }
+
+            function recalculateLot(row, changedInput = null) {
+                const totalInput = row.querySelector('.lot-total');
+                const halfInput = row.querySelector('.lot-half');
+                const fullInput = row.querySelector('.lot-full');
+                const fullPriceInput = row.querySelector('.lot-full-price');
+                const halfPriceInput = row.querySelector('.lot-half-price');
+                const total = Math.max(Number(totalInput?.value || 0), 0);
+                const half = Math.ceil(total * 0.40);
+                if (halfInput) halfInput.value = half || '';
+                const availableFull = Math.max(total - half, 0);
+                const modalities = Array.from(row.querySelectorAll('.custom-modality'));
+                let customQuantity = modalities.reduce((sum, modality) => sum + Number(modality.querySelector('.custom-quantity')?.value || 0), 0);
+                const exceeded = customQuantity > availableFull;
+                if (exceeded && changedInput?.classList.contains('custom-quantity')) {
+                    const currentModality = changedInput.closest('.custom-modality');
+                    const otherQuantity = modalities.filter(modality => modality !== currentModality).reduce((sum, modality) => sum + Number(modality.querySelector('.custom-quantity')?.value || 0), 0);
+                    changedInput.value = Math.max(availableFull - otherQuantity, 0);
+                    customQuantity = modalities.reduce((sum, modality) => sum + Number(modality.querySelector('.custom-quantity')?.value || 0), 0);
+                }
+                if (fullInput) fullInput.value = Math.max(availableFull - customQuantity, 0) || '';
+                if (halfPriceInput) halfPriceInput.value = (Math.max(Number(fullPriceInput?.value || 0), 0) / 2).toFixed(2);
+                const warning = row.querySelector('.modalities-warning');
+                if (warning) {
+                    warning.hidden = !exceeded;
+                    warning.textContent = exceeded
+                        ? 'A cota de inteiras foi atingida. A quantidade informada foi limitada para preservar os 40% de meia-entrada.'
+                        : '';
+                }
+            }
+
+            function handleFormLotEvents() {
+                const container = document.getElementById('ticket-sectors');
+                container.addEventListener('click', (event) => {
+                    const card = event.target.closest('.sector-card');
+                    if (!card) return;
+                    if (event.target.closest('.sector-toggle')) {
+                        const open = card.classList.toggle('is-open');
+                        card.querySelector('.sector-toggle').setAttribute('aria-expanded', String(open));
+                    } else if (event.target.closest('.sector-remove')) {
+                        card.remove();
+                        updateSectorSummaries();
+                    } else if (event.target.closest('.add-sector-lot')) {
+                        addLotToSector(card);
+                    } else if (event.target.closest('.add-custom-modality')) {
+                        const lot = event.target.closest('.lot-config');
+                        const list = lot.querySelector('.custom-modalities-list');
+                        list.querySelector('.custom-empty')?.remove();
+                        list.insertAdjacentHTML('beforeend', buildCustomModalityMarkup());
+                        list.querySelector('.custom-modality:last-child .custom-name')?.focus();
+                    } else if (event.target.closest('.lot-remove')) {
+                        event.target.closest('.lot-config').remove();
+                        if (!card.querySelector('.lot-config')) card.querySelector('.sector-lots').innerHTML = '<p class="lot-empty">Nenhum lote neste setor.</p>';
+                        updateSectorSummaries();
+                    } else if (event.target.closest('.custom-remove')) {
+                        const modality = event.target.closest('.custom-modality');
+                        const lot = modality.closest('.lot-config');
+                        modality.remove();
+                        if (!lot.querySelector('.custom-modality')) lot.querySelector('.custom-modalities-list').innerHTML = '<p class="custom-empty">Adicione uma modalidade personalizada abaixo.</p>';
+                        recalculateLot(lot);
+                    }
+                });
+                container.addEventListener('input', updateSectorSummaries);
+                container.addEventListener('input', (event) => {
+                    const row = event.target.closest('.lot-config');
+                    if (row) {
+                        recalculateLot(row, event.target);
+                        updateSectorSummaries();
+                    }
+                });
+                container.addEventListener('change', (event) => {
+                    if (event.target.classList.contains('lot-rule')) {
+                        const lot = event.target.closest('.lot-config');
+                        lot.querySelector('.lot-date-fields').hidden = event.target.value !== 'data';
+                    }
+                    updateSectorSummaries();
+                });
+            }
+
+            function getSelectedEvent() {
+                return organizerState.eventList.find(event => event.id === organizerState.selectedEventId) || organizerState.eventList[0];
+            }
+
+            function statusClass(status) {
+                return String(status || 'publicado').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-');
+            }
+
+            function isConfirmedCost(item) {
+                return ['contratado', 'confirmado', 'confirmada', 'aprovado', 'aprovada', 'homologado', 'homologada']
+                    .includes(String(item.status || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
+            }
+
+            function getOperationalCost(item) {
+                return isConfirmedCost(item)
+                    ? converterMoedaParaFloat(item.contracted || item.estimated)
+                    : converterMoedaParaFloat(item.estimated);
+            }
+
+            function calculateOverview() {
+                const event = getSelectedEvent();
+                const soldTickets = Number(organizerState.salesMetrics.soldTickets || 0);
+                const grossRevenue = Number(organizerState.salesMetrics.grossRevenue || 0);
+                const occupancyRate = event.capacity > 0 ? Math.min((soldTickets / event.capacity) * 100, 100) : 0;
+                const totalEstimated = organizerState.costItems.reduce((sum, item) => sum + converterMoedaParaFloat(item.estimated), 0);
+                const totalConfirmed = organizerState.costItems.filter(isConfirmedCost).reduce((sum, item) => sum + converterMoedaParaFloat(item.contracted || item.estimated), 0);
+                const averageTicketPrice = soldTickets > 0 ? grossRevenue / soldTickets : Number(event.avgTicket || 0);
+                const netProjection = grossRevenue - totalConfirmed;
+                const breakEvenTickets = averageTicketPrice > 0 ? Math.ceil(totalConfirmed / averageTicketPrice) : 0;
+                const remainingBreakEven = Math.max(breakEvenTickets - soldTickets, 0);
+                const percentBreakEven = breakEvenTickets > 0 ? Math.min((soldTickets / breakEvenTickets) * 100, 100) : 0;
+
+                return {
+                    event,
+                    occupancyRate,
+                    soldTickets,
+                    grossRevenue,
+                    totalEstimated,
+                    totalConfirmed,
+                    netProjection,
+                    breakEvenTickets,
+                    remainingBreakEven,
+                    percentBreakEven
+                };
+            }
+
+            function renderOverview() {
+                const metrics = calculateOverview();
+                const { event, occupancyRate, soldTickets, grossRevenue, totalEstimated, totalConfirmed, netProjection, breakEvenTickets, remainingBreakEven, percentBreakEven } = metrics;
+
+                document.getElementById('kpi-revenue').textContent = formatCurrency(grossRevenue);
+                document.getElementById('kpi-revenue-detail').textContent = `${soldTickets} ingressos vendidos`;
+                document.getElementById('kpi-occupancy').textContent = `${occupancyRate.toFixed(2)}%`;
+                document.getElementById('occupancy-fill').style.width = `${Math.min(occupancyRate, 100)}%`;
+                document.getElementById('kpi-occupancy-detail').textContent = `${soldTickets} / ${event.capacity} lotados`;
+                document.getElementById('kpi-confirmed-costs').textContent = formatCurrency(totalConfirmed);
+                document.getElementById('kpi-estimated-costs').textContent = `Estimadas: ${formatCurrency(totalEstimated)}`;
+                document.getElementById('kpi-profit').textContent = formatCurrency(netProjection);
+                document.getElementById('kpi-profit-detail').textContent = `Custo fixo: ${formatCurrency(totalConfirmed)}`;
+
+                document.getElementById('break-even-badge').textContent = `${breakEvenTickets} ingressos`;
+                document.getElementById('thermometer-fill').style.height = `${Math.max(12, percentBreakEven)}%`;
+                document.getElementById('break-even-meta').textContent = `${soldTickets} / ${breakEvenTickets} ingressos`;
+                document.getElementById('break-even-text').textContent = remainingBreakEven > 0
+                    ? `Faltam ${remainingBreakEven} ingressos para cobrir 100% dos custos contratados.`
+                    : 'Você já atingiu o ponto de equilíbrio com os custos contratados.';
+
+                const countdownTarget = new Date(event.date).getTime();
+                const now = Date.now();
+                const diff = Math.max(countdownTarget - now, 0);
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+                const minutes = Math.floor((diff / (1000 * 60)) % 60);
+                const seconds = Math.floor((diff / 1000) % 60);
+
+                document.getElementById('countdown-days').textContent = String(days).padStart(2, '0');
+                document.getElementById('countdown-hours').textContent = String(hours).padStart(2, '0');
+                document.getElementById('countdown-minutes').textContent = String(minutes).padStart(2, '0');
+                document.getElementById('countdown-seconds').textContent = String(seconds).padStart(2, '0');
+
+                const alerts = [];
+                if (breakEvenTickets > soldTickets) alerts.push({ type: 'warning', text: `${remainingBreakEven} ingressos faltando para quebrar o ponto de equilíbrio.` });
+                if (organizerState.documents.some(doc => ['pendente', 'em análise'].includes(doc.status))) {
+                    alerts.push({ type: 'warning', text: 'Há documentos operacionais pendentes de revisão.' });
+                }
+                if (organizerState.demands.some(d => d.status === 'em cotação')) {
+                    alerts.push({ type: 'info', text: 'Demandas em cotação precisam de resposta de fornecedores.' });
+                }
+                if (alerts.length === 0) alerts.push({ type: 'success', text: 'Tudo em ordem: sem alertas críticos no momento.' });
+
+                const alertsList = document.getElementById('alerts-list');
+                alertsList.innerHTML = alerts.map(alert => `
+                    <li class="alert-item ${alert.type}">${alert.text}</li>
+                `).join('');
+            }
+
+            function renderFinanceTable() {
+                const tbody = document.getElementById('cost-table-body');
+                tbody.innerHTML = organizerState.costItems.map(item => `
+                    <tr>
+                        <td>${item.category}</td>
+                        <td>${item.item}</td>
+                        <td>${formatCurrency(item.estimated)}</td>
+                        <td>${item.status === 'contratado' ? formatCurrency(item.contracted || item.estimated) : formatCurrency(item.contracted || 0)}</td>
+                        <td>${item.supplier || '—'}</td>
+                        <td><span class="status-badge ${item.status}">${item.status}</span></td>
+                        <td>
+                            <button type="button" data-item-id="${item.id}" class="btn-secondary small request-quote-btn">${item.status === 'pendente' ? 'Solicitar cotação' : 'Atualizar'}</button>
+                        </td>
+                    </tr>
+                `).join('');
+
+                const projectionRevenue = calculateOverview().grossRevenue;
+                const totalConfirmed = organizerState.costItems.filter(item => item.status === 'contratado').reduce((sum, item) => sum + converterMoedaParaFloat(item.contracted || item.estimated || 0), 0);
+                const totalEstimated = organizerState.costItems.filter(item => item.status !== 'contratado').reduce((sum, item) => sum + converterMoedaParaFloat(item.estimated || 0), 0);
+
+                document.getElementById('projection-revenue').textContent = formatCurrency(projectionRevenue);
+                document.getElementById('cost-total-estimated').textContent = formatCurrency(organizerState.costItems.reduce((sum, item) => sum + converterMoedaParaFloat(item.estimated || 0), 0));
+                document.getElementById('cost-total-contracted').textContent = formatCurrency(organizerState.costItems.filter(item => item.status === 'contratado').reduce((sum, item) => sum + converterMoedaParaFloat(item.contracted || item.estimated || 0), 0));
+                renderFinancialEngine();
+            }
+
+            function buildEconomicModel() {
+                const event = getSelectedEvent();
+                const capacity = Math.max(parseDecimal(document.getElementById('sim-capacidade')?.value, event?.capacity || 1), 1);
+                const price = Math.max(converterMoedaParaFloat(document.getElementById('sim-ticket').value) || parseDecimal(document.getElementById('sim-ticket').value, event?.avgTicket || 0), 0);
+                const occupancy = Math.max(0, Math.min(100, parseDecimal(document.getElementById('sim-ocupacao')?.value, 75)));
+                const fixedCost = organizerState.costItems.reduce((sum, item) => sum + getOperationalCost(item), 0);
+                const demandAtBase = capacity * occupancy / 100;
+                const coveragePrice = demandAtBase > 0 ? fixedCost / demandAtBase : 0;
+                const projectedRevenue = demandAtBase * price;
+                const totalEstimatedCost = organizerState.costItems.reduce((sum, item) => sum + converterMoedaParaFloat(item.estimated || 0), 0);
+                const unsettledCost = organizerState.costItems
+                    .filter(item => item.status !== 'contratado')
+                    .reduce((sum, item) => sum + converterMoedaParaFloat(item.estimated || 0), 0);
+                const unsettledCostShare = totalEstimatedCost > 0 ? unsettledCost / totalEstimatedCost : 0;
+                const costPressure = price > 0 ? Math.min(1, coveragePrice / price) : 1;
+                return { capacity, price, occupancy, fixedCost, demandAtBase, coveragePrice, projectedRevenue, unsettledCostShare, costPressure };
+            }
+
+            function calculatePredictiveErrorMargin(model) {
+                const occupancyRisk = (100 - model.occupancy) / 100;
+                const costUncertainty = model.unsettledCostShare;
+                const pricePressure = model.costPressure;
+                const rawMargin = 1.5 + (occupancyRisk * 4) + (costUncertainty * 6) + (pricePressure * 3);
+                return Math.min(15, Math.max(1.5, rawMargin));
+            }
+
+            function renderFinancialEngine() {
+                const model = buildEconomicModel();
+                const { price, fixedCost, demandAtBase, coveragePrice, projectedRevenue, unsettledCostShare } = model;
+                const predictiveErrorMargin = calculatePredictiveErrorMargin(model);
+                document.getElementById('projection-revenue').textContent = formatCurrency(projectedRevenue);
+                document.getElementById('projection-margin').textContent = `± ${predictiveErrorMargin.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+                document.getElementById('price-total-cost').textContent = formatCurrency(fixedCost);
+                document.getElementById('finance-break-even-diagnostic').textContent = demandAtBase > 0 ? formatCurrency(coveragePrice) : 'Sem ingressos previstos';
+                document.getElementById('finance-expected-tickets').textContent = demandAtBase.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+                document.getElementById('finance-cost-coverage').textContent = demandAtBase > 0 && projectedRevenue >= fixedCost ? 'Sim' : 'Não';
+                document.getElementById('finance-concavity').textContent = 'Modelo linear';
+                document.getElementById('finance-diagnosis').textContent = demandAtBase > 0
+                    ? `Com ${demandAtBase.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} ingressos esperados, cada bilhete precisa custar ${formatCurrency(coveragePrice)} para cobrir exatamente ${formatCurrency(fixedCost)} em custos operacionais. A margem calculada é de ± ${predictiveErrorMargin.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%, considerando ${(unsettledCostShare * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% dos custos ainda não contratados e a pressão do break-even sobre o preço atual.`
+                    : 'Informe uma ocupação esperada maior que zero para calcular os indicadores.';
+                drawProfitChart(fixedCost, price, coveragePrice, demandAtBase);
+            }
+
+            function drawProfitChart(fixedCost, basePrice, coveragePrice, expectedTickets) {
+                const canvas = document.getElementById('finance-profit-chart');
+                if (!canvas) return;
+                const context = canvas.getContext('2d');
+                const bounds = canvas.getBoundingClientRect();
+                const width = Math.max(Math.round(bounds.width), 320);
+                const height = Math.max(Math.round(bounds.height), 180);
+                const ratio = window.devicePixelRatio || 1;
+                canvas.width = width * ratio;
+                canvas.height = height * ratio;
+                context.setTransform(1, 0, 0, 1, 0, 0);
+                context.scale(ratio, ratio);
+                context.clearRect(0, 0, width, height);
+                const safeBasePrice = Number.isFinite(basePrice) && basePrice >= 0 ? basePrice : 0;
+                const safeCoveragePrice = Number.isFinite(coveragePrice) && coveragePrice >= 0 ? coveragePrice : 0;
+                const safeFixedCost = Number.isFinite(fixedCost) && fixedCost >= 0 ? fixedCost : 0;
+                const safeExpectedTickets = Number.isFinite(expectedTickets) && expectedTickets > 0 ? expectedTickets : 0;
+                const lowerPrice = Math.min(safeBasePrice, safeCoveragePrice);
+                const upperPrice = Math.max(safeBasePrice, safeCoveragePrice, 1);
+                const chartMin = Math.max(0, lowerPrice > 0 ? lowerPrice * 0.5 : 0);
+                const chartMax = Math.max(chartMin + 1, upperPrice * 1.5);
+                const prices = Array.from({ length: 61 }, (_, index) => {
+                    const candidate = chartMin + (chartMax - chartMin) * index / 60;
+                    return candidate;
+                });
+                const revenueValues = prices.map(candidate => safeExpectedTickets * candidate);
+                const max = Math.max(...revenueValues, safeFixedCost, 1);
+                const x = candidatePrice => (candidatePrice - chartMin) / Math.max(chartMax - chartMin, 1) * (width - 24) + 12;
+                const y = value => height - 18 - (value / max) * (height - 34);
+                context.font = '10px Segoe UI';
+                context.fillStyle = '#a3b4d3';
+                context.fillText('Valor (R$)', 12, 12);
+                context.fillText('Preço do ingresso (R$)', Math.max(width - 135, 12), height - 2);
+                context.fillText(formatCurrency(max), 12, 25);
+                context.fillText('0', 12, height - 20);
+                context.fillText(formatCurrency(chartMax), width - 58, height - 20);
+                context.strokeStyle = '#5ee7a8'; context.lineWidth = 2; context.beginPath();
+                revenueValues.forEach((value, index) => { const px = x(prices[index]); const py = y(value); index ? context.lineTo(px, py) : context.moveTo(px, py); });
+                context.stroke();
+                context.strokeStyle = '#ffb86b'; context.lineWidth = 2; context.beginPath();
+                context.moveTo(12, y(safeFixedCost)); context.lineTo(width - 12, y(safeFixedCost)); context.stroke();
+                context.strokeStyle = 'rgba(76,201,240,.55)'; context.setLineDash([4, 4]); context.beginPath(); context.moveTo(x(safeBasePrice), 18); context.lineTo(x(safeBasePrice), height - 18); context.stroke(); context.setLineDash([]);
+                if (safeCoveragePrice >= chartMin && safeCoveragePrice <= chartMax) {
+                    context.fillStyle = '#c2bbff'; context.beginPath(); context.arc(x(safeCoveragePrice), y(safeFixedCost), 4, 0, Math.PI * 2); context.fill();
+                }
+                const tooltip = document.getElementById('finance-chart-tooltip');
+                canvas.onmousemove = event => {
+                    const currentBounds = canvas.getBoundingClientRect();
+                    const pointerRatio = currentBounds.width > 0 ? (event.clientX - currentBounds.left) / currentBounds.width : 0;
+                    const candidatePrice = Math.max(chartMin, Math.min(chartMax, chartMin + pointerRatio * (chartMax - chartMin)));
+                    const revenue = safeExpectedTickets * candidatePrice;
+                    tooltip.hidden = false;
+                    tooltip.textContent = `${formatCurrency(candidatePrice)} | Receita: ${formatCurrency(revenue)} | Custo: ${formatCurrency(safeFixedCost)}`;
+                    tooltip.style.left = `${Math.min(event.clientX - currentBounds.left + 12, currentBounds.width - 170)}px`;
+                    tooltip.style.top = `${Math.max(event.clientY - currentBounds.top - 34, 4)}px`;
+                };
+                canvas.onmouseleave = () => { tooltip.hidden = true; };
+            }
+
+            function renderDemandList() {
+                const normalizedStatuses = organizerState.demands.map(demand => String(demand.status || '').toLowerCase());
+                const quotingCount = normalizedStatuses.filter(status => ['em cotacao', 'em cotação', 'pendente', 'aberta', 'aberto'].includes(status)).length;
+                const confirmedCount = normalizedStatuses.filter(status => ['aprovado', 'confirmada', 'confirmado', 'contratado', 'homologado'].includes(status)).length;
+                const negotiationCount = organizerState.demands.filter(demand => {
+                    const status = String(demand.status || '').toLowerCase();
+                    return ['em negociacao', 'em negociação', 'negociando'].includes(status) || demand.proposals.some(proposal => ['em analise', 'em análise', 'negociacao', 'negociação'].includes(String(proposal.status || '').toLowerCase()));
+                }).length;
+                const negotiationValue = organizerState.demands.reduce((total, demand) => total + demand.proposals.reduce((proposalTotal, proposal) => proposalTotal + Number(proposal.value || 0), 0), 0);
+                document.getElementById('demand-quoting-count').textContent = quotingCount;
+                document.getElementById('demand-negotiation-count').textContent = negotiationCount;
+                document.getElementById('demand-confirmed-count').textContent = confirmedCount;
+                document.getElementById('demand-total-count').textContent = organizerState.demands.length;
+                document.getElementById('demand-negotiation-value').textContent = formatCurrency(negotiationValue);
+
+                const demandList = document.getElementById('demand-list');
+                demandList.innerHTML = organizerState.demands.map(demand => `
+                    <article class="demand-item ${demand.id === organizerState.activeDemandId ? 'selected' : ''}" data-demand-id="${demand.id}">
+                        <span class="demand-title">${demand.title}</span>
+                        <span class="demand-meta">${demand.service}</span>
+                        <a class="btn-secondary small demand-details-link" href="demanda-detalhes.html?evento_id=${encodeURIComponent(organizerState.selectedEventId)}&demanda_id=${encodeURIComponent(demand.id)}">Exibir detalhes</a>
+                        <span class="status-badge ${demand.status}">${demand.status}</span>
+                    </article>
+                `).join('');
+            }
+
+            function renderSupplierReview() {
+                const list = document.getElementById('supplier-review-list');
+                if (!list) return;
+                const status = document.getElementById('supplier-review-status');
+                const documents = organizerState.supplierDocuments;
+                if (organizerState.supplierDocumentsError) {
+                    list.innerHTML = `<p class="form-message supplier-review-error">${escapeHtml(organizerState.supplierDocumentsError)}</p>`;
+                    status.textContent = 'Indisponível';
+                    status.className = 'badge badge-red';
+                    return;
+                }
+
+                    if (!documents.length) {
+                    document.getElementById('supplier-review-header-actions').innerHTML = '<span class="badge badge-blue" id="supplier-review-status">Em análise</span>';
+                }
+                const statuses = documents.map(document => document.documentacao_status);
+                const overallStatus = statuses.includes('recusado') ? 'recusado' : statuses.length && statuses.every(item => item === 'homologado') ? 'homologado' : 'em análise';
+                status.textContent = overallStatus === 'homologado' ? 'Homologado' : overallStatus === 'recusado' ? 'Recusado' : 'Em análise';
+                status.className = `badge ${overallStatus === 'homologado' ? 'badge-green' : overallStatus === 'recusado' ? 'badge-red' : 'badge-blue'}`;
+                const headerActions = document.getElementById('supplier-review-header-actions');
+                const firstCompany = documents[0];
+                if (firstCompany?.empresa_id) {
+                    const companyStatus = String(firstCompany.empresa_status || 'em análise').toLowerCase();
+                    headerActions.innerHTML = `<span class="badge ${companyStatus === 'homologado' ? 'badge-green' : companyStatus === 'recusado' ? 'badge-red' : 'badge-blue'}" id="supplier-review-status">${companyStatus === 'homologado' ? 'Homologado' : companyStatus === 'recusado' ? 'Recusado' : 'Em análise'}</span><button type="button" class="btn-primary small" data-homologate-company="${firstCompany.empresa_id}" data-homologation-status="homologado">${companyStatus === 'homologado' ? 'Homologado' : 'Homologar definitivamente'}</button><button type="button" class="btn-secondary small danger" data-homologate-company="${firstCompany.empresa_id}" data-homologation-status="recusado">Recusar homologação</button>`;
+                }
+                list.innerHTML = documents.length ? documents.map(document => {
+                    const documentStatus = String(document.status || '').toLowerCase();
+                    const label = documentStatus === 'aprovado' ? 'Aprovado' : documentStatus === 'recusado' ? 'Recusado' : 'Em análise';
+                    const statusClass = label === 'Aprovado' ? 'aprovado' : label === 'Recusado' ? 'recusada' : 'em análise';
+                    const fileUrl = document.file_url || document.caminho;
+                    const fileLink = fileUrl ? `<a class="btn-secondary small" href="${escapeHtml(fileUrl)}" target="_blank" rel="noopener noreferrer">Abrir arquivo</a>` : '<small>Arquivo indisponível</small>';
+                    return `<article class="supplier-review-item"><div><strong>${escapeHtml(document.razao_social || 'Empresa não identificada')}</strong><small>${escapeHtml(document.nome)} · ${escapeHtml(document.nome_arquivo)} · ${escapeHtml(document.email)}</small>${documentStatus === 'recusado' && document.motivo_recusa ? `<small class="supplier-document-reason">Motivo: ${escapeHtml(document.motivo_recusa)}</small>` : ''}</div><div class="supplier-review-actions"><span class="status-badge ${statusClass}">${label}</span>${fileLink}<button type="button" class="btn-secondary small" data-review-document="${document.id}" data-review-status="aprovado">Aprovar</button><button type="button" class="btn-secondary small danger" data-review-document="${document.id}" data-review-status="recusado">Recusar</button></div></article>`;
+                }).join('') : '<p class="empty-state">Nenhum documento de fornecedor aguardando revisão.</p>';
+            }
+
+            function renderSupplierHistory() {
+                const list = document.getElementById('supplier-history-list');
+                if (!list) return;
+                const suppliers = organizerState.suppliers || [];
+                document.getElementById('supplier-history-count').textContent = `${suppliers.length} fornecedor${suppliers.length === 1 ? '' : 'es'}`;
+                const approved = suppliers.filter(supplier => supplier.compliance.status === 'homologado').length;
+                const active = suppliers.filter(supplier => supplier.metrics.service_count > 0).length;
+                const average = suppliers.length ? Math.round(suppliers.reduce((sum, supplier) => sum + supplier.compliance.score, 0) / suppliers.length) : 0;
+                document.getElementById('supplier-approved-count').textContent = approved;
+                document.getElementById('supplier-active-count').textContent = active;
+                document.getElementById('supplier-compliance-average').textContent = `${average}%`;
+                if (organizerState.suppliersError) {
+                    list.innerHTML = `<p class="form-message supplier-review-error">${escapeHtml(organizerState.suppliersError)}</p>`;
+                    return;
+                }
+                if (!suppliers.length) {
+                    list.innerHTML = '<p class="empty-state">Nenhum fornecedor cadastrado ou com histórico operacional.</p>';
+                    return;
+                }
+                list.innerHTML = suppliers.map(supplier => {
+                    const complianceClass = supplier.compliance.score >= 90 ? 'supplier-performance-good' : supplier.compliance.score >= 70 ? 'supplier-performance-attention' : 'supplier-performance-risk';
+                    const complianceLabel = supplier.compliance.status === 'homologado' ? 'Homologado ativo' : supplier.compliance.status === 'recusado' ? 'Com pendências' : 'Em análise';
+                    const services = supplier.services.length ? supplier.services.map(service => `<span class="supplier-service-tag">${escapeHtml(service)}</span>`).join('') : '<span class="supplier-muted">Nenhum serviço registrado</span>';
+                    const avatar = supplier.logo_url ? `<img src="${escapeHtml(supplier.logo_url)}" alt="Logo de ${escapeHtml(supplier.company_name)}">` : `<span>${escapeHtml(supplier.company_name.slice(0, 1).toUpperCase())}</span>`;
+                    return `<button type="button" class="supplier-history-card" data-supplier-history="${escapeHtml(supplier.company_id)}">
+                        <div class="supplier-history-card-header">
+                            <div class="supplier-card-identity"><div class="supplier-card-avatar">${avatar}</div><div><span class="eyebrow">Fornecedor</span><h3>${escapeHtml(supplier.company_name)}</h3><p>${escapeHtml(supplier.category)}</p></div></div>
+                            <span class="supplier-performance-badge ${complianceClass}">${escapeHtml(complianceLabel)}</span>
+                        </div>
+                        <div class="supplier-card-footer"><span>${supplier.metrics.service_count} atendimento(s) registrado(s)</span><span>Ver histórico →</span></div>
+                    </button>`;
+                }).join('');
+                list.querySelectorAll('[data-supplier-history]').forEach(card => card.addEventListener('click', () => openSupplierHistory(card.dataset.supplierHistory)));
+            }
+
+            function openSupplierHistory(companyId) {
+                const supplier = organizerState.suppliers.find(item => String(item.company_id) === String(companyId));
+                if (!supplier) return;
+                const modal = document.getElementById('supplier-history-modal');
+                const body = document.getElementById('supplier-history-modal-body');
+                if (!modal || !body) return;
+                const services = supplier.services.length ? supplier.services.map(service => `<span class="supplier-service-tag">${escapeHtml(service)}</span>`).join('') : '<span class="supplier-muted">Nenhum serviço registrado</span>';
+                body.innerHTML = `<div class="supplier-detail-header"><div class="supplier-card-avatar">${supplier.logo_url ? `<img src="${escapeHtml(supplier.logo_url)}" alt="">` : escapeHtml(supplier.company_name.slice(0, 1).toUpperCase())}</div><div><span class="eyebrow">Dossiê operacional</span><h2>${escapeHtml(supplier.company_name)}</h2><p>${escapeHtml(supplier.category)} · ${escapeHtml(supplier.email || 'E-mail não informado')}</p></div><span class="supplier-performance-badge supplier-performance-good">${escapeHtml(supplier.compliance.status === 'homologado' ? 'Homologado ativo' : supplier.compliance.status === 'recusado' ? 'Com pendências' : 'Em análise')}</span></div>
+                    <div class="supplier-detail-metrics"><div><span>Serviços entregues</span><strong>${supplier.metrics.service_count}</strong></div><div><span>Atendimentos confirmados</span><strong>${supplier.metrics.confirmed_count}</strong></div><div><span>Prazo médio de entrega</span><strong>${supplier.metrics.average_delivery_days ? `${supplier.metrics.average_delivery_days} dias` : 'Sem histórico'}</strong><small>${supplier.metrics.delivery_status || 'Sem histórico'}</small></div><div><span>Tempo médio de resposta</span><strong>${supplier.metrics.response_label || 'Sem histórico'}</strong></div></div>
+                    <section class="supplier-detail-section"><h3>Produtos e serviços entregues</h3><div class="supplier-history-services"><div>${services}</div></div></section>
+                    <section class="supplier-detail-section"><h3>Conformidade documental</h3><div class="supplier-compliance-progress"><span style="width:${supplier.compliance.score}%"></span></div><p>${supplier.compliance.score}% de conformidade · ${supplier.compliance.approved_documents} de ${supplier.compliance.total_documents} documentos aprovados.</p></section>`;
+                modal.classList.remove('hidden');
+                modal.setAttribute('aria-hidden', 'false');
+            }
+
+            function renderDocuments() {
+                const tableBody = document.getElementById('document-table-body');
+                if (!tableBody) return;
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                tableBody.innerHTML = organizerState.documents.length ? organizerState.documents.map(doc => {
+                    const deadline = new Date(`${doc.deadline}T00:00:00`);
+                    const selectedStatus = String(doc.status || 'pendente').toLowerCase();
+                    const isOverdue = selectedStatus !== 'aprovado' && Number.isFinite(deadline.getTime()) && deadline < today;
+                    const displayStatus = isOverdue ? 'vencido' : selectedStatus;
+                    const label = displayStatus === 'aprovado' ? 'Aprovado' : displayStatus === 'vencido' ? 'Vencido' : displayStatus === 'rejeitado' ? 'Rejeitado' : displayStatus === 'analise' ? 'Em análise' : 'Pendente';
+                    const statusClass = displayStatus === 'aprovado' ? 'status-approved' : displayStatus === 'vencido' || displayStatus === 'rejeitado' ? 'status-critical' : displayStatus === 'analise' ? 'status-analysis' : 'status-pending';
+                    const action = doc.attachmentUrl ? `<a class="btn-secondary small" href="${escapeHtml(doc.attachmentUrl)}" target="_blank" rel="noopener noreferrer">Visualizar</a><button type="button" class="btn-secondary small" data-replace-document="${doc.id}">Substituir</button>` : `<button type="button" class="btn-secondary small" data-attach-document="${doc.id}">Anexar</button>`;
+                    const statusControl = `<select class="checklist-status-select ${statusClass}" data-document-status="${doc.id}" aria-label="Status de ${escapeHtml(doc.name)}"><option value="pendente"${selectedStatus === 'pendente' ? ' selected' : ''}>Pendente</option><option value="analise"${selectedStatus === 'analise' ? ' selected' : ''}>Em análise</option><option value="aprovado"${selectedStatus === 'aprovado' ? ' selected' : ''}>Aprovado</option><option value="rejeitado"${selectedStatus === 'rejeitado' ? ' selected' : ''}>Rejeitado</option></select>`;
+                    return `<tr><td><strong>${escapeHtml(doc.name)}</strong><small class="table-meta">${escapeHtml(doc.category)}</small></td><td>${Number.isFinite(deadline.getTime()) ? deadline.toLocaleDateString('pt-BR') : '—'}</td><td>${statusControl}</td><td><div class="table-actions">${action}<button type="button" class="btn-icon-action" data-edit-document="${doc.id}" aria-label="Editar ${escapeHtml(doc.name)}" title="Editar">✎</button></div></td></tr>`;
+                }).join('') : '<tr><td colspan="4"><p class="empty-state">Nenhuma exigência cadastrada para este evento.</p></td></tr>';
+                tableBody.querySelectorAll('[data-attach-document], [data-replace-document]').forEach(button => button.addEventListener('click', () => openDocumentAttachment(Number(button.dataset.attachDocument || button.dataset.replaceDocument))));
+                tableBody.querySelectorAll('[data-document-status]').forEach(select => select.addEventListener('change', async () => {
+                    const documentItem = organizerState.documents.find(item => String(item.id) === String(select.dataset.documentStatus));
+                    if (!documentItem) return;
+                    const previousStatus = documentItem.status;
+                    documentItem.status = select.value;
+                    if (documentItem.id > 0) {
+                        try {
+                            await fetchJson(`/api/organizador/documentos/${documentItem.id}`, {
+                                method: 'PATCH',
+                                body: JSON.stringify({
+                                    evento_id: organizerState.selectedEventId,
+                                    nome: documentItem.name,
+                                    categoria: documentItem.category,
+                                    prazo: documentItem.deadline,
+                                    status: documentItem.status
+                                })
+                            });
+                        } catch (error) {
+                            documentItem.status = previousStatus;
+                            alert(error.message || 'Não foi possível atualizar o status do documento.');
+                        }
+                    }
+                    saveLocalChecklist(organizerState.selectedEventId);
+                    renderDocuments();
+                    renderChecklistProgress();
+                }));
+                tableBody.querySelectorAll('[data-edit-document]').forEach(button => button.addEventListener('click', () => openDocumentEditor(Number(button.dataset.editDocument))));
+            }
+
+            function renderRunOfShow() {
+                const list = document.getElementById('runofshow-list');
+                if (!list) return;
+                const statusLabels = { pendente: 'Pendente', andamento: 'Em andamento', concluida: 'Concluído' };
+                list.innerHTML = organizerState.tasks.length ? organizerState.tasks.map(task => {
+                    const status = task.status === 'concluida' || task.checked ? 'concluida' : task.status === 'andamento' ? 'andamento' : 'pendente';
+                    return `<div class="timeline-item ${status}"><span class="timeline-marker"></span><span class="time">${escapeHtml(task.time)}</span><span class="task-copy"><strong>${escapeHtml(task.activity)}</strong><small>${escapeHtml(task.responsible)}</small></span><select class="task-status-select" data-task-id="${task.id}" aria-label="Status de ${escapeHtml(task.activity)}"><option value="pendente"${status === 'pendente' ? ' selected' : ''}>Pendente</option><option value="andamento"${status === 'andamento' ? ' selected' : ''}>Em andamento</option><option value="concluida"${status === 'concluida' ? ' selected' : ''}>Concluído</option></select><button type="button" class="btn-icon-action" data-edit-task="${task.id}" aria-label="Editar ${escapeHtml(task.activity)}" title="Editar">✎</button></div>`;
+                }).join('') : '<p class="empty-state">Nenhum marco cadastrado para este evento.</p>';
+                list.querySelectorAll('[data-edit-task]').forEach(button => button.addEventListener('click', () => openTaskEditor(Number(button.dataset.editTask))));
+            }
+
+            function renderChecklistProgress() {
+                const items = [...organizerState.documents.map(document => document.status === 'aprovado'), ...organizerState.tasks.map(task => task.status === 'concluida' || task.checked)];
+                const completed = items.filter(Boolean).length;
+                const total = items.length;
+                const percentage = total ? Math.round((completed / total) * 100) : 0;
+                document.getElementById('checklist-progress-label').textContent = `${percentage}% concluído`;
+                document.getElementById('checklist-progress-detail').textContent = `${completed} de ${total} exigências cumpridas`;
+                document.getElementById('checklist-progress-bar').style.width = `${percentage}%`;
+                const badge = document.getElementById('checklist-progress-badge');
+                badge.textContent = percentage === 100 && total ? 'Evento apto' : percentage >= 70 ? 'Quase pronto' : 'Atenção necessária';
+                badge.className = `badge ${percentage === 100 && total ? 'badge-success' : percentage >= 70 ? 'badge-warning' : 'badge-danger'}`;
+            }
+
+            function renderEventTable() {
+                const tableBody = document.getElementById('eventos-org-table-body');
+                if (!tableBody) return;
+
+                tableBody.innerHTML = organizerState.eventList.length
+                    ? organizerState.eventList.map((event) => `
+                        <tr data-event-id="${event.id}" class="${event.id === organizerState.selectedEventId ? 'is-selected' : ''}">
+                            <td>${event.name}</td>
+                            <td>${event.date ? new Date(event.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
+                            <td>${event.capacity || 0}</td>
+                            <td><span class="status-badge ${statusClass(event.status)}">${event.status || 'publicado'}</span></td>
+                            <td class="event-actions">
+                                <button type="button" class="event-action activate" data-event-action="activate" data-event-id="${event.id}">Ativar</button>
+                                <button type="button" class="event-action edit" data-event-action="edit" data-event-id="${event.id}">Editar</button>
+                            </td>
+                        </tr>
+                    `).join('')
+                    : '<tr><td colspan="5">Nenhum evento cadastrado.</td></tr>';
+
+                tableBody.querySelectorAll('tr[data-event-id]').forEach((row) => {
+                    row.addEventListener('click', () => {
+                        const eventId = Number(row.dataset.eventId);
+                        activateEvent(eventId, false);
+                    });
+                });
+
+                tableBody.querySelectorAll('[data-event-action]').forEach((button) => {
+                    button.addEventListener('click', async (event) => {
+                        event.stopPropagation();
+                        const eventId = Number(button.dataset.eventId);
+                        await activateEvent(eventId, button.dataset.eventAction === 'edit');
+                    });
+                });
+            }
+
+            async function activateEvent(eventId, editForm = false) {
+                if (!organizerState.eventList.some((event) => event.id === eventId)) return;
+                organizerState.selectedEventId = eventId;
+                await loadOrganizerDashboard();
+                const selectedEvent = getSelectedEvent();
+                if (editForm) {
+                    openEventEditor(selectedEvent);
+                    setActivePanel('events');
+                }
+                renderAll();
+            }
+
+            function updateEventImagePreview(image) {
+                const preview = document.getElementById('ev-imagem-preview');
+                const previewImage = document.getElementById('ev-imagem-preview-image');
+                const status = document.getElementById('ev-imagem-status');
+                if (!preview || !previewImage || !status) return;
+                if (!image) {
+                    preview.hidden = true;
+                    previewImage.removeAttribute('src');
+                    status.textContent = '';
+                    return;
+                }
+                previewImage.onerror = () => {
+                    preview.hidden = true;
+                    status.textContent = 'A capa cadastrada não pôde ser carregada';
+                };
+                previewImage.src = image.startsWith('data:') || image.startsWith('/') || image.startsWith('http')
+                    ? image
+                    : `data:image/jpeg;base64,${image}`;
+                status.textContent = 'Capa atual do evento';
+                preview.hidden = false;
+            }
+
+            function updateHorizontalImagePreview(image) {
+                const preview = document.getElementById('ev-imagem-horizontal-preview');
+                const previewImage = document.getElementById('ev-imagem-horizontal-preview-image');
+                const status = document.getElementById('ev-imagem-horizontal-status');
+                if (!preview || !previewImage || !status) return;
+                if (!image) {
+                    preview.hidden = true;
+                    previewImage.removeAttribute('src');
+                    status.textContent = '';
+                    return;
+                }
+                previewImage.onerror = () => {
+                    preview.hidden = true;
+                    status.textContent = 'O banner cadastrado não pôde ser carregado';
+                };
+                previewImage.src = image.startsWith('data:') || image.startsWith('/') || image.startsWith('http')
+                    ? image
+                    : `data:image/jpeg;base64,${image}`;
+                status.textContent = 'Banner horizontal atual';
+                preview.hidden = false;
+            }
+
+            function updateMapImagePreview(image) {
+                const preview = document.getElementById('ev-mapa-preview');
+                const previewImage = document.getElementById('ev-mapa-preview-image');
+                const status = document.getElementById('ev-mapa-status');
+                if (!preview || !previewImage || !status) return;
+                if (!image) {
+                    preview.hidden = true;
+                    previewImage.removeAttribute('src');
+                    status.textContent = '';
+                    return;
+                }
+                previewImage.src = image.startsWith('data:') || image.startsWith('/') || image.startsWith('http')
+                    ? image
+                    : `data:image/jpeg;base64,${image}`;
+                status.textContent = 'Mapa atual do evento';
+                preview.hidden = false;
+            }
+
+            function populateEventForm(event) {
+                if (!event) return;
+
+                const form = document.getElementById('form-novo-evento');
+                form.dataset.eventId = String(event.id);
+                delete form.dataset.saveRequestId;
+                form.dataset.saving = 'false';
+                document.getElementById('btn-salvar-evento').disabled = false;
+                document.getElementById('ev-nome').value = event.name || '';
+                document.getElementById('ev-artista').value = event.artist || '';
+                document.getElementById('ev-descricao').value = event.description || '';
+                document.getElementById('ev-imagem').value = '';
+                updateEventImagePreview(event.image || '');
+                document.getElementById('ev-imagem-horizontal').value = '';
+                updateHorizontalImagePreview(event.horizontalImage || '');
+                document.getElementById('ev-mapa').value = '';
+                updateMapImagePreview(event.mapImage || '');
+                document.getElementById('ev-classificacao').value = event.classification || 'Livre';
+                document.getElementById('ev-status').value = event.status || 'publicado';
+                document.getElementById('ev-data-inicio').value = toLocalInputValue(event.date);
+                document.getElementById('ev-data-fim').value = toLocalInputValue(event.endDate);
+                document.getElementById('ev-capacidade').value = event.capacity || 0;
+                document.getElementById('ev-local').value = event.address || '';
+                document.getElementById('ev-preco-medio').value = event.avgTicket || 0;
+                document.getElementById('ev-destaque').checked = Boolean(event.destaque);
+                buildSectorMarkup(event.setores || []);
+                const message = document.getElementById('event-form-message');
+                if (message) {
+                    message.textContent = `Editando evento: ${event.name}`;
+                    message.classList.remove('success');
+                }
+            }
+
+            function renderAll() {
+                renderEventSelect();
+                renderDemandEventSelect();
+                renderEventTable();
+                renderOverview();
+                renderFinanceTable();
+                renderDemandList();
+                renderSupplierHistory();
+                renderSupplierReview();
+                renderDocuments();
+                renderRunOfShow();
+                renderChecklistProgress();
+            }
+
+            function openModal(modalId) {
+                const modal = document.getElementById(modalId);
+                if (!modal) return;
+                modal.classList.remove('hidden');
+                modal.setAttribute('aria-hidden', 'false');
+            }
+
+            function closeModal(modalId) {
+                const modal = document.getElementById(modalId);
+                if (!modal) return;
+                modal.classList.add('hidden');
+                modal.setAttribute('aria-hidden', 'true');
+                if (modalId === 'event-editor-modal') {
+                    document.getElementById('panel-events')?.classList.remove('event-editor-active');
+                    document.getElementById('btn-voltar-eventos').hidden = true;
+                    document.querySelector('.organizer-main')?.classList.remove('event-editor-active');
+                }
+            }
+
+            function openEventEditor(event = null) {
+                const form = document.getElementById('form-novo-evento');
+                if (!form) return;
+                if (event) {
+                    populateEventForm(event);
+                    document.getElementById('event-editor-title').textContent = `Editar evento: ${event.name}`;
+                } else {
+                    form.reset();
+                    form.removeAttribute('data-event-id');
+                    delete form.dataset.saveRequestId;
+                    form.dataset.saving = 'false';
+                    document.getElementById('btn-salvar-evento').disabled = false;
+                    document.getElementById('ev-imagem').value = '';
+                    document.getElementById('ev-imagem-horizontal').value = '';
+                    updateEventImagePreview('');
+                    updateHorizontalImagePreview('');
+                    buildSectorMarkup([]);
+                    document.getElementById('event-form-message').textContent = 'Preencha os dados do novo evento.';
+                    document.getElementById('event-form-message').classList.remove('success');
+                    document.getElementById('event-editor-title').textContent = 'Novo evento';
+                }
+                document.getElementById('panel-events').classList.add('event-editor-active');
+                document.getElementById('btn-voltar-eventos').hidden = false;
+                document.querySelector('.organizer-main').classList.add('event-editor-active');
+                openModal('event-editor-modal');
+            }
+
+            function openDocumentEditor(documentId) {
+                const documentItem = organizerState.documents.find(item => item.id === documentId);
+                if (!documentItem) return;
+                const form = document.getElementById('document-form');
+                form.dataset.editId = documentId;
+                form.elements.nome.value = documentItem.name;
+                form.elements.categoria.value = documentItem.category;
+                form.elements.prazo.value = documentItem.deadline;
+                form.elements.status.value = documentItem.status === 'vencido' ? 'pendente' : documentItem.status;
+                document.getElementById('document-modal-title').textContent = 'Editar exigência documental';
+                document.getElementById('document-submit-label').textContent = 'Salvar alterações';
+                openModal('document-modal');
+            }
+
+            function openTaskEditor(taskId) {
+                const task = organizerState.tasks.find(item => item.id === taskId);
+                if (!task) return;
+                const form = document.getElementById('task-form');
+                form.dataset.editId = taskId;
+                form.elements.horario.value = task.time;
+                form.elements.atividade.value = task.activity;
+                form.elements.responsavel.value = task.responsible;
+                document.getElementById('task-modal-title').textContent = 'Editar marco do evento';
+                document.getElementById('task-submit-label').textContent = 'Salvar alterações';
+                openModal('task-modal');
+            }
+
+            function resetDocumentForm() {
+                const form = document.getElementById('document-form');
+                form.reset();
+                delete form.dataset.editId;
+                document.getElementById('document-deadline').value = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+                document.getElementById('document-modal-title').textContent = 'Adicionar exigência documental';
+                document.getElementById('document-submit-label').textContent = 'Adicionar exigência';
+            }
+
+            function resetTaskForm() {
+                const form = document.getElementById('task-form');
+                form.reset();
+                delete form.dataset.editId;
+                document.getElementById('task-time').value = '09:00';
+                document.getElementById('task-modal-title').textContent = 'Adicionar marco do evento';
+                document.getElementById('task-submit-label').textContent = 'Adicionar ao cronograma';
+            }
+
+            async function openDocumentAttachment(documentId) {
+                const documentItem = organizerState.documents.find(item => item.id === documentId);
+                if (!documentItem) return;
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.pdf,.png,.jpg,.jpeg,.webp,.txt,.csv,.xlsx';
+                input.addEventListener('change', async () => {
+                    const file = input.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = async () => {
+                        try {
+                            if (documentId > 0) {
+                                await fetchJson(`/api/organizador/documentos/${documentId}/anexo`, {
+                                    method: 'POST',
+                                    body: JSON.stringify({ evento_id: organizerState.selectedEventId, arquivo: { name: file.name, data: reader.result } })
+                                });
+                            }
+                            documentItem.attachmentUrl = String(reader.result);
+                            documentItem.hasAttachment = true;
+                            documentItem.attachmentName = file.name;
+                            saveLocalChecklist(organizerState.selectedEventId);
+                            renderDocuments();
+                        } catch (error) {
+                            if (documentId > 0) alert(error.message || 'Não foi possível anexar o documento.');
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                });
+                input.click();
+            }
+
+            function setActivePanel(panelId) {
+                document.querySelectorAll('.organizer-panel').forEach(panel => panel.classList.toggle('active', panel.id === `panel-${panelId}`));
+                document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.panel === panelId));
+            }
+
+            document.querySelectorAll('.nav-btn').forEach(button => {
+                button.addEventListener('click', () => setActivePanel(button.dataset.panel));
+            });
+
+            document.getElementById('event-select').addEventListener('change', async (event) => {
+                organizerState.selectedEventId = Number(event.target.value);
+                await loadOrganizerDashboard();
+                refreshFinancialSimulation();
+            });
+
+            document.getElementById('demand-event-select').addEventListener('change', async (event) => {
+                organizerState.selectedEventId = Number(event.target.value);
+                organizerState.activeDemandId = null;
+                await loadOrganizerDashboard();
+            });
+
+            document.getElementById('sim-ocupacao').addEventListener('change', () => {
+                refreshFinancialSimulation();
+            });
+
+            document.getElementById('sim-ticket').addEventListener('input', () => {
+                refreshFinancialSimulation();
+            });
+
+            document.getElementById('sim-capacidade').addEventListener('input', () => {
+                refreshFinancialSimulation();
+            });
+
+            let financeResizeFrame = null;
+            window.addEventListener('resize', () => {
+                if (financeResizeFrame !== null) cancelAnimationFrame(financeResizeFrame);
+                financeResizeFrame = requestAnimationFrame(() => {
+                    financeResizeFrame = null;
+                    renderFinancialEngine();
+                });
+            });
+
+            document.getElementById('btn-add-sector').addEventListener('click', addSector);
+            handleFormLotEvents();
+
+            function optimizeEventImage(file, maxWidth, maxHeight) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.addEventListener('error', () => reject(new Error('Não foi possível ler a imagem selecionada.')));
+                    reader.addEventListener('load', () => {
+                        const image = new Image();
+                        image.onload = () => {
+                            const scale = Math.min(1, maxWidth / image.naturalWidth, maxHeight / image.naturalHeight);
+                            const width = Math.max(1, Math.round(image.naturalWidth * scale));
+                            const height = Math.max(1, Math.round(image.naturalHeight * scale));
+                            const canvas = document.createElement('canvas');
+                            canvas.width = width;
+                            canvas.height = height;
+                            const context = canvas.getContext('2d');
+                            if (!context) {
+                                reject(new Error('Não foi possível preparar a imagem para envio.'));
+                                return;
+                            }
+                            context.drawImage(image, 0, 0, width, height);
+                            resolve(canvas.toDataURL('image/jpeg', 0.84));
+                        };
+                        image.onerror = () => reject(new Error('O arquivo selecionado não contém uma imagem válida.'));
+                        image.src = String(reader.result || '');
+                    });
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            document.getElementById('ev-imagem-file').addEventListener('change', async (event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                if (!file.type.startsWith('image/')) {
+                    event.target.value = '';
+                    alert('Selecione um arquivo de imagem válido.');
+                    return;
+                }
+                try {
+                    const image = await optimizeEventImage(file, 1600, 2000);
+                    document.getElementById('ev-imagem').value = image;
+                    document.getElementById('ev-imagem-status').textContent = 'Nova capa selecionada';
+                    updateEventImagePreview(image);
+                } catch (error) {
+                    event.target.value = '';
+                    alert(error.message || 'Não foi possível carregar a imagem selecionada.');
+                }
+            });
+
+            document.getElementById('ev-imagem-horizontal-file').addEventListener('change', async (event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                if (!file.type.startsWith('image/')) {
+                    event.target.value = '';
+                    alert('Selecione um arquivo de imagem horizontal válido.');
+                    return;
+                }
+                try {
+                    const image = await optimizeEventImage(file, 2400, 1000);
+                    document.getElementById('ev-imagem-horizontal').value = image;
+                    updateHorizontalImagePreview(image);
+                } catch (error) {
+                    event.target.value = '';
+                    alert(error.message || 'Não foi possível carregar a imagem horizontal selecionada.');
+                }
+            });
+
+            document.getElementById('ev-mapa-file').addEventListener('change', async (event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                if (!file.type.startsWith('image/')) {
+                    event.target.value = '';
+                    alert('Selecione um arquivo de imagem válido para o mapa.');
+                    return;
+                }
+                try {
+                    const image = await optimizeEventImage(file, 2400, 1800);
+                    document.getElementById('ev-mapa').value = image;
+                    updateMapImagePreview(image);
+                } catch (error) {
+                    event.target.value = '';
+                    alert(error.message || 'Não foi possível carregar o mapa selecionado.');
+                }
+            });
+
+            document.getElementById('btn-abrir-novo-evento').addEventListener('click', () => {
+                openEventEditor();
+            });
+
+            document.getElementById('btn-novo-evento').addEventListener('click', () => {
+                const form = document.getElementById('form-novo-evento');
+                form.reset();
+                form.removeAttribute('data-event-id');
+                document.getElementById('ev-imagem').value = '';
+                updateEventImagePreview('');
+                document.getElementById('ev-imagem-horizontal').value = '';
+                updateHorizontalImagePreview('');
+                document.getElementById('ev-mapa').value = '';
+                updateMapImagePreview('');
+                buildSectorMarkup([]);
+                const message = document.getElementById('event-form-message');
+                message.textContent = 'Pronto para cadastrar um novo evento.';
+                message.classList.remove('success');
+            });
+
+            document.getElementById('form-novo-evento').addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const form = event.currentTarget;
+                const saveButton = document.getElementById('btn-salvar-evento');
+                if (form.dataset.saving === 'true') return;
+                form.dataset.saving = 'true';
+                saveButton.disabled = true;
+                const id = Number(form.dataset.eventId || 0);
+                const requestKey = form.dataset.saveRequestId || (globalThis.crypto?.randomUUID
+                    ? crypto.randomUUID()
+                    : `event-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+                form.dataset.saveRequestId = requestKey;
+                const nome = document.getElementById('ev-nome').value.trim();
+                const artista = document.getElementById('ev-artista').value.trim();
+                const descricao = document.getElementById('ev-descricao').value.trim();
+                const imagem = document.getElementById('ev-imagem').value;
+                const imagemHorizontal = document.getElementById('ev-imagem-horizontal').value;
+                const mapa = document.getElementById('ev-mapa').value;
+                const dataInicio = document.getElementById('ev-data-inicio').value;
+                const dataFim = document.getElementById('ev-data-fim').value;
+                const local = document.getElementById('ev-local').value.trim();
+                const capacidade = Number(document.getElementById('ev-capacidade').value || 0);
+                const price = Number(document.getElementById('ev-preco-medio').value || 120);
+
+                if (!nome || !dataInicio || !dataFim || !local || !capacidade) {
+                    document.getElementById('event-form-message').textContent = 'Preencha todos os campos obrigatórios.';
+                    form.dataset.saving = 'false';
+                    saveButton.disabled = false;
+                    return;
+                }
+
+                const setores = readSectorsFromForm();
+                const sectorCapacity = setores.reduce((sum, sector) => sum + sector.capacidade, 0);
+                if (sectorCapacity > capacidade) {
+                    document.getElementById('event-form-message').textContent = `A lotação dos setores (${sectorCapacity}) excede a lotação total (${capacidade}).`;
+                    form.dataset.saving = 'false';
+                    saveButton.disabled = false;
+                    return;
+                }
+                const lots = setores.flatMap((sector) => sector.lotes.map((lot) => ({
+                    nome: lot.nomeLote,
+                    tipo_ingresso: lot.tipoIngresso,
+                    quantidade: lot.quantidadeTotal,
+                    quantidade_total: lot.quantidadeTotal,
+                    quantidade_meia: lot.quantidadeMeia,
+                    quantidade_inteira: lot.quantidadeInteira,
+                    quantidade_solidaria: lot.quantidadeSolidaria,
+                    preco: lot.precoInteira,
+                    preco_inteira: lot.precoInteira,
+                    preco_meia: lot.precoMeia,
+                    modalidades: lot.modalidades,
+                    regra: lot.regraVirada,
+                    data_inicio: lot.dataInicio,
+                    data_fim: lot.dataFim,
+                    setor_nome: sector.nome,
+                    setor_capacidade: sector.capacidade
+                })));
+
+                try {
+                    const payload = await fetchJson('/api/organizador/eventos', {
+                        method: id ? 'PUT' : 'POST',
+                        headers: { 'Idempotency-Key': requestKey },
+                        body: JSON.stringify({
+                            id: id || undefined,
+                            nome,
+                            artista,
+                            descricao,
+                            local,
+                            data_evento: dataInicio,
+                            data_fim: dataFim,
+                            status: document.getElementById('ev-status').value,
+                            destaque: document.getElementById('ev-destaque').checked,
+                            preco: price,
+                            capacidade,
+                            classificacao: document.getElementById('ev-classificacao').value,
+                            setores,
+                            lotes: lots
+                        })
+                    });
+
+                    const savedEventId = Number(payload.evento_id || id);
+                    form.dataset.eventId = String(savedEventId);
+                    if (imagem) {
+                        await fetchJson(`/api/organizador/eventos/${savedEventId}/imagem`, {
+                            method: 'POST',
+                            body: JSON.stringify({ imagem, tipo: 'capa' })
+                        });
+                    }
+                    if (imagemHorizontal) {
+                        await fetchJson(`/api/organizador/eventos/${savedEventId}/imagem`, {
+                            method: 'POST',
+                            body: JSON.stringify({ imagem: imagemHorizontal, tipo: 'banner' })
+                        });
+                    }
+                    if (mapa) {
+                        await fetchJson(`/api/organizador/eventos/${savedEventId}/imagem`, {
+                            method: 'POST',
+                            body: JSON.stringify({ imagem: mapa, tipo: 'mapa' })
+                        });
+                    }
+
+                    document.getElementById('event-form-message').textContent = payload.message || 'Evento salvo com sucesso.';
+                    document.getElementById('event-form-message').classList.add('success');
+                    delete form.dataset.saveRequestId;
+                    form.dataset.saving = 'false';
+                    saveButton.disabled = false;
+                    form.removeAttribute('data-event-id');
+                    form.reset();
+                    document.getElementById('ev-imagem').value = '';
+                    updateEventImagePreview('');
+                    document.getElementById('ev-imagem-horizontal').value = '';
+                    updateHorizontalImagePreview('');
+                    document.getElementById('ev-mapa').value = '';
+                    updateMapImagePreview('');
+                    buildSectorMarkup([]);
+                    closeModal('event-editor-modal');
+                    await loadEventCatalog();
+                } catch (error) {
+                    document.getElementById('event-form-message').textContent = error.message;
+                    document.getElementById('event-form-message').classList.remove('success');
+                    form.dataset.saving = 'false';
+                    saveButton.disabled = false;
+                }
+            });
+
+            document.getElementById('btn-recarregar-eventos').addEventListener('click', () => {
+                loadEventCatalog().catch((error) => alert(error.message));
+            });
+
+            document.getElementById('btn-add-cost').addEventListener('click', () => {
+                document.getElementById('cost-modal').classList.remove('hidden');
+                document.getElementById('cost-modal').setAttribute('aria-hidden', 'false');
+            });
+
+            document.getElementById('cost-form').addEventListener('submit', async (event) => {
+                event.preventDefault();
+                try {
+                    await fetchJson('/api/organizador/custos', { method: 'POST', body: JSON.stringify({
+                        evento_id: organizerState.selectedEventId,
+                        categoria: document.getElementById('cost-category').value,
+                        nome_item: document.getElementById('cost-name').value.trim(),
+                        custo_estimado: Number(document.getElementById('cost-estimated').value || 0)
+                    }) });
+                    document.getElementById('cost-modal').classList.add('hidden');
+                    document.getElementById('cost-modal').setAttribute('aria-hidden', 'true');
+                    event.target.reset();
+                    await loadOrganizerDashboard();
+                } catch (error) { alert(error.message || 'Não foi possível salvar o item de custo.'); }
+            });
+
+            document.getElementById('cost-table-body').addEventListener('click', (event) => {
+                const button = event.target.closest('.request-quote-btn');
+                if (!button) return;
+                const itemId = Number(button.dataset.itemId);
+                const item = organizerState.costItems.find(entry => entry.id === itemId);
+                if (!item) return;
+                document.getElementById('quote-title').value = item.item;
+                document.getElementById('quote-description').value = `Solicitação para ${item.category}: ${item.item}.`;
+                document.getElementById('quote-deadline').value = new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10);
+                document.getElementById('quote-value').value = item.contracted || item.estimated;
+                document.getElementById('quote-modal').classList.remove('hidden');
+                document.getElementById('quote-modal').setAttribute('aria-hidden', 'false');
+                document.getElementById('quote-form').dataset.itemId = String(itemId);
+            });
+
+            document.getElementById('quote-form').addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const itemId = Number(document.getElementById('quote-form').dataset.itemId || 0);
+                const title = document.getElementById('quote-title').value.trim();
+                const description = document.getElementById('quote-description').value.trim();
+                const deadline = document.getElementById('quote-deadline').value;
+                const value = Number(document.getElementById('quote-value').value || 0);
+
+                try {
+                    const payload = await fetchJson('/api/organizador/cotacoes', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            evento_id: organizerState.selectedEventId,
+                            item_id: itemId,
+                            titulo: title,
+                            servico: 'Solicitação',
+                            escopo: description,
+                            prazo: deadline,
+                            valor_estimado: value
+                        })
+                    });
+
+                    if (payload.demanda_id) {
+                        organizerState.activeDemandId = Number(payload.demanda_id);
+                    }
+                    document.getElementById('quote-modal').classList.add('hidden');
+                    document.getElementById('quote-modal').setAttribute('aria-hidden', 'true');
+                    document.getElementById('quote-form').reset();
+                    await loadOrganizerDashboard();
+                } catch (error) {
+                    console.error('Erro ao salvar cotação:', error);
+                    alert(error.message || 'Não foi possível registrar a cotação.');
+                }
+            });
+
+            document.getElementById('demand-list').addEventListener('click', (event) => {
+                const target = event.target.closest('.demand-item');
+                if (!target) return;
+                organizerState.activeDemandId = Number(target.dataset.demandId);
+                renderDemandList();
+            });
+
+            document.getElementById('supplier-review-panel')?.addEventListener('click', async (event) => {
+                const button = event.target.closest('[data-review-document]');
+                if (!button) return;
+                const documentId = Number(button.dataset.reviewDocument);
+                const reviewStatus = button.dataset.reviewStatus;
+                const reason = reviewStatus === 'recusado' ? window.prompt('Descreva o motivo da recusa:')?.trim() : '';
+                if (reviewStatus === 'recusado' && !reason) return;
+                const password = window.prompt('Digite sua senha de login para revisar este documento:');
+                if (!password) return;
+                try {
+                    await fetchJson(`/api/organizador/fornecedor-documentos/${documentId}`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ status: reviewStatus, motivo_recusa: reason, password })
+                    });
+                    const reviewed = organizerState.supplierDocuments.find(document => document.id === documentId);
+                    if (reviewed) {
+                        reviewed.status = reviewStatus;
+                        reviewed.motivo_recusa = reason || null;
+                    }
+                    renderSupplierReview();
+                } catch (error) {
+                    alert(error.message || 'Não foi possível revisar o documento.');
+                }
+            });
+
+            document.getElementById('supplier-review-panel')?.addEventListener('click', async (event) => {
+                const button = event.target.closest('[data-homologate-company]');
+                if (!button) return;
+                const password = window.prompt('Digite sua senha de login para alterar a homologação definitiva:');
+                if (!password) return;
+                try {
+                    await fetchJson(`/api/organizador/fornecedor-empresas/${button.dataset.homologateCompany}/homologacao`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ status: button.dataset.homologationStatus, password })
+                    });
+                    await loadOrganizerDashboard();
+                } catch (error) {
+                    alert(error.message || 'Não foi possível atualizar a homologação.');
+                }
+            });
+
+            document.getElementById('btn-provider-dossier')?.addEventListener('click', () => {
+                const lines = [
+                    'DOSSIÊ DE FORNECEDORES — TROCATICKET',
+                    `Evento: ${document.getElementById('active-event-name').textContent}`,
+                    `Gerado em: ${new Date().toLocaleString('pt-BR')}`,
+                    '',
+                    ...organizerState.demands.flatMap(demand => [
+                        `${demand.title} | ${demand.service} | ${demand.status}`,
+                        `Escopo: ${demand.scope || 'Não informado'}`,
+                        ...demand.proposals.map(proposal => `- ${proposal.company}: ${formatCurrency(proposal.value)} | ${proposal.status} | Anexos: ${proposal.files.join(', ') || 'Nenhum'}`),
+                        ''
+                    ])
+                ];
+                const url = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' }));
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'dossie-fornecedores-trocaticket.txt';
+                link.click();
+                URL.revokeObjectURL(url);
+            });
+
+            document.getElementById('chat-form').addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const input = document.getElementById('chat-input');
+                const text = input.value.trim();
+                if (!text) return;
+                const demand = organizerState.demands.find(item => item.id === organizerState.activeChatDemandId);
+                if (!demand) return;
+
+                try {
+                    await fetchJson(`/api/organizador/demandas/${demand.id}/mensagens`, {
+                        method: 'POST',
+                        body: JSON.stringify({ texto: text, remetente: 'organizador' })
+                    });
+                    input.value = '';
+                    await loadOrganizerDashboard();
+                    const updatedDemand = organizerState.demands.find(item => item.id === organizerState.activeChatDemandId);
+                    const messages = document.getElementById('chat-messages');
+                    messages.innerHTML = (updatedDemand?.messages || []).map(message => `
+                        <div class="chat-message ${message.sender === 'organizador' ? 'outgoing' : 'incoming'}">
+                            <p>${message.text}</p>
+                        </div>
+                    `).join('');
+                    messages.scrollTop = messages.scrollHeight;
+                } catch (error) {
+                    alert(error.message || 'Não foi possível enviar a mensagem.');
+                }
+            });
+
+            document.addEventListener('click', (event) => {
+                const button = event.target.closest('[data-close]');
+                if (!button) return;
+                event.preventDefault();
+                event.stopPropagation();
+                closeModal(button.dataset.close);
+            }, true);
+
+            document.getElementById('runofshow-list').addEventListener('change', async (event) => {
+                if (!event.target.matches('.task-status-select')) return;
+                const select = event.target;
+                const taskId = Number(select.dataset.taskId);
+                const status = select.value;
+                try {
+                    if (taskId > 0) {
+                        await fetchJson(`/api/organizador/tarefas/${taskId}/status`, {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                evento_id: organizerState.selectedEventId,
+                                status,
+                                concluida: status === 'concluida'
+                            })
+                        });
+                    }
+                    const task = organizerState.tasks.find(item => item.id === taskId);
+                    if (task) {
+                        task.status = status;
+                        task.checked = status === 'concluida';
+                    }
+                    saveLocalChecklist(organizerState.selectedEventId);
+                    renderRunOfShow();
+                    renderChecklistProgress();
+                } catch (error) {
+                    alert(error.message || 'Não foi possível atualizar a tarefa.');
+                }
+            });
+
+            document.getElementById('btn-add-document').addEventListener('click', () => {
+                resetDocumentForm();
+                openModal('document-modal');
+            });
+
+            document.getElementById('document-form').addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const form = new FormData(event.currentTarget);
+                const formElement = event.currentTarget;
+                const editId = Number(formElement.dataset.editId);
+                const documentItem = organizerState.documents.find(item => item.id === editId);
+                try {
+                    const payload = { evento_id: organizerState.selectedEventId, nome: form.get('nome'), categoria: form.get('categoria'), prazo: form.get('prazo'), status: form.get('status') };
+                    if (documentItem) {
+                        if (editId > 0) await fetchJson(`/api/organizador/documentos/${editId}`, { method: 'PATCH', body: JSON.stringify(payload) });
+                        Object.assign(documentItem, { name: payload.nome, category: payload.categoria || 'Geral', deadline: payload.prazo, status: payload.status });
+                    } else {
+                        await fetchJson('/api/organizador/documentos', { method: 'POST', body: JSON.stringify(payload) });
+                    }
+                    saveLocalChecklist(organizerState.selectedEventId);
+                    closeModal('document-modal');
+                    resetDocumentForm();
+                    await loadOrganizerDashboard();
+                } catch (error) {
+                    if (documentItem) Object.assign(documentItem, { name: form.get('nome'), category: form.get('categoria') || 'Geral', deadline: form.get('prazo'), status: form.get('status') });
+                    else organizerState.documents.push(normalizeDocument({ id: -(Date.now()), nome: form.get('nome'), categoria: form.get('categoria'), prazo: form.get('prazo'), status: form.get('status') }));
+                    saveLocalChecklist(organizerState.selectedEventId);
+                    closeModal('document-modal');
+                    resetDocumentForm();
+                    renderAll();
+                }
+            });
+
+            document.getElementById('btn-add-task').addEventListener('click', () => {
+                resetTaskForm();
+                openModal('task-modal');
+            });
+
+            document.getElementById('task-form').addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const form = new FormData(event.currentTarget);
+                const formElement = event.currentTarget;
+                const editId = Number(formElement.dataset.editId);
+                const task = organizerState.tasks.find(item => item.id === editId);
+                try {
+                    const payload = { evento_id: organizerState.selectedEventId, horario: form.get('horario'), atividade: form.get('atividade'), responsavel: form.get('responsavel') };
+                    if (task) {
+                        if (editId > 0) await fetchJson(`/api/organizador/tarefas/${editId}`, { method: 'PATCH', body: JSON.stringify(payload) });
+                        Object.assign(task, { time: payload.horario, activity: payload.atividade, responsible: payload.responsavel });
+                    } else await fetchJson('/api/organizador/tarefas', { method: 'POST', body: JSON.stringify(payload) });
+                    saveLocalChecklist(organizerState.selectedEventId);
+                    closeModal('task-modal');
+                    resetTaskForm();
+                    await loadOrganizerDashboard();
+                } catch (error) {
+                    if (task) Object.assign(task, { time: form.get('horario'), activity: form.get('atividade'), responsible: form.get('responsavel') });
+                    else organizerState.tasks.push(normalizeTask({ id: -(Date.now()), horario: form.get('horario'), atividade: form.get('atividade'), responsavel: form.get('responsavel'), status: 'pendente' }));
+                    saveLocalChecklist(organizerState.selectedEventId);
+                    closeModal('task-modal');
+                    resetTaskForm();
+                    renderAll();
+                }
+            });
+
+            if (document.getElementById('event-select')) {
+                buildSectorMarkup([]);
+                loadEventCatalog().catch((error) => {
+                    console.error('Erro ao carregar o dashboard do organizador:', error);
+                    alert(error.message || 'Não foi possível carregar o painel do organizador.');
+                });
+                setInterval(() => {
+                    if (organizerState.selectedEventId) {
+                        renderOverview();
+                    }
+                    updateOrganizerChatUnread();
+                }, 1000);
+            }
+        });
+    </script>
+</body>
+</html>

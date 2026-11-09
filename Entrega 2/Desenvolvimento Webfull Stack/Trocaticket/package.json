@@ -1,0 +1,23 @@
+{
+  "name": "trocaticket-server",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "dev": "node --watch --watch-preserve-output server.js",
+    "start": "node server.js",
+    "test": "node --test resale-calculations.test.js event-images.test.js event-edit-image-preservation.test.js resale-route-updates.test.js resale-ticket-policy.test.js armazenamento.test.js auth-fetch.test.js checkout.test.js auth-guards.test.js auth-route-guards.test.js",
+    "db:setup": "node scripts/db-setup.js",
+    "db:migrate-revenda": "node scripts/migrate-revenda-index.js"
+  },
+  "dependencies": {
+    "@vercel/blob": "^2.8.2",
+    "@vercel/functions": "^3.11.0",
+    "bcrypt": "^6.0.0",
+    "dotenv": "^17.4.2",
+    "jsonwebtoken": "^9.0.3",
+    "mssql": "^12.7.2",
+    "multer": "^2.3.0",
+    "nodemailer": "^6.10.1",
+    "qrcode": "^1.5.4"
+  }
+}

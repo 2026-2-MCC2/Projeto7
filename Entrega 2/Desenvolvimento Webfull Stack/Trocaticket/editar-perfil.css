@@ -1,0 +1,159 @@
+/* ===== TELA EDITAR PERFIL ===== */
+.edit-profile-page {
+  min-height: 100vh;
+  margin: 0;
+  background: #1d1e23;
+  color: #f4f4f5;
+}
+
+.edit-profile-shell {
+  width: min(500px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 24px 0 44px;
+}
+
+.edit-profile-shell h1 {
+  margin: 0 0 16px;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+}
+
+.edit-avatar {
+  position: relative;
+  width: 90px;
+  height: 90px;
+  margin: 0 auto 20px;
+  border: 3px solid #292a30;
+  border-radius: 50%;
+  background: #15161a;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+.edit-avatar label {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+}
+
+.edit-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.avatar-badge {
+  position: absolute;
+  bottom: 0;
+  inset-inline: 0;
+  height: 26px;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.edit-avatar:hover .avatar-badge {
+  opacity: 1;
+}
+
+.edit-profile-shell form {
+  display: grid;
+  gap: 14px;
+}
+
+.readonly-grid,
+.editable-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.edit-profile-shell label {
+  display: grid;
+  gap: 5px;
+  color: #c9cbd2;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.edit-profile-shell input,
+.edit-profile-shell select {
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border: 1.5px solid #3c3d43;
+  border-radius: 10px;
+  background: #303137;
+  color: #f4f4f5;
+  font: inherit;
+  font-size: 14px;
+  outline: 0;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.edit-profile-shell input[readonly] {
+  background: #25262c;
+  color: #8f919b;
+  border-color: #34353c;
+  cursor: not-allowed;
+}
+
+.edit-profile-shell input:focus,
+.edit-profile-shell select:focus {
+  border-color: #7186d0;
+  box-shadow: 0 0 0 2px rgba(113, 134, 208, 0.2);
+}
+
+.edit-profile-shell #edit-profile-message {
+  min-height: 16px;
+  margin: 0;
+  font-size: 13px;
+  text-align: center;
+  color: #dba0a0;
+}
+
+.edit-profile-shell #edit-profile-message.success {
+  color: #4ade80;
+}
+
+.edit-profile-save {
+  min-height: 44px;
+  border: 0;
+  border-radius: 10px;
+  background: #7186d0;
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.edit-profile-save:hover {
+  background: #5d74c4;
+}
+
+@media (max-width: 560px) {
+  .edit-profile-shell {
+    width: min(100% - 24px, 500px);
+    padding-top: 16px;
+  }
+  .readonly-grid,
+  .editable-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Entenda como funciona a revenda oficial de ingressos TrocaTicket.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="como-funciona-a-revenda.css">
+  <title>Como funciona a revenda | TrocaTicket</title>
+</head>
+<body class="resale-guide-body">
+  <header class="site-header guide-header">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="imagens/logo troca ticket.png" alt="TrocaTicket">
+      <span>Troca<span class="brand-accent">Ticket</span></span>
+    </a>
+    <button class="button button-outline guide-back" type="button" aria-label="Voltar para a página anterior">Voltar</button>
+  </header>
+
+  <main class="guide-main">
+    <section class="guide-intro">
+      <p class="guide-eyebrow">TrocaTicket · transparência</p>
+      <h1>Recupere parte do valor do seu ingresso, com segurança</h1>
+      <p class="guide-lead">A revenda oficial conecta quem precisa repassar um ingresso válido a quem quer comprar com autenticidade, preço justo e titularidade protegida.</p>
+      <div class="guide-summary" aria-label="Resumo da revenda">
+        <div><strong>Preço fixo</strong><span>O valor fica travado no lote original.</span></div>
+        <div><strong>Prioridades de comum a premium</strong><span>Você escolhe a taxa que define sua posição na fila.</span></div>
+        <div><strong>Transação segura e protegida</strong><span>O ingresso antigo é revogado e um novo é emitido para o comprador.</span></div>
+      </div>
+    </section>
+
+    <section class="guide-section" id="como-vender">
+      <p class="guide-eyebrow">O fluxo</p>
+      <h2>Como vender seu ingresso</h2>
+      <ol class="guide-steps">
+        <li><div><strong>Anuncie na aba de revenda</strong><p>Selecione um ingresso válido da TrocaTicket ou de uma bilheteria parceira, cadastrado no evento.</p></div></li>
+        <li><div><strong>Escolha a taxa de prioridade</strong><p>Opte por Comum (2%), Básica (5%) ou Premium (8%). A escolha é obrigatória.</p></div></li>
+        <li><div><strong>O ingresso entra na fila</strong><p>A ordem considera primeiro a maior taxa, depois o menor preço e, por fim, quem anunciou antes.</p></div></li>
+        <li><div><strong>A venda é concluída</strong><p>O comprador recebe o próximo ingresso da fila. O ingresso anterior é revogado e outro é emitido com os dados do comprador.</p></div></li>
+        <li><div><strong>Receba após o evento</strong><p>O valor líquido fica retido até o check-in e 24 horas após o encerramento do evento.</p></div></li>
+      </ol>
+    </section>
+
+    <section class="guide-section" id="simulador">
+      <p class="guide-eyebrow">Transparência</p>
+      <h2>Quanto você recebe e onde fica na fila</h2>
+      <div class="fee-list">
+        <div><strong>Comum</strong><span>2%</span><small>Posição base</small></div>
+        <div><strong>Básica</strong><span>5%</span><small>Prioridade intermediária</small></div>
+        <div class="premium"><strong>Premium</strong><span>8%</span><small>Topo da fila</small></div>
+      </div>
+      <p class="guide-note">A taxa de prioridade incide sobre o valor do lote. A taxa de administração paga na compra é devolvida integralmente ao vendedor quando o ingresso é vendido, junto com o saldo. Em caso de empate, a fila considera o menor preço do ingresso e depois o horário do anúncio.</p>
+      <div class="simulator">
+        <div class="simulator-controls">
+          <fieldset><legend>Lote</legend><div class="segmented" data-group="lot"><button type="button" data-value="1" aria-pressed="false">1º lote <span>R$ 120,00</span></button><button type="button" data-value="2" aria-pressed="true">2º lote <span>R$ 150,00</span></button><button type="button" data-value="3" aria-pressed="false">3º lote <span>R$ 180,00</span></button></div></fieldset>
+          <fieldset><legend>Taxa de prioridade</legend><div class="segmented" data-group="fee"><button type="button" data-value="2" aria-pressed="false">Comum <span>2%</span></button><button type="button" data-value="5" aria-pressed="true">Básica <span>5%</span></button><button type="button" data-value="8" aria-pressed="false">Premium <span>8%</span></button></div></fieldset>
+        </div>
+        <div class="simulator-result" aria-live="polite">
+          <div class="result-grid"><div><small>Preço do lote</small><strong id="sim-price">R$ 150,00</strong></div><div><small>Taxa de prioridade (sobre o lote)</small><strong id="sim-fee">R$ 7,50</strong></div><div><small>Taxa de administração devolvida</small><strong id="sim-admin-fee">R$ 22,50</strong></div><div><small>Total que você recebe</small><strong id="sim-net">R$ 165,00</strong></div><div><small>Sua posição</small><strong id="sim-position">6º entre 10 anúncios em Pista Premium (modalidade inteira)</strong></div></div>
+          <p class="queue-notice">Novos anúncios com prioridade maior podem passar à frente do seu.</p>
+          <p class="simulator-caption">Simulação com uma fila de exemplo de 10 anúncios. Os dados são ilustrativos e não fazem chamadas ao backend.</p>
+          <div id="sim-queue" class="sim-queue"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="guide-section">
+      <p class="guide-eyebrow">Repasse protegido</p>
+      <h2>Quando o dinheiro chega</h2>
+      <div class="timeline">
+        <div><b>01</b><strong>Venda concluída</strong><span>O valor do lote, a taxa de prioridade e a devolução integral da taxa de administração entram na carteira como saldo retido.</span></div>
+        <div><b>02</b><strong>Evento realizado</strong><span>O check-in do comprador confirma o uso válido do ingresso.</span></div>
+        <div><b>03</b><strong>Saldo liberado por PIX de mesma titularidade</strong><span>Após 24 horas do encerramento, o saque é liberado para uma chave PIX compatível.</span></div>
+      </div>
+    </section>
+
+    <section class="guide-section faq-section">
+      <p class="guide-eyebrow">Dúvidas frequentes</p>
+      <h2>Perguntas frequentes</h2>
+      <details><summary>Quem pode anunciar um ingresso?</summary><p>Quem possui um ingresso válido da TrocaTicket ou de uma bilheteria parceira, cadastrado no evento e apto para transferência.</p></details>
+      <details><summary>Posso escolher o preço do anúncio?</summary><p>Não. O preço é travado no valor original pago pelo lote, sem ágio ou especulação.</p></details>
+      <details><summary>O comprador recebe o meu ingresso?</summary><p>O próximo ingresso da fila é consumido. O ingresso antigo é revogado e um novo ingresso, com UUID e dados exclusivos do comprador, é emitido na conta dele. A modalidade também é preservada: meia-entrada continua sendo meia-entrada, inteira continua sendo inteira e assim por diante.</p></details>
+      <details><summary>Por que o saldo não fica disponível imediatamente?</summary><p>O valor fica retido até o check-in do comprador e 24 horas após o encerramento do evento, reduzindo riscos de fraude e chargeback.</p></details>
+      <details><summary>A taxa de administração que paguei na compra é devolvida?</summary><p>Sim. Ela é devolvida integralmente junto com o saldo quando o ingresso for vendido. <!-- TODO: definir a regra para ingressos de bilheteria parceira, cuja taxa foi paga ao parceiro. --></p></details>
+      <details><summary>Posso ver minha posição na fila?</summary><p>Sim. Você vê sua posição e o total de anúncios no seu setor e modalidade. A posição pode mudar quando entram anúncios com prioridade maior.</p></details>
+      <details><summary>Posso aumentar minha prioridade depois de anunciar?</summary><p>Sim. A diferença entre a prioridade anterior e a nova só é cobrada do repasse se o ingresso for vendido.</p></details>
+    </section>
+
+    <section class="guide-help">
+      <p class="guide-eyebrow">Precisa de mais ajuda?</p>
+      <h2>Para mais dúvidas, consulte a nossa central de ajuda</h2>
+      <a class="guide-button secondary" href="info/ajuda.html">Consultar central de ajuda</a>
+    </section>
+
+    <section class="guide-final">
+      <p class="guide-eyebrow">Pronto para começar?</p>
+      <h2>Anuncie seu ingresso com segurança.</h2>
+      <a class="guide-button primary" href="revenda/anunciar">Anunciar meu ingresso <span>↗</span></a>
+    </section>
+  </main>
+  <script src="como-funciona-a-revenda.js" defer></script>
+</body>
+</html>
