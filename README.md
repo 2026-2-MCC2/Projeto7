@@ -46,6 +46,38 @@ setor e modalidade, ele não pode comprar outro ingresso dessa combinação. Ess
 regra evita que o vendedor compre o próprio anúncio e responde `409`; ela não
 faz a compra cair no lote primário.
 
+## Segurança e autorização
+
+As sessões usam um token assinado pelo servidor, com validade de 12 horas. As
+rotas protegidas verificam a assinatura, a expiração e o usuário atual no banco;
+quando a rota depende de titularidade, o e-mail informado é comparado com o
+e-mail atual desse usuário no banco, e não apenas com um valor antigo do token.
+O navegador envia a sessão somente no cabeçalho `Authorization: Bearer`; não
+há autenticação por cookie.
+
+As rotas públicas de propósito são:
+
+- login, cadastro e verificação de código;
+- `GET /api/events`, `GET /api/events/:id` e `GET /api/events/:id/imagem`;
+- `GET /api/revenda/fila`;
+- `GET /transferencia/aceitar` e `GET /api/ingressos/confirmar-transferencia`.
+
+Os papéis usados pelo servidor são:
+
+- `comum`: perfil, cartões, ingressos, compra e ações próprias de revenda;
+- `organizador`: painel de eventos, demandas, cotações, documentos e chat de
+  organização;
+- `fornecedor`: perfil da empresa, documentos, oportunidades, propostas e chat
+  de fornecedor;
+- `bilheteria`: validação, check-in e operações de ingressos;
+- `admin`: administração de usuários, eventos, revenda, estatísticas, logs e
+  operações administrativas.
+
+O servidor confere o papel e o status ativo antes das operações protegidas.
+Rotas de usuário exigem que o recurso pertença ao usuário da sessão. As
+operações administrativas e operacionais não devem usar identidade enviada
+somente pelo navegador.
+
 ## Estrutura
 
 ```text
@@ -110,6 +142,21 @@ Domains**.
   documentada apenas no comentário do topo desse arquivo.
 - `db:setup` recusa tabelas existentes e, no Azure, não roda o seed por padrão.
 - `dbo.cancelamentos` é opcional e só é consultada pelo servidor se existir.
+- Não há limite de tentativas de login ou de verificação de código.
+- Ainda não há verificação de vínculo entre organizador e evento; um organizador
+  autenticado pode editar o evento de outro organizador.
+- O hash de cartão é SHA-256 combinado com o id do usuário; use somente cartões
+  de teste, nunca dados reais.
+- Anexos e documentos enviados ao Blob usam URL pública.
+- Arquivos já emitidos como Google Wallet ou download offline não são revogados
+  automaticamente quando o ingresso entra em revenda.
+- A sessão expira em 12 horas.
+- O painel de administração altera tipo e status por caixas de diálogo e aceita
+  somente as palavras exatas (`admin`, `comum`, `organizador`, `fornecedor`,
+  `bilheteria`, `ativa` ou `suspensa`).
+- `GET /api/usuario/meus-ingressos` ainda compara o e-mail solicitado com o
+  claim do token; a conferência com o e-mail atual do banco deve ser endurecida
+  em uma etapa futura.
 
 ## Documentação legada
 
