@@ -5,160 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login | TrocaTicket</title>
     <link rel="stylesheet" href="../style.css">
-    <style>
-        body {
-            background-color: #0c0e14;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            margin: 0;
-            font-family: 'Manrope', sans-serif;
-            color: #fff;
-        }
-        .login-page-container {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 40px 20px;
-        }
-        .login-card {
-            background: transparent;
-            width: 100%;
-            max-width: 460px;
-            text-align: center;
-        }
-        .divider-container {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 26px;
-        }
-        .divider-line {
-            flex: 1;
-            height: 1px;
-            background: #272c40;
-        }
-        .divider-text {
-            color: #8c92a0;
-            font-size: 13px;
-            font-weight: 700;
-            letter-spacing: 0.05em;
-        }
-        .input-group {
-            position: relative;
-            margin-bottom: 14px;
-        }
-        .input-control {
-            width: 100%;
-            height: 54px;
-            background: #eef2fa;
-            border: 1.5px solid transparent;
-            border-radius: 8px;
-            padding: 0 16px;
-            font-size: 15px;
-            color: #182035;
-            outline: none;
-            box-sizing: border-box;
-            transition: all 0.2s ease;
-        }
-        .input-control:focus {
-            background: #fff;
-            border-color: #27b7ff;
-            box-shadow: 0 0 0 3px rgba(39, 183, 255, 0.15);
-        }
-        .btn-toggle-eye {
-            position: absolute;
-            top: 50%;
-            right: 14px;
-            transform: translateY(-50%);
-            background: transparent;
-            border: none;
-            color: #798196;
-            cursor: pointer;
-            padding: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .btn-toggle-eye:hover {
-            color: #27b7ff;
-        }
-        .forgot-row {
-            text-align: right;
-            margin: 4px 0 20px 0;
-        }
-        .forgot-link {
-            color: #e08b16;
-            font-size: 13px;
-            font-weight: 700;
-            text-decoration: none;
-        }
-        .forgot-link:hover {
-            text-decoration: underline;
-        }
-        .login-error-msg {
-            color: #ff4757;
-            font-size: 13px;
-            margin-bottom: 16px;
-            min-height: 18px;
-            display: none;
-        }
-        .btn-login-submit {
-            width: 100%;
-            height: 52px;
-            background: linear-gradient(95deg, #1890ff, #5956e9);
-            border: none;
-            border-radius: 8px;
-            color: #fff;
-            font-size: 15px;
-            font-weight: 800;
-            letter-spacing: 0.05em;
-            cursor: pointer;
-            transition: opacity 0.2s ease;
-        }
-        .btn-login-submit:hover {
-            opacity: 0.9;
-        }
-        .btn-register-link {
-            width: 100%;
-            height: 52px;
-            margin-top: 12px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 8px;
-            border: 1.5px solid #2b3144;
-            background: rgba(255, 255, 255, 0.02);
-            color: #fff;
-            font-size: 15px;
-            font-weight: 800;
-            letter-spacing: 0.05em;
-            text-decoration: none;
-            transition: all 0.2s ease;
-            box-sizing: border-box;
-        }
-        .btn-register-link:hover {
-            border-color: #27b7ff;
-            color: #27b7ff;
-            background: rgba(39, 183, 255, 0.08);
-        }
-        .register-footer {
-            margin-top: 30px;
-            font-size: 13px;
-            color: #8c92a0;
-        }
-        .register-footer a {
-            color: #e08b16;
-            font-weight: 800;
-            text-decoration: none;
-        }
-        .register-footer a:hover {
-            text-decoration: underline;
-        }
-    </style>
+    <link rel="stylesheet" href="../pages.css">
 </head>
-<body>
+<body class="auth-login-page">
     <header class="site-header">
         <a class="brand" href="../index.html">
             <img class="brand-logo" src="../imagens/logo troca ticket.png" alt="TrocaTicket">
@@ -185,12 +34,13 @@
                         <svg class="eye-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"></path>
                             <circle cx="12" cy="12" r="3"></circle>
+                            <path class="eye-slash" d="m3 3 18 18"></path>
                         </svg>
                     </button>
                 </div>
 
                 <div class="forgot-row">
-                    <a href="#" class="forgot-link">Esqueci minha senha</a>
+                    <a href="recuperar-senha.html" class="forgot-link">Esqueci minha senha</a>
                 </div>
 
                 <div class="login-error-msg" id="login-error-msg"></div>
@@ -220,6 +70,8 @@
             togglePasswordBtn.addEventListener('click', () => {
                 const isPassword = senhaInput.getAttribute('type') === 'password';
                 senhaInput.setAttribute('type', isPassword ? 'text' : 'password');
+                togglePasswordBtn.classList.toggle('is-visible', isPassword);
+                togglePasswordBtn.setAttribute('aria-label', isPassword ? 'Ocultar senha' : 'Mostrar senha');
             });
 
             form.addEventListener('submit', async (e) => {

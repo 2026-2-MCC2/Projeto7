@@ -13,7 +13,9 @@
     <section class="event-hero" aria-label="Capa do evento">
       <img id="event-cover" class="event-cover" src="../imagens/logo troca ticket.png" alt="">
       <div class="event-hero-shade"></div>
-      <a class="event-back" href="../index.html#eventos" aria-label="Voltar para eventos">&#8592;</a>
+      <a class="event-back" href="../index.html#eventos" aria-label="Voltar para eventos">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"></path></svg>
+      </a>
       <div class="event-quick-actions">
         <button type="button" class="event-icon-button" id="event-share" aria-label="Compartilhar evento" title="Compartilhar evento">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M5 13v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6"/></svg>
@@ -33,9 +35,9 @@
         </div>
         <img class="venue-logo" src="../imagens/logo troca ticket.png" alt="Logo do estabelecimento">
         <div class="event-info-main">
-          <div class="event-info-row"><span class="event-info-icon">&#128197;</span><span id="event-date">Data a confirmar</span></div>
-          <div class="event-info-row"><span class="event-info-icon">&#128336;</span><span id="event-time">Abertura da casa a confirmar</span></div>
-          <button type="button" class="calendar-link" id="event-calendar">Adicionar ao calendário <span aria-hidden="true">+</span></button>
+          <div class="event-info-row"><span class="event-info-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M8 3v4M16 3v4M4 10h16"></path></svg></span><span id="event-date">Data a confirmar</span></div>
+          <div class="event-info-row"><span class="event-info-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><path d="M12 7v5l3 2"></path></svg></span><span id="event-time">Abertura da casa a confirmar</span></div>
+          <button type="button" class="calendar-link" id="event-calendar">Adicionar ao calendário</button>
         </div>
         <div class="venue-details"><strong id="event-venue">Local a confirmar</strong><span id="event-address">Endereço a confirmar</span></div>
       </section>

@@ -139,6 +139,33 @@ document.addEventListener('DOMContentLoaded', () => {
     return parsed.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).toUpperCase();
   }
 
+  function formatCurrency(value) {
+    const price = Number(value);
+    return Number.isFinite(price) && price > 0
+      ? price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+      : '';
+  }
+
+  function getCheapestEventPrice(event) {
+    const prices = [];
+    const lots = Array.isArray(event.lots) ? event.lots : [];
+
+    lots.forEach(lot => {
+      if (Number(lot.available || 0) > 0 && Number(lot.price) > 0) {
+        prices.push(Number(lot.price));
+      }
+
+      (Array.isArray(lot.modalities) ? lot.modalities : []).forEach(modality => {
+        const price = Number(modality.preco || modality.price || 0);
+        const available = Number(modality.quantidade || modality.quantity || 0);
+        const modalityName = String(modality.nome || modality.name || '').toLowerCase();
+        if (available > 0 && price > 0 && !modalityName.includes('meia')) prices.push(price);
+      });
+    });
+
+    return prices.length ? Math.min(...prices) : Number(event.price || 0);
+  }
+
   function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, character => ({
       '&': '&amp;',
@@ -174,10 +201,10 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="carousel-slide" data-id="${ev.id}">
             <img src="${resolveEventImage(ev)}" alt="${escapeHtml(ev.name || 'Evento')}">
             <div class="carousel-slide-content">
-              <div style="margin-top: 24px;">
+              <div class="carousel-slide-copy">
                 <h3>${ev.name || 'Evento'}</h3>
-                ${ev.artista ? `<p style="color: var(--lime); font-weight: 700; margin-bottom: 2px;">${ev.artista}</p>` : ''}
-                <span style="display: block; color: #69d9ff; font-weight: 700; font-size: 9px; text-shadow: 0 1px 3px rgba(0,0,0,0.9); margin-top: 4px; text-transform: uppercase;">${formatShortDate(ev.date)} · ${(ev.location || 'SÃO PAULO')}</span>
+                ${ev.artista ? `<p class="carousel-slide-artist">${ev.artista}</p>` : ''}
+                <span>${formatShortDate(ev.date)} · ${(ev.location || 'SÃO PAULO')}</span>
               </div>
             </div>
           </div>
@@ -255,6 +282,24 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  let touchStartX = null;
+  if (carouselContainer) {
+    carouselContainer.addEventListener('touchstart', event => {
+      touchStartX = event.changedTouches[0]?.clientX ?? null;
+    }, { passive: true });
+
+    carouselContainer.addEventListener('touchend', event => {
+      if (touchStartX === null) return;
+      const touchEndX = event.changedTouches[0]?.clientX ?? touchStartX;
+      const distance = touchEndX - touchStartX;
+      touchStartX = null;
+      if (Math.abs(distance) < 40) return;
+      if (distance < 0) nextSlide();
+      else prevSlide();
+      resetAutoPlay();
+    }, { passive: true });
+  }
+
   // ===== GRADE DE EVENTOS =====
   const eventGrid = document.getElementById('event-grid');
   const regionFilter = document.getElementById('region-filter');
@@ -264,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!eventGrid) return;
 
     if (!events.length) {
-      eventGrid.innerHTML = '<p class="empty-state" style="grid-column: 1 / -1; text-align: center; color: var(--muted);">Nenhum evento encontrado.</p>';
+      eventGrid.innerHTML = '<p class="empty-state event-grid-empty">Nenhum evento encontrado.</p>';
       return;
     }
 
@@ -272,14 +317,15 @@ document.addEventListener('DOMContentLoaded', () => {
       <article class="event-card" data-id="${ev.id}">
         <img src="${resolveEventCover(ev)}" alt="${ev.name || 'Evento'}">
         <div class="event-card-body">
-          <div style="margin-top: 12px;">
-            <p class="eyebrow" style="margin-bottom: 6px;">${formatShortDate(ev.date)} · ${ev.location || 'Local a definir'}</p>
+          <div class="event-card-copy">
+            <p class="eyebrow">${formatShortDate(ev.date)} · ${ev.location || 'Local a definir'}</p>
             <h3>${ev.name || 'Evento'}</h3>
-            ${ev.artista ? `<p style="color: #00d2ff; font-weight: 700; font-size: 0.85rem; margin: -4px 0 8px 0;">${ev.artista}</p>` : ''}
+            ${ev.artista ? `<p class="event-artist">${ev.artista}</p>` : ''}
             <p class="event-meta">Ingressos nominais e verificados</p>
           </div>
-          <div class="event-card-foot" style="justify-content: flex-end;">
-            <button type="button" class="card-button" data-buy="${ev.id}">Garantir ↗</button>
+          <div class="event-card-foot">
+            ${formatCurrency(getCheapestEventPrice(ev)) ? `<span class="price">A partir de ${formatCurrency(getCheapestEventPrice(ev))}</span>` : ''}
+            <button type="button" class="card-button" data-buy="${ev.id}">Comprar</button>
           </div>
         </div>
       </article>

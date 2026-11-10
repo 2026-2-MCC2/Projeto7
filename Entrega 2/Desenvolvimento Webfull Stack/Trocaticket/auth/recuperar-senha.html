@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redefinir senha | TrocaTicket</title>
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="../pages.css">
+</head>
+<body class="auth-login-page password-recovery-page">
+    <header class="site-header">
+        <a class="brand" href="../index.html">
+            <img class="brand-logo" src="../imagens/logo troca ticket.png" alt="TrocaTicket">
+            <span>Troca<span class="brand-accent">Ticket</span></span>
+        </a>
+    </header>
+    <main class="login-page-container">
+        <section class="login-card recovery-card" aria-labelledby="recovery-title">
+            <div class="divider-container">
+                <div class="divider-line"></div>
+                <span class="divider-text" id="recovery-step">RECUPERAÇÃO DE SENHA</span>
+                <div class="divider-line"></div>
+            </div>
+            <h1 id="recovery-title">Esqueceu sua senha?</h1>
+            <p class="recovery-description" id="recovery-description">Informe seu e-mail para receber um código de 6 dígitos.</p>
+            <form id="recovery-form" novalidate>
+                <div class="input-group recovery-panel" data-panel="email">
+                    <input type="email" id="recovery-email" class="input-control" placeholder="E-mail cadastrado" required autocomplete="email">
+                </div>
+                <div class="recovery-panel" data-panel="code" hidden>
+                    <div class="otp-fields" role="group" aria-label="Código de verificação">
+                        <input class="otp-input" inputmode="numeric" maxlength="1" autocomplete="one-time-code" aria-label="Primeiro dígito">
+                        <input class="otp-input" inputmode="numeric" maxlength="1" aria-label="Segundo dígito">
+                        <input class="otp-input" inputmode="numeric" maxlength="1" aria-label="Terceiro dígito">
+                        <input class="otp-input" inputmode="numeric" maxlength="1" aria-label="Quarto dígito">
+                        <input class="otp-input" inputmode="numeric" maxlength="1" aria-label="Quinto dígito">
+                        <input class="otp-input" inputmode="numeric" maxlength="1" aria-label="Sexto dígito">
+                    </div>
+                    <button type="button" class="resend-code" id="resend-code" disabled>Reenviar código (60s)</button>
+                </div>
+                <div class="recovery-panel password-fields" data-panel="password" hidden>
+                    <div class="password-input-group">
+                        <input type="password" id="new-password" class="input-control" placeholder="Nova senha" required autocomplete="new-password">
+                        <button type="button" class="btn-toggle-eye" data-toggle-password aria-label="Mostrar senha">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle><path class="eye-slash" d="m3 3 18 18"></path>
+                        </button>
+                    </div>
+                    <div class="password-input-group">
+                        <input type="password" id="confirm-password" class="input-control" placeholder="Confirmar nova senha" required autocomplete="new-password">
+                        <button type="button" class="btn-toggle-eye" data-toggle-password aria-label="Mostrar senha">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle><path class="eye-slash" d="m3 3 18 18"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <p class="login-error-msg" id="recovery-message" role="alert"></p>
+                <button type="submit" class="btn-login-submit" id="recovery-submit">ENVIAR CÓDIGO</button>
+            </form>
+            <div class="register-footer"><a href="login.html">Voltar para o login</a></div>
+        </section>
+    </main>
+    <script src="recuperar-senha.js"></script>
+</body>
+</html>

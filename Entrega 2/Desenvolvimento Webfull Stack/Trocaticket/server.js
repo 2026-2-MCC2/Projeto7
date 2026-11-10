@@ -40,6 +40,7 @@ const smtpPass = String(process.env.SMTP_PASS || '').trim();
 const smtpFrom = String(process.env.SMTP_FROM || smtpUser).trim();
 
 let verificationTransporter = null;
+let passwordResetSchemaPromise;
 
 const mimeTypes = {
   '.html': 'text/html; charset=utf-8',
@@ -103,6 +104,32 @@ async function sendVerificationEmail({ to, name, code }) {
         <p>Use o código abaixo para confirmar seu cadastro:</p>
         <div style="font-size: 28px; font-weight: 700; letter-spacing: 6px; margin: 20px 0;">${code}</div>
         <p>Se você não solicitou este cadastro, pode ignorar esta mensagem.</p>
+      </div>
+    `
+  });
+
+  return { sent: true };
+}
+
+async function sendPasswordResetEmail({ to, name, code }) {
+  const transporter = getVerificationTransporter();
+
+  if (!transporter) {
+    throw new Error('SMTP não configurado para envio de recuperação de senha.');
+  }
+
+  await transporter.sendMail({
+    from: smtpFrom,
+    to,
+    subject: 'TrocaTicket - código para redefinir sua senha',
+    text: `Olá ${name || 'usuário'}, seu código para redefinir a senha do TrocaTicket é ${code}. Ele expira em 10 minutos.`,
+    html: `
+      <div style="font-family:Arial,sans-serif;line-height:1.5;color:#1f2937">
+        <h2>TrocaTicket</h2>
+        <p>Olá ${escapeHtml(name || 'usuário')},</p>
+        <p>Use este código para redefinir sua senha:</p>
+        <div style="font-size:28px;font-weight:700;letter-spacing:6px;margin:20px 0">${code}</div>
+        <p>O código expira em 10 minutos. Se você não solicitou a redefinição, ignore este e-mail.</p>
       </div>
     `
   });
@@ -594,6 +621,31 @@ let resaleSchemaPromise;
 const DEFAULT_ADMINISTRATION_FEE_PERCENT = 14;
 let supplierSchemaPromise;
 const eventCreationRequests = new Map();
+function ensurePasswordResetSchema() {
+  if (!passwordResetSchemaPromise) {
+    passwordResetSchemaPromise = db.query(`
+      IF OBJECT_ID(N'dbo.password_reset_tokens', N'U') IS NULL
+      BEGIN
+        CREATE TABLE dbo.password_reset_tokens (
+          id bigint IDENTITY(1,1) NOT NULL CONSTRAINT pk_password_reset_tokens PRIMARY KEY,
+          usuario_id int NOT NULL,
+          email varchar(160) NOT NULL,
+          codigo_hash varchar(64) NOT NULL,
+          token_hash varchar(64) NULL,
+          expira_em datetime2(0) NOT NULL,
+          verificado_em datetime2(0) NULL,
+          criado_em datetime2(0) NOT NULL CONSTRAINT df_password_reset_tokens_criado DEFAULT SYSUTCDATETIME()
+        );
+        CREATE INDEX ix_password_reset_tokens_email ON dbo.password_reset_tokens (email, expira_em);
+      END;
+    `).catch(error => {
+      passwordResetSchemaPromise = undefined;
+      throw error;
+    });
+  }
+  return passwordResetSchemaPromise;
+}
+
 function ensureSupplierSchema() {
   if (!supplierSchemaPromise) {
     supplierSchemaPromise = (async () => {
@@ -1143,6 +1195,9 @@ async function auditGenericRequest(request, url) {
 
 function shouldSkipGenericAudit(pathname) {
   return [
+    /^\/api\/auth\/recuperar-senha$/,
+    /^\/api\/auth\/validar-codigo-reset$/,
+    /^\/api\/auth\/redefinir-senha$/,
     /^\/api\/events(?:\/\d+)?$/,
     /^\/api\/ingressos\/comprar$/,
     /^\/api\/admin\/users\/\d+$/,
@@ -1342,6 +1397,130 @@ async function handler(request, response) {
     } catch (error) {
       console.error('[auth] Erro no login:', error.message);
       return send(response, 500, { ok: false, message: 'Não foi possível realizar o login.' });
+    }
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/auth/recuperar-senha') {
+    try {
+      await ensurePasswordResetSchema();
+      const body = await parseBody(request);
+      const email = normalizeEmail(body.email);
+      if (!/^\S+@\S+\.\S+$/.test(email)) {
+        return send(response, 400, { ok: false, message: 'Informe um e-mail válido.' });
+      }
+
+      const [users] = await db.query(
+        'SELECT TOP (1) id, nome, email FROM dbo.usuarios WHERE email = ? AND status <> ?',
+        [email, 'excluida']
+      );
+      if (users.length) {
+        const [recent] = await db.query(
+          `SELECT TOP (1) id FROM dbo.password_reset_tokens
+           WHERE email = ? AND criado_em > DATEADD(SECOND, ?, SYSUTCDATETIME())
+           ORDER BY criado_em DESC`,
+          [email, -60]
+        );
+        if (recent.length) {
+          const [[latest]] = await db.query(
+            'SELECT DATEDIFF(SECOND, SYSUTCDATETIME(), DATEADD(SECOND, 60, criado_em)) AS retry_after FROM dbo.password_reset_tokens WHERE id = ?',
+            [recent[0].id]
+          );
+          return send(response, 429, {
+            ok: false,
+            retry_after: Math.max(1, Number(latest?.retry_after || 60)),
+            message: 'Um código já foi enviado. Aguarde o tempo indicado para solicitar outro.'
+          });
+        }
+
+        const code = String(crypto.randomInt(100000, 1000000));
+        const codeHash = crypto.createHash('sha256').update(code).digest('hex');
+        await sendPasswordResetEmail({ to: email, name: users[0].nome, code });
+        await db.query('DELETE FROM dbo.password_reset_tokens WHERE email = ?', [email]);
+        await db.query(
+          `INSERT INTO dbo.password_reset_tokens (usuario_id, email, codigo_hash, expira_em)
+           VALUES (?, ?, ?, DATEADD(MINUTE, ?, SYSUTCDATETIME()))`,
+          [users[0].id, email, codeHash, 10]
+        );
+      }
+
+      return send(response, 200, {
+        ok: true,
+        message: 'Se o e-mail estiver cadastrado, enviaremos um código de 6 dígitos.'
+      });
+    } catch (error) {
+      console.error('[auth] Erro ao solicitar redefinição:', error.message);
+      return send(response, 502, { ok: false, message: 'Não foi possível enviar o código para este e-mail. Verifique a configuração SMTP do servidor.' });
+    }
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/auth/validar-codigo-reset') {
+    try {
+      await ensurePasswordResetSchema();
+      const body = await parseBody(request);
+      const email = normalizeEmail(body.email);
+      const code = String(body.codigo || '').trim();
+      if (!/^\S+@\S+\.\S+$/.test(email) || !/^\d{6}$/.test(code)) {
+        return send(response, 400, { ok: false, message: 'Informe o e-mail e o código de 6 dígitos.' });
+      }
+
+      const [rows] = await db.query(
+        `SELECT TOP (1) id, codigo_hash FROM dbo.password_reset_tokens
+         WHERE email = ? AND expira_em > SYSUTCDATETIME() AND verificado_em IS NULL
+         ORDER BY criado_em DESC`,
+        [email]
+      );
+      const codeHash = crypto.createHash('sha256').update(code).digest('hex');
+      if (!rows.length || !safeHashEqual(rows[0].codigo_hash, codeHash)) {
+        return send(response, 400, { ok: false, message: 'Código inválido ou expirado.' });
+      }
+
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+      await db.query(
+        `UPDATE dbo.password_reset_tokens
+         SET token_hash = ?, verificado_em = SYSUTCDATETIME()
+         WHERE id = ?`,
+        [tokenHash, rows[0].id]
+      );
+      return send(response, 200, { ok: true, reset_token: resetToken });
+    } catch (error) {
+      console.error('[auth] Erro ao validar código de redefinição:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível validar o código.' });
+    }
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/auth/redefinir-senha') {
+    try {
+      await ensurePasswordResetSchema();
+      const body = await parseBody(request);
+      const email = normalizeEmail(body.email);
+      const resetToken = String(body.reset_token || '');
+      const password = String(body.nova_senha || '');
+      if (!/^\S+@\S+\.\S+$/.test(email) || !resetToken) {
+        return send(response, 400, { ok: false, message: 'Dados de redefinição inválidos.' });
+      }
+      if (!password) {
+        return send(response, 400, { ok: false, message: 'Informe a nova senha.' });
+      }
+
+      const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+      const [rows] = await db.query(
+        `SELECT TOP (1) id, usuario_id FROM dbo.password_reset_tokens
+         WHERE email = ? AND token_hash = ? AND expira_em > SYSUTCDATETIME() AND verificado_em IS NOT NULL
+         ORDER BY criado_em DESC`,
+        [email, tokenHash]
+      );
+      if (!rows.length) {
+        return send(response, 400, { ok: false, message: 'Solicitação inválida ou expirada.' });
+      }
+
+      const passwordHash = await bcrypt.hash(password, 10);
+      await db.query('UPDATE dbo.usuarios SET senha_hash = ? WHERE id = ? AND email = ?', [passwordHash, rows[0].usuario_id, email]);
+      await db.query('DELETE FROM dbo.password_reset_tokens WHERE id = ?', [rows[0].id]);
+      return send(response, 200, { ok: true, message: 'Senha redefinida com sucesso.' });
+    } catch (error) {
+      console.error('[auth] Erro ao redefinir senha:', error.message);
+      return send(response, 500, { ok: false, message: 'Não foi possível redefinir a senha.' });
     }
   }
 

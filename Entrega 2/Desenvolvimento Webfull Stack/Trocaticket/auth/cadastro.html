@@ -35,8 +35,18 @@
                     </select>
                     <input required name="celular" type="tel" placeholder="Celular">
                     <input required name="email" type="email" placeholder="E-mail">
-                    <input required name="senha" type="password" minlength="6" placeholder="Senha">
-                    <input required name="confirmarSenha" type="password" minlength="6" placeholder="Confirme a senha">
+                    <div class="password-input-group">
+                        <input required name="senha" type="password" minlength="6" placeholder="Senha">
+                        <button type="button" class="btn-toggle-eye" data-toggle-password aria-label="Mostrar senha">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle><path class="eye-slash" d="m3 3 18 18"></path></svg>
+                        </button>
+                    </div>
+                    <div class="password-input-group">
+                        <input required name="confirmarSenha" type="password" minlength="6" placeholder="Confirme a senha">
+                        <button type="button" class="btn-toggle-eye" data-toggle-password aria-label="Mostrar senha">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle><path class="eye-slash" d="m3 3 18 18"></path></svg>
+                        </button>
+                    </div>
                     <p class="page-message" id="page-message"></p>
                     <button class="button button-primary button-full login-submit" type="submit">Cadastrar</button>
                 </form>
@@ -44,7 +54,9 @@
                 <p class="form-foot login-register"><a href="login.html">Voltar para o login</a></p>
             </div>
             <div id="register-success" class="register-success" hidden>
-                <div class="success-icon">✓</div>
+                <div class="success-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"></path></svg>
+                </div>
                 <h2>Cadastro concluído</h2>
                 <p>Redirecionando para o início...</p>
             </div>
