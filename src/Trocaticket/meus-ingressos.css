@@ -298,6 +298,26 @@ body.page-body {
   font-size: 0.82rem;
   color: #fff;
 }
+
+@media (max-width: 480px) {
+  .ticket-order-card {
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .ticket-card-thumb {
+    width: 84px;
+    height: 64px;
+  }
+
+  .ticket-card-title {
+    font-size: 1rem;
+  }
+
+  .ticket-details-box {
+    grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  }
+}
 .orders-skeleton {
   display: grid;
   gap: 14px;

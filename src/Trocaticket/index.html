@@ -71,13 +71,17 @@
             <div class="carousel-heading">
                 <div>
                     <p class="eyebrow">Acontece por aqui</p>
-                    <h2>Encontre seu próximo evento</h2>
+                    <h2>Em destaque</h2>
                 </div>
             </div>
             <div class="carousel-stage">
-                <button class="carousel-button carousel-button-prev" id="carousel-prev" type="button" aria-label="Evento anterior">←</button>
+                <button class="carousel-button carousel-button-prev" id="carousel-prev" type="button" aria-label="Evento anterior">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"></path></svg>
+                </button>
                 <div class="event-carousel" id="event-carousel"></div>
-                <button class="carousel-button carousel-button-next" id="carousel-next" type="button" aria-label="Próximo evento">→</button>
+                <button class="carousel-button carousel-button-next" id="carousel-next" type="button" aria-label="Próximo evento">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"></path></svg>
+                </button>
             </div>
             <div class="carousel-dots" id="carousel-dots" aria-label="Selecionar evento"></div>
         </section>
@@ -86,7 +90,7 @@
             <div class="section-heading">
                 <div>
                     <p class="eyebrow">Escolha seu próximo rolê</p>
-                    <h2>Eventos em destaque</h2>
+                    <h2>Próximos eventos</h2>
                 </div>
                 <label class="select-wrap">Região 
                     <select id="region-filter">
@@ -109,14 +113,14 @@
             </div>
         </section>
 
-        <section class="section-wrap" id="not-found" style="display: none; text-align: center; padding: 80px 20px;">
-            <div class="not-found-container" style="max-width: 500px; margin: 0 auto;">
-                <p class="eyebrow" style="color: #e74c3c;">Erro 404</p>
-                <h1 style="font-size: 2.5rem; margin: 10px 0;">Página não encontrada</h1>
-                <p class="hero-text" style="margin-bottom: 30px;">
+        <section class="section-wrap not-found-section" id="not-found">
+            <div class="not-found-container">
+                <p class="eyebrow not-found-eyebrow">Erro 404</p>
+                <h1>Página não encontrada</h1>
+                <p class="hero-text">
                     Ops! A rota que você tentou acessar não existe ou foi movida.
                 </p>
-                <a class="button button-primary" href="#inicio">Voltar ao início <span>↗</span></a>
+                <a class="button button-primary" href="#inicio">Voltar ao início</a>
             </div>
         </section>
     </main>
@@ -126,7 +130,11 @@
             <img class="brand-logo" src="imagens/logo troca ticket.png" alt="TrocaTicket">
             <span>Troca<span class="brand-accent">Ticket</span></span>
         </a>
-        <span>Seu fluxo de ingressos começa aqui.</span>
+        <nav class="footer-links" aria-label="Links úteis">
+            <a href="info/ajuda.html">Central de ajuda</a>
+            <a href="sobre-a-plataforma.html">Sobre a plataforma</a>
+            <a href="como-funciona-a-revenda.html">Como funciona a revenda</a>
+        </nav>
         <span>© 2026 TrocaTicket</span>
     </footer>
 

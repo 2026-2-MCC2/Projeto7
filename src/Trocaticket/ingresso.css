@@ -93,6 +93,14 @@ body.ticket-page-body {
   transform-origin: top center;
 }
 
+@media (max-width: 700px) {
+  .ticket-page-container {
+    max-width: 420px;
+    padding: 0 14px;
+    transform: none;
+  }
+}
+
 .ticket-card-wrapper {
   position: relative;
   background: var(--ticket-dark);
