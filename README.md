@@ -1,103 +1,94 @@
 # TrocaTicket
 
-Plataforma do grupo GJPSV para compra, transferência e revenda segura de ingressos.
-O projeto busca reduzir golpes e cambismo, mantendo o ingresso associado a fluxos
-de usuário, evento e transferência verificáveis.
+Plataforma do Projeto7 para compra, transferência e revenda segura de
+ingressos. O projeto reduz golpes e cambismo ao manter o ingresso associado a
+fluxos verificáveis de usuário, evento e transferência.
 
 ## Site publicado
 
-Link: _______________________________________________
+[Acessar o TrocaTicket](https://projeto7-six.vercel.app)
 
-## Como rodar
+## Tecnologias
 
-Requisitos: Node.js conforme `.nvmrc` e acesso ao banco configurado.
+- Node.js com servidor HTTP e API REST
+- Frontend React/Vite
+- SQL Server/Azure SQL
+- Vercel para hospedagem
+- Vercel Blob para uploads em produção
+- SMTP para envio de e-mails
+- Google Wallet para ingressos digitais
+
+## Como executar localmente
+
+### Requisitos
+
+- Node.js em versão LTS
+- npm
+- Banco SQL Server acessível, local ou Azure
+
+### Instalação
+
+Na raiz do repositório, instale as dependências dos workspaces:
 
 ```powershell
 npm install
 Copy-Item src/Trocaticket/.env.example src/Trocaticket/.env
-# Edite src/Trocaticket/.env com os valores do ambiente
+```
+
+Edite [`src/Trocaticket/.env`](src/Trocaticket/.env) com os valores do ambiente.
+O arquivo `.env.example` é apenas um modelo e não é carregado pela aplicação.
+Nunca publique o `.env`, pois ele pode conter senhas, chaves e tokens.
+
+Para iniciar o ambiente de desenvolvimento (API e frontend):
+
+```powershell
 npm run dev
 ```
 
-O site Node fica em `http://localhost:3000` e o React em
-`http://localhost:5173/app/`.
+O servidor Node fica em `http://localhost:3000`. O frontend Vite fica em
+`http://localhost:5173/app/` quando executado separadamente pelo frontend.
+
+### Comandos
+
+Execute os comandos abaixo na raiz do repositório:
 
 | Comando | Finalidade |
 |---|---|
-| `npm run dev` | Inicia API/site Node e frontend React |
-| `npm run build` | Gera o frontend em `src/Trocaticket/public/app` |
-| `npm start` | Inicia somente o servidor Node |
+| `npm run dev` | Inicia o servidor Node em modo de desenvolvimento |
+| `npm start` | Inicia o servidor Node |
 | `npm test` | Executa os testes automatizados |
-| `npm run db:setup -- --dry-run` | Mostra os batches do banco sem conectar |
+| `npm run db:setup -- --dry-run` | Exibe os batches do banco sem conectar |
 | `npm run db:setup` | Prepara um banco vazio após as confirmações de segurança |
-| `npm run db:migrate-revenda -- --dry-run` | Mostra o plano do índice de revenda sem conectar |
+| `npm run db:migrate-revenda -- --dry-run` | Exibe o plano da migração sem conectar |
+| `npm run db:migrate-revenda` | Executa a migração do índice de revenda após confirmação |
 
-O `db:setup` recusa bancos que já tenham tabelas do schema. Em host Azure, o
-`seed.sql` não é executado por padrão.
+O `db:setup` recusa bancos que já tenham tabelas do schema. Em um banco Azure,
+o seed não é executado por padrão. A migração de revenda nunca é executada
+automaticamente pelo servidor.
 
-`db:migrate-revenda` é uma migração deliberada para trocar a unicidade global
-de anúncios pela regra de um único anúncio `disponivel` por ingresso. O
-`--dry-run` não conecta ao banco; sem essa opção, em Azure o script mostra o
-host e o banco e exige a confirmação digitada do `DB_NAME`. Ele nunca é
-executado automaticamente pelo servidor.
+## Frontend
 
-Enquanto o usuário tiver um anúncio de revenda ativo (`disponivel`) no mesmo
-setor e modalidade, ele não pode comprar outro ingresso dessa combinação. Essa
-regra evita que o vendedor compre o próprio anúncio e responde `409`; ela não
-faz a compra cair no lote primário.
+O frontend React/Vite está em [`src/Trocaticket/frontend`](src/Trocaticket/frontend).
+Para executá-lo diretamente com hot reload, abra um terminal:
 
-## Segurança e autorização
-
-As sessões usam um token assinado pelo servidor, com validade de 12 horas. As
-rotas protegidas verificam a assinatura, a expiração e o usuário atual no banco;
-quando a rota depende de titularidade, o e-mail informado é comparado com o
-e-mail atual desse usuário no banco, e não apenas com um valor antigo do token.
-O navegador envia a sessão somente no cabeçalho `Authorization: Bearer`; não
-há autenticação por cookie.
-
-As rotas públicas de propósito são:
-
-- login, cadastro e verificação de código;
-- `GET /api/events`, `GET /api/events/:id` e `GET /api/events/:id/imagem`;
-- `GET /api/revenda/fila`;
-- `GET /transferencia/aceitar` e `GET /api/ingressos/confirmar-transferencia`.
-
-Os papéis usados pelo servidor são:
-
-- `comum`: perfil, cartões, ingressos, compra e ações próprias de revenda;
-- `organizador`: painel de eventos, demandas, cotações, documentos e chat de
-  organização;
-- `fornecedor`: perfil da empresa, documentos, oportunidades, propostas e chat
-  de fornecedor;
-- `bilheteria`: validação, check-in e operações de ingressos;
-- `admin`: administração de usuários, eventos, revenda, estatísticas, logs e
-  operações administrativas.
-
-O servidor confere o papel e o status ativo antes das operações protegidas.
-Rotas de usuário exigem que o recurso pertença ao usuário da sessão. As
-operações administrativas e operacionais não devem usar identidade enviada
-somente pelo navegador.
-
-## Estrutura
-
-```text
-.
-├── api/                       # Entrada da função Vercel
-├── scripts/                   # Scripts auxiliares da raiz
-├── sql/                       # Schema e seed do banco
-├── src/Trocaticket/
-│   ├── account/, auth/, events/, info/, operations/  # Páginas legadas
-│   ├── public/                # Assets compilados e uploads
-│   ├── frontend/              # Aplicação React/Vite
-│   ├── server.js              # API e servidor de arquivos
-│   ├── db.js                  # Acesso ao SQL Server
-│   ├── armazenamento.js       # Blob/local para uploads
-│   └── scripts/db-setup.js    # Preparação segura do banco
-├── package.json               # Comandos e workspaces
-└── vercel.json                # Deploy
+```powershell
+Set-Location src/Trocaticket/frontend
+npm run dev
 ```
 
+Para gerar os arquivos usados pelo servidor Node:
+
+```powershell
+npm run build
+```
+
+O build é gerado em `src/Trocaticket/public/app`. As páginas legadas continuam
+sendo atendidas pelo servidor durante a migração.
+
 ## Variáveis de ambiente
+
+Copie [`.env.example`](src/Trocaticket/.env.example) para `.env` e preencha os
+valores necessários:
 
 | Variável | Uso |
 |---|---|
@@ -105,75 +96,89 @@ somente pelo navegador.
 | `DB_ENCRYPT`, `DB_TRUST_SERVER_CERTIFICATE`, `DB_CONNECTION_LIMIT` | Opções da conexão |
 | `TROCATICKET_SESSION_SECRET` | Segredo das sessões; obrigatório na Vercel |
 | `TROCATICKET_PUBLIC_URL` | URL pública usada em links e e-mails |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | Envio de e-mails |
-| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_PRIVATE_KEY`, `GOOGLE_CLIENT_EMAIL` | Integração Google |
-| `BLOB_READ_WRITE_TOKEN` | Armazenamento de uploads na Vercel Blob |
-| `PORT` | Porta local do servidor |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | Envio de e-mails; opcional no desenvolvimento |
+| `GOOGLE_ISSUER_ID`, `GOOGLE_WALLET_CLASS_ID` | Configuração do Google Wallet |
+| `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PRIVATE_KEY` | Credenciais do Google Wallet |
+| `BLOB_READ_WRITE_TOKEN` | Uploads na Vercel Blob; obrigatório na Vercel |
+| `PORT` | Porta local do servidor; padrão `3000` |
 
-## Publicar na Vercel
+## Banco de dados
 
-Antes de abrir o banco para a Internet, troque a senha do Azure SQL por uma
-senha longa e exclusiva.
+Os scripts de banco estão em [`src/Trocaticket`](src/Trocaticket), incluindo o
+schema [`trocaticket-azure.sql`](src/Trocaticket/trocaticket-azure.sql).
 
-1. **Fase 5.1 — Firewall:** no Azure SQL, libere o acesso necessário para a
-   Vercel e mantenha somente regras indispensáveis.
-2. **Fase 5.2 — Repositório:** importe `2026-2-MCC2/Projeto7` em
+Antes de abrir o banco para a Internet:
+
+1. Use uma senha longa e exclusiva no Azure SQL.
+2. Libere somente o acesso necessário no firewall.
+3. Configure as variáveis de banco no ambiente de execução.
+4. Execute primeiro os comandos com `--dry-run`.
+
+## Publicação na Vercel
+
+O projeto publicado é [projeto7-six.vercel.app](https://projeto7-six.vercel.app).
+Para configurar um novo deploy:
+
+1. Importe o repositório `2026-2-MCC2/Projeto7` em
    [vercel.com/new](https://vercel.com/new), usando a raiz do repositório.
-3. **Fase 5.3 — Variáveis:** cadastre na Vercel as variáveis listadas acima,
-   com os valores do ambiente de produção. Nunca publique `.env`.
-4. **Fase 5.4 — Blob e região:** crie uma Blob Store, configure
-   `BLOB_READ_WRITE_TOKEN` e selecione a região `gru1` quando disponível.
-   Uploads novos usam URL pública do Blob.
-5. **Fase 5.5 — Validação:** confirme build, páginas públicas, login, compra,
-   transferência, revenda, e-mails, QR Code, Google Wallet e os GETs da API.
-   Pushes na branch configurada do GitHub geram deploys automáticos.
+2. Configure na Vercel as variáveis de ambiente de produção.
+3. Defina `TROCATICKET_PUBLIC_URL` como a URL pública do projeto.
+4. Configure `TROCATICKET_SESSION_SECRET` e
+   `BLOB_READ_WRITE_TOKEN`; ambos são obrigatórios na Vercel.
+5. Configure o acesso do banco Azure SQL e o firewall.
+6. Valide login, compra, transferência, revenda, e-mails, QR Code e uploads.
 
-O domínio gratuito `.vercel.app` é fornecido pela Vercel. Um domínio próprio
-deve ser comprado em um registrador e adicionado em **Project > Settings >
-Domains**.
+Nunca faça commit de `.env` ou de qualquer credencial. O `.env.example` deve
+conter somente nomes e valores de exemplo.
+
+## Segurança e autorização
+
+As sessões usam tokens assinados pelo servidor, com validade de 12 horas. As
+rotas protegidas verificam assinatura, expiração, usuário e permissões. Os
+papéis disponíveis são:
+
+- `comum`: perfil, cartões, ingressos, compras e revenda;
+- `organizador`: eventos, demandas, cotações, documentos e chat;
+- `fornecedor`: perfil, documentos, oportunidades, propostas e chat;
+- `bilheteria`: validação, check-in e operações de ingressos;
+- `admin`: usuários, eventos, revenda, estatísticas, logs e operações administrativas.
+
+O navegador envia a sessão pelo cabeçalho `Authorization: Bearer`; não há
+autenticação por cookie.
+
+## Estrutura principal
+
+```text
+.
+├── api/                       # Entrada da função Vercel
+├── scripts/                   # Diretório reservado para scripts auxiliares
+├── src/Trocaticket/
+│   ├── frontend/              # Aplicação React/Vite
+│   ├── public/                # Build do frontend e arquivos públicos
+│   ├── server.js              # API e servidor de arquivos
+│   ├── db.js                  # Acesso ao SQL Server
+│   ├── armazenamento.js       # Armazenamento local/Vercel Blob
+│   ├── scripts/               # Scripts de banco
+│   └── trocaticket-azure.sql  # Schema do banco Azure SQL
+├── .gitignore
+└── vercel.json
+```
 
 ## Limitações conhecidas
 
-- Respostas de funções da Vercel são limitadas a 4,5 MB.
-- Uploads novos vão para o Blob e usam URL pública.
-- Anexos antigos de chat, avatares e documentos de fornecedor que existem
-  somente no disco local não existem automaticamente na Vercel.
-- `seed.sql` é somente para banco local; a senha de desenvolvimento está
-  documentada apenas no comentário do topo desse arquivo.
-- `db:setup` recusa tabelas existentes e, no Azure, não roda o seed por padrão.
-- `dbo.cancelamentos` é opcional e só é consultada pelo servidor se existir.
+- Funções da Vercel têm limite de resposta de 4,5 MB.
+- Uploads novos usam URL pública do Vercel Blob.
+- Arquivos antigos armazenados somente no disco local não são migrados
+  automaticamente para a Vercel.
 - Não há limite de tentativas de login ou de verificação de código.
-- Ainda não há verificação de vínculo entre organizador e evento; um organizador
-  autenticado pode editar o evento de outro organizador.
-- O hash de cartão é SHA-256 combinado com o id do usuário; use somente cartões
-  de teste, nunca dados reais.
-- Anexos e documentos enviados ao Blob usam URL pública.
-- Arquivos já emitidos como Google Wallet ou download offline não são revogados
+- O vínculo entre organizador e evento ainda precisa ser endurecido.
+- O hash de cartão usa SHA-256 combinado ao id do usuário; utilize somente
+  cartões de teste.
+- Arquivos emitidos para Google Wallet ou download offline não são revogados
   automaticamente quando o ingresso entra em revenda.
 - A sessão expira em 12 horas.
-- O painel de administração altera tipo e status por caixas de diálogo e aceita
-  somente as palavras exatas (`admin`, `comum`, `organizador`, `fornecedor`,
-  `bilheteria`, `ativa` ou `suspensa`).
-- `GET /api/usuario/meus-ingressos` ainda compara o e-mail solicitado com o
-  claim do token; a conferência com o e-mail atual do banco deve ser endurecida
-  em uma etapa futura.
-
-## Documentação legada
-
-Os documentos abaixo foram mantidos sem apagar ou mover arquivos:
-
-| Documento | Situação encontrada | Proposta |
-|---|---|---|
-| `START_HERE.txt` | Caminho local antigo, `node server.js` e senhas de exemplo | Manter como histórico ou atualizar depois |
-| `SETUP_GUIDE.md` | Comandos antigos, `ADMIN_PASSWORD`, porta 8080 e senhas de exemplo | Substituir por este README |
-| `SUMMARY.md` | `node server.js` e fluxo anterior | Manter como histórico |
-| `QUICK_REFERENCE.md` | `node server.js` e configuração administrativa antiga | Atualizar em revisão futura |
-| `README_ADMIN.txt` | Senhas padrão e comandos antigos | Atualizar antes de uso operacional |
-| `ADMIN_GUIDE.md` | `ADMIN_PASSWORD` e senha padrão `admin123` | Atualizar para o fluxo atual |
-| `HTTP_EXAMPLES.md` | Exemplos com `node server.js` e senha de exemplo | Atualizar endpoints e autenticação |
-| `FLOW_DIAGRAMS.md` | Diagrama usa o comando antigo | Atualizar diagrama |
-| `SECURITY_CHECKLIST.md` | Exemplos de senha e instruções administrativas antigas | Revisar com o modelo atual |
 
 ## Contribuição
 
-Consulte [CONTRIBUTING.md](CONTRIBUTING.md).
+Propostas de melhoria devem incluir uma descrição clara da alteração e, quando
+possível, testes ou instruções para reproduzi-la.

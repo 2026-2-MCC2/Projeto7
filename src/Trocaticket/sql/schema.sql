@@ -42,6 +42,22 @@ CREATE TABLE [dbo].[usuarios] (
 );
 GO
 
+CREATE TABLE [dbo].[password_reset_tokens] (
+    [id] bigint IDENTITY(1,1) NOT NULL,
+    [usuario_id] int NOT NULL,
+    [email] varchar(160) NOT NULL,
+    [codigo_hash] varchar(64) NOT NULL,
+    [token_hash] varchar(64) NULL,
+    [expira_em] datetime2(0) NOT NULL,
+    [verificado_em] datetime2(0) NULL,
+    [criado_em] datetime2(0) NOT NULL CONSTRAINT [df_password_reset_tokens_criado] DEFAULT (sysutcdatetime()),
+    CONSTRAINT [pk_password_reset_tokens] PRIMARY KEY CLUSTERED ([id] ASC)
+);
+GO
+
+CREATE INDEX [ix_password_reset_tokens_email] ON [dbo].[password_reset_tokens] ([email], [expira_em]);
+GO
+
 CREATE TABLE [dbo].[eventos] (
     [id] int IDENTITY(1,1) NOT NULL,
     [organizador_id] int NULL,

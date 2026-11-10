@@ -5,6 +5,20 @@ const verificationStep = document.getElementById('verification-step');
 const verificationForm = document.getElementById('verification-form');
 let verificationEmail = '';
 
+document.querySelectorAll('[data-toggle-password]').forEach(button => {
+  button.addEventListener('click', () => {
+    const form = button.closest('form');
+    const inputs = [...form.querySelectorAll('input[type="password"], input[type="text"]')]
+      .filter(input => input.name === 'senha' || input.name === 'confirmarSenha');
+    const visible = inputs.some(input => input.type === 'password');
+    inputs.forEach(input => { input.type = visible ? 'text' : 'password'; });
+    form.querySelectorAll('[data-toggle-password]').forEach(toggle => {
+      toggle.classList.toggle('is-visible', visible);
+      toggle.setAttribute('aria-label', visible ? 'Ocultar senhas' : 'Mostrar senhas');
+    });
+  });
+});
+
 function showMessage(text) {
   const target = verificationStep.hidden ? message : verificationMessage;
   target.textContent = text;

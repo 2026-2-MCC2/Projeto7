@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!Object.keys(groups).length) { elements.sectors.innerHTML = '<p class="loading-state">Ingressos esgotados.</p>'; return; }
     elements.sectors.innerHTML = Object.entries(groups).map(([sector, options], index) => `
       <article class="sector-accordion">
-        <button class="sector-trigger" type="button" aria-expanded="false"><strong>${escapeHtml(sector)}</strong><span class="sector-chevron">⌄</span></button>
+        <button class="sector-trigger" type="button" aria-expanded="false"><strong>${escapeHtml(sector)}</strong><span class="sector-chevron" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 9 7 7 7-7"></path></svg></span></button>
         <div class="sector-options">${options.map(option => `<div class="ticket-option" data-ticket="${escapeHtml(option.id)}"><div><h3>${escapeHtml(option.type)}</h3><p>${option.lotNumber}º lote</p><div class="quantity-control"><button type="button" data-minus aria-label="Diminuir quantidade">−</button><input type="number" min="0" max="${option.available}" value="0" readonly inputmode="none" aria-label="Quantidade de ${escapeHtml(option.type)}"><button type="button" data-plus aria-label="Aumentar quantidade">+</button></div></div><div class="ticket-option-price"><strong>${money(option.price)}</strong><small>por ingresso</small></div></div>`).join('')}</div>
       </article>`).join('');
     elements.sectors.querySelectorAll('.sector-trigger').forEach(trigger => trigger.addEventListener('click', () => { const accordion = trigger.closest('.sector-accordion'); const isOpen = accordion.classList.toggle('is-open'); trigger.setAttribute('aria-expanded', String(isOpen)); }));

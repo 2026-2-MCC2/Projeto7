@@ -81,7 +81,7 @@
     const backdrop = document.createElement('div');
     backdrop.className = 'rate-modal-backdrop';
     backdrop.innerHTML = `<section class="rate-modal-card" role="dialog" aria-modal="true" aria-labelledby="rate-modal-title">
-      <button type="button" class="rate-modal-close" aria-label="Fechar">×</button>
+      <button type="button" class="rate-modal-close" aria-label="Fechar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"></path></svg></button>
       <p class="eyebrow">Prioridade na fila</p><h2 id="rate-modal-title">Alterar taxa</h2>
       <p>Escolha a prioridade desejada para este anúncio.</p>
       <div class="rate-modal-options">${[['comum', 2, 'Posição base'], ['basica', 5, 'Prioridade intermediária'], ['premium', 8, 'Topo da fila']].map(([key, percent, description]) =>

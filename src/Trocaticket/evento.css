@@ -55,3 +55,65 @@ button { cursor: pointer; }
   .event-hero { height: clamp(360px, 38vw, 620px); }
   .event-cover { object-fit: cover; object-position: center; }
 }
+
+.event-back svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.event-info-icon {
+  display: grid;
+  place-items: center;
+}
+
+.event-info-icon svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.event-kicker,
+.section-label {
+  font-family: Manrope, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+.calendar-link {
+  min-height: 40px;
+  font-size: 12px;
+}
+
+.event-description {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 700px) {
+  html,
+  body {
+    overflow-x: clip;
+  }
+
+  .event-content {
+    width: calc(100% - 32px);
+  }
+
+  .event-info-card {
+    border-radius: 8px;
+  }
+
+  .purchase-bar {
+    padding: 10px 16px;
+  }
+}

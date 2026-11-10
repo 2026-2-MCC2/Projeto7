@@ -34,7 +34,7 @@
                     <h1 id="ticket-event-name">CARREGANDO...</h1>
                     <p class="ticket-artist-name" id="ticket-artist-name"></p>
                     <div class="ticket-date-row">
-                        <span class="cal-icon">📅</span>
+                        <svg class="cal-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="15" rx="1.5"></rect><path d="M8 3.5v4M16 3.5v4M4 10h16"></path></svg>
                         <span id="ticket-date-text">Data a confirmar</span>
                     </div>
                 </div>
@@ -59,7 +59,7 @@
                 <div class="ticket-digital-actions">
                     <div id="ticket-digital-actions">
                     <button type="button" class="btn-digital-action btn-offline" id="btn-offline-ticket">
-                        <span class="digital-action-icon" aria-hidden="true">&#8681;</span>
+                        <svg class="digital-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M4 20h16"></path></svg>
                         <span class="digital-action-label">Baixar para Acesso Offline (Enviar por E-mail)</span>
                     </button>
                     <button type="button" class="btn-digital-action btn-google-wallet" id="btn-google-wallet">
@@ -74,7 +74,8 @@
                         TRANSFERIR
                     </button>
                     <button type="button" class="btn-action btn-resell" id="btn-resell-ticket">
-                        🏷️ ANUNCIAR EM REVENDA
+                        <svg class="action-icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h10l6 6-9 9-7-7V5Z"></path><circle cx="9" cy="9" r="1.2"></circle></svg>
+                        ANUNCIAR EM REVENDA
                     </button>
                 </div>
                 <p class="transfer-alert" id="transfer-alert-msg"></p>
@@ -90,16 +91,16 @@
             </div>
         </div>
         <div class="ticket-carousel-nav" id="carousel-nav-container" style="display: none;">
-            <button type="button" class="carousel-nav-btn" id="btn-prev-ticket" aria-label="Ingresso anterior">‹</button>
+            <button type="button" class="carousel-nav-btn" id="btn-prev-ticket" aria-label="Ingresso anterior"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5-7 7 7 7"></path></svg></button>
             <span class="carousel-counter-info" id="carousel-counter-label">INGRESSO(S) 1 / 1</span>
-            <button type="button" class="carousel-nav-btn" id="btn-next-ticket" aria-label="Próximo ingresso">›</button>
+            <button type="button" class="carousel-nav-btn" id="btn-next-ticket" aria-label="Próximo ingresso"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 5 7 7-7 7"></path></svg></button>
         </div>
     </main>
 
     <!-- Modal para Transferência Nominal -->
     <div class="transfer-backdrop" id="transfer-dialog-backdrop" aria-hidden="true">
         <div class="transfer-dialog-box">
-            <button class="dialog-close-btn" id="btn-close-transfer-dialog">✕</button>
+            <button class="dialog-close-btn" id="btn-close-transfer-dialog" aria-label="Fechar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"></path></svg></button>
             <h3>Transferência Nominal</h3>
             <p>Atenção: A transferência direta de titularidade só pode ser feita <strong>uma única vez</strong>. O destinatário não poderá repassar para terceiros, apenas revender.</p>
             <input type="email" id="input-destinatario-email" placeholder="E-mail do novo titular" />

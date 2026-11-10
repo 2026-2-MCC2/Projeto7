@@ -168,10 +168,32 @@ body.ticket-page-body {
 }
 
 .ticket-date-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 0.82rem;
   color: #ffb86c;
   font-weight: 600;
   margin-bottom: 16px;
+}
+
+.cal-icon,
+.digital-action-icon,
+.action-icon-svg,
+.carousel-nav-btn svg,
+.dialog-close-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.digital-action-icon,
+.action-icon-svg {
+  flex: 0 0 auto;
 }
 
 /* Bloco QR Code */
@@ -508,6 +530,33 @@ body.ticket-page-body {
   border-top: 1px dashed rgba(255, 255, 255, 0.12);
 }
 
+@media (max-width: 480px) {
+  .ticket-page-container {
+    width: min(100% - 20px, 420px);
+    padding: 0;
+  }
+
+  .ticket-card-content {
+    padding: 20px 16px;
+  }
+
+  .ticket-qr-box {
+    width: min(72vw, 260px);
+    height: min(72vw, 260px);
+    margin-bottom: 22px;
+  }
+
+  .ticket-digital-actions,
+  .ticket-actions-group {
+    gap: 10px;
+  }
+
+  .ticket-metadata-footer {
+    flex-direction: column;
+    gap: 6px;
+  }
+}
+
 /* Controles de Carrossel */
 .ticket-carousel-nav {
   display: flex;
@@ -538,6 +587,11 @@ body.ticket-page-body {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.carousel-nav-btn svg {
+  width: 20px;
+  height: 20px;
 }
 
 .carousel-nav-btn:hover {
@@ -593,6 +647,14 @@ body.ticket-page-body {
   color: var(--text-muted);
   font-size: 1.1rem;
   cursor: pointer;
+}
+
+.dialog-close-btn {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 8px;
 }
 
 .transfer-dialog-box h3 {
